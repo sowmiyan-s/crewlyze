@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1">
+      <stop offset="0" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="280" rx="14" fill="url(#g)"/>
+  <g fill="#fff" font-family="Segoe UI, Roboto, Arial" font-weight="700">
+    <text x="60" y="90" font-size="36">CrewAI — Data Analyst Agent</text>
+    <text x="60" y="130" font-size="18" fill-opacity="0.95" font-weight="400">Turn messy CSVs into visualizations and insights using modular LLM-driven agents.</text>
+  </g>
+  <g transform="translate(820,40)" fill="#fff" opacity="0.12">
+    <rect width="320" height="200" rx="10" />
+  </g>
+</svg>

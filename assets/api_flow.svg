@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="260" viewBox="0 0 800 260">
+  <style>
+    .box { fill: #fff7ed; stroke:#dd6b20; stroke-width:2; rx:6; }
+    .text { font-family: Arial, sans-serif; font-size:13px; fill:#4a2f18 }
+    .arrow { stroke:#dd6b20; stroke-width:2; fill:none; marker-end: url(#arrow2);} 
+  </style>
+  <defs>
+    <marker id="arrow2" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#dd6b20" />
+    </marker>
+  </defs>
+
+  <rect x="30" y="20" width="220" height="60" class="box" />
+  <text x="140" y="50" text-anchor="middle" class="text">`crew.py` (kickoff)</text>
+
+  <rect x="280" y="20" width="220" height="60" class="box" />
+  <text x="390" y="50" text-anchor="middle" class="text">Agents (cleaner/validator/...)</text>
+
+  <rect x="530" y="20" width="220" height="60" class="box" />
+  <text x="640" y="50" text-anchor="middle" class="text">LLM API (Ollama)</text>
+
+  <line x1="250" y1="50" x2="280" y2="50" class="arrow"/>
+  <line x1="500" y1="50" x2="530" y2="50" class="arrow"/>
+
+  <rect x="280" y="110" width="470" height="120" class="box" />
+  <text x="515" y="150" text-anchor="middle" class="text">Outputs: `outputs/op.py`, `index.html`, visualizations</text>
+
+  <line x1="390" y1="80" x2="515" y2="110" class="arrow"/>
+  <text x="140" y="100" class="text">Sequence: kickoff -> agents run tasks -> LLM responses -> saved files</text>
+</svg>

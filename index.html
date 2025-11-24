@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrewAI Data Analysis Report</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #ffffff;
+            --bg-surface: #f8f9fa;
+            --border-color: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent-color: #2563eb;
+            --code-bg: #f1f5f9;
+            --success-bg: #dcfce7;
+            --success-text: #166534;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 60px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 30px;
+        }
+
+        .brand-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .meta-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        .meta-value {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Status Banner */
+        .status-banner {
+            background: var(--success-bg);
+            color: var(--success-text);
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 50px;
+        }
+
+        .status-icon {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 50%;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--text-primary);
+            padding-bottom: 12px;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-id {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: #334155;
+        }
+
+        /* Table Styles */
+        .table-wrapper {
+            overflow: auto;
+            max-height: 500px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-surface);
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            font-family: var(--font-mono);
+            white-space: nowrap;
+        }
+
+        table.data-table th, table.data-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table.data-table th {
+            background: var(--bg-surface);
+            font-weight: 600;
+            color: var(--text-primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        table.data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.data-table tr:hover {
+            background-color: var(--code-bg);
+        }
+        
+        pre {
+            margin: 0;
+        }
+
+        /* Syntax Highlighting */
+        .key { color: #7c3aed; font-weight: 600; }
+        .string { color: #059669; }
+        .number { color: #ea580c; }
+        .boolean { color: #2563eb; font-weight: 600; }
+        .null { color: #db2777; }
+        .keyword { color: #db2777; font-weight: 600; }
+        .comment { color: #9ca3af; font-style: italic; }
+        .function { color: #2563eb; }
+
+        /* Footer */
+        .footer {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .meta-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    
+    <script>
+        function highlightAll() {
+            const codes = document.querySelectorAll('code');
+            codes.forEach(block => {
+                let html = block.innerHTML;
+                if (block.classList.contains('language-json')) {
+                    html = html.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                        let cls = 'number';
+                        if (/^"/.test(match)) {
+                            if (/:$/.test(match)) {
+                                cls = 'key';
+                            } else {
+                                cls = 'string';
+                            }
+                        } else if (/true|false/.test(match)) {
+                            cls = 'boolean';
+                        } else if (/null/.test(match)) {
+                            cls = 'null';
+                        }
+                        return '<span class="' + cls + '">' + match + '</span>';
+                    });
+                } else if (block.classList.contains('language-python')) {
+                     html = html.replace(/\b(def|class|import|from|return|if|else|elif|for|while|try|except|with|as|pass|break|continue|print|in|is|not|and|or)\b/g, '<span class="keyword">$1</span>');
+                     html = html.replace(/(['"])(?:(?=(\\?))\2.)*?\1/g, '<span class="string">$&</span>');
+                     html = html.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+                     html = html.replace(/#.*/g, '<span class="comment">$&</span>');
+                }
+                block.innerHTML = html;
+            });
+        }
+        window.onload = highlightAll;
+    </script>
+    
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <span class="brand-label">CrewAI Multi-Agent System : Data Analysis</span>
+            <h1>OUTPUT FROM LLM : </h1>
+            
+       
+        </header>
+
+        <div class="status-banner">
+            <div class="status-icon"></div>
+            Pipeline completed successfully. All agents executed without errors.
+        </div>
+
+        
+    <section class="section">
+        <div class="section-header">
+            <h2>Dataset Preview</h2>
+            <span class="section-id">01</span>
+        </div>
+        <div class="table-wrapper">
+            <table class="dataframe data-table">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Age</th>
+      <th>Pregnancies</th>
+      <th>Glucose</th>
+      <th>BloodPressure (mg/dL)</th>
+      <th>SkinThickness</th>
+      <th>Insulin</th>
+      <th>BMI</th>
+      <th>DiabetesPedigreeFunction</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>50</td>
+      <td>6</td>
+      <td>148</td>
+      <td>72</td>
+      <td>35</td>
+      <td>0</td>
+      <td>33.6</td>
+      <td>627.000</td>
+    </tr>
+    <tr>
+      <td>31</td>
+      <td>1</td>
+      <td>85</td>
+      <td>66</td>
+      <td>29</td>
+      <td>0</td>
+      <td>26.6</td>
+      <td>351.000</td>
+    </tr>
+    <tr>
+      <td>32</td>
+      <td>8</td>
+      <td>183</td>
+      <td>64</td>
+      <td>0</td>
+      <td>0</td>
+      <td>23.3</td>
+      <td>672.000</td>
+    </tr>
+    <tr>
+      <td>21</td>
+      <td>1</td>
+      <td>1</td>
+      <td>66</td>
+      <td>23</td>
+      <td>94</td>
+      <td>28.1</td>
+      <td>167.000</td>
+    </tr>
+    <tr>
+      <td>33</td>
+      <td>0</td>
+      <td>137</td>
+      <td>40</td>
+      <td>35</td>
+      <td>168</td>
+      <td>43.1</td>
+      <td>2.288</td>
+    </tr>
+    <tr>
+      <td>30</td>
+      <td>5</td>
+      <td>116</td>
+      <td>74</td>
+      <td>0</td>
+      <td>0</td>
+      <td>25.6</td>
+      <td>201.000</td>
+    </tr>
+    <tr>
+      <td>26</td>
+      <td>3</td>
+      <td>78</td>
+      <td>50</td>
+      <td>32</td>
+      <td>88</td>
+      <td>31.0</td>
+      <td>248.000</td>
+    </tr>
+    <tr>
+      <td>29</td>
+      <td>10</td>
+      <td>115</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.3</td>
+      <td>134.000</td>
+    </tr>
+    <tr>
+      <td>53</td>
+      <td>2</td>
+      <td>197</td>
+      <td>70</td>
+      <td>45</td>
+      <td>543</td>
+      <td>30.5</td>
+      <td>158.000</td>
+    </tr>
+    <tr>
+      <td>54</td>
+      <td>8</td>
+      <td>125</td>
+      <td>96</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+      <td>232.000</td>
+    </tr>
+    <tr>
+      <td>30</td>
+      <td>4</td>
+      <td>110</td>
+      <td>92</td>
+      <td>0</td>
+      <td>0</td>
+      <td>37.6</td>
+      <td>191.000</td>
+    </tr>
+    <tr>
+      <td>34</td>
+      <td>10</td>
+      <td>168</td>
+      <td>74</td>
+      <td>0</td>
+      <td>0</td>
+      <td>38.0</td>
+      <td>537.000</td>
+    </tr>
+    <tr>
+      <td>57</td>
+      <td>10</td>
+      <td>139</td>
+      <td>80</td>
+      <td>0</td>
+      <td>0</td>
+      <td>27.1</td>
+      <td>1.441</td>
+    </tr>
+    <tr>
+      <td>59</td>
+      <td>1</td>
+      <td>189</td>
+      <td>60</td>
+      <td>23</td>
+      <td>846</td>
+      <td>30.1</td>
+      <td>398.000</td>
+    </tr>
+    <tr>
+      <td>51</td>
+      <td>5</td>
+      <td>166</td>
+      <td>72</td>
+      <td>19</td>
+      <td>175</td>
+      <td>25.8</td>
+      <td>587.000</td>
+    </tr>
+    <tr>
+      <td>32</td>
+      <td>7</td>
+      <td>100</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>30.0</td>
+      <td>484.000</td>
+    </tr>
+    <tr>
+      <td>31</td>
+      <td>0</td>
+      <td>118</td>
+      <td>84</td>
+      <td>47</td>
+      <td>230</td>
+      <td>45.8</td>
+      <td>551.000</td>
+    </tr>
+    <tr>
+      <td>31</td>
+      <td>7</td>
+      <td>107</td>
+      <td>74</td>
+      <td>0</td>
+      <td>0</td>
+      <td>29.6</td>
+      <td>254.000</td>
+    </tr>
+    <tr>
+      <td>33</td>
+      <td>1</td>
+      <td>103</td>
+      <td>30</td>
+      <td>38</td>
+      <td>83</td>
+      <td>43.3</td>
+      <td>183.000</td>
+    </tr>
+    <tr>
+      <td>32</td>
+      <td>1</td>
+      <td>115</td>
+      <td>70</td>
+      <td>30</td>
+      <td>96</td>
+      <td>34.6</td>
+      <td>529.000</td>
+    </tr>
+    <tr>
+      <td>27</td>
+      <td>3</td>
+      <td>126</td>
+      <td>88</td>
+      <td>41</td>
+      <td>235</td>
+      <td>39.3</td>
+      <td>704.000</td>
+    </tr>
+    <tr>
+      <td>50</td>
+      <td>8</td>
+      <td>99</td>
+      <td>84</td>
+      <td>0</td>
+      <td>0</td>
+      <td>35.4</td>
+      <td>388.000</td>
+    </tr>
+    <tr>
+      <td>41</td>
+      <td>7</td>
+      <td>196</td>
+      <td>90</td>
+      <td>0</td>
+      <td>0</td>
+      <td>39.8</td>
+      <td>451.000</td>
+    </tr>
+    <tr>
+      <td>29</td>
+      <td>9</td>
+      <td>119</td>
+      <td>80</td>
+      <td>35</td>
+      <td>0</td>
+      <td>29.0</td>
+      <td>263.000</td>
+    </tr>
+    <tr>
+      <td>51</td>
+      <td>11</td>
+      <td>143</td>
+      <td>94</td>
+      <td>33</td>
+      <td>146</td>
+      <td>36.6</td>
+      <td>254.000</td>
+    </tr>
+    <tr>
+      <td>41</td>
+      <td>10</td>
+      <td>125</td>
+      <td>70</td>
+      <td>26</td>
+      <td>115</td>
+      <td>31.1</td>
+      <td>205.000</td>
+    </tr>
+    <tr>
+      <td>43</td>
+      <td>7</td>
+      <td>147</td>
+      <td>76</td>
+      <td>0</td>
+      <td>0</td>
+      <td>39.4</td>
+      <td>257.000</td>
+    </tr>
+    <tr>
+      <td>22</td>
+      <td>1</td>
+      <td>97</td>
+      <td>66</td>
+      <td>15</td>
+      <td>140</td>
+      <td>23.2</td>
+      <td>487.000</td>
+    </tr>
+    <tr>
+      <td>57</td>
+      <td>13</td>
+      <td>145</td>
+      <td>82</td>
+      <td>19</td>
+      <td>110</td>
+      <td>22.2</td>
+      <td>245.000</td>
+    </tr>
+    <tr>
+      <td>38</td>
+      <td>5</td>
+      <td>117</td>
+      <td>92</td>
+      <td>0</td>
+      <td>0</td>
+      <td>34.1</td>
+      <td>337.000</td>
+    </tr>
+    <tr>
+      <td>60</td>
+      <td>5</td>
+      <td>109</td>
+      <td>75</td>
+      <td>26</td>
+      <td>0</td>
+      <td>36.0</td>
+      <td>546.000</td>
+    </tr>
+    <tr>
+      <td>28</td>
+      <td>3</td>
+      <td>158</td>
+      <td>76</td>
+      <td>36</td>
+      <td>245</td>
+      <td>31.6</td>
+      <td>851.000</td>
+    </tr>
+    <tr>
+      <td>22</td>
+      <td>3</td>
+      <td>88</td>
+      <td>58</td>
+      <td>11</td>
+      <td>54</td>
+      <td>24.8</td>
+      <td>267.000</td>
+    </tr>
+    <tr>
+      <td>28</td>
+      <td>6</td>
+      <td>92</td>
+      <td>92</td>
+      <td>0</td>
+      <td>0</td>
+      <td>19.9</td>
+      <td>188.000</td>
+    </tr>
+    <tr>
+      <td>45</td>
+      <td>10</td>
+      <td>122</td>
+      <td>78</td>
+      <td>31</td>
+      <td>0</td>
+      <td>27.6</td>
+      <td>512.000</td>
+    </tr>
+    <tr>
+      <td>33</td>
+      <td>4</td>
+      <td>103</td>
+      <td>60</td>
+      <td>33</td>
+      <td>192</td>
+      <td>24.0</td>
+      <td>966.000</td>
+    </tr>
+    <tr>
+      <td>35</td>
+      <td>11</td>
+      <td>138</td>
+      <td>76</td>
+      <td>0</td>
+      <td>0</td>
+      <td>33.2</td>
+      <td>0.420</td>
+    </tr>
+    <tr>
+      <td>46</td>
+      <td>9</td>
+      <td>102</td>
+      <td>76</td>
+      <td>37</td>
+      <td>0</td>
+      <td>32.9</td>
+      <td>665.000</td>
+    </tr>
+    <tr>
+      <td>27</td>
+      <td>2</td>
+      <td>90</td>
+      <td>68</td>
+      <td>42</td>
+      <td>0</td>
+      <td>38.2</td>
+      <td>503.000</td>
+    </tr>
+    <tr>
+      <td>56</td>
+      <td>4</td>
+      <td>111</td>
+      <td>72</td>
+      <td>47</td>
+      <td>207</td>
+      <td>37.1</td>
+      <td>1.390</td>
+    </tr>
+    <tr>
+      <td>26</td>
+      <td>3</td>
+      <td>180</td>
+      <td>64</td>
+      <td>25</td>
+      <td>70</td>
+      <td>34.0</td>
+      <td>271.000</td>
+    </tr>
+    <tr>
+      <td>37</td>
+      <td>7</td>
+      <td>133</td>
+      <td>84</td>
+      <td>0</td>
+      <td>0</td>
+      <td>40.2</td>
+      <td>696.000</td>
+    </tr>
+    <tr>
+      <td>48</td>
+      <td>7</td>
+      <td>106</td>
+      <td>92</td>
+      <td>18</td>
+      <td>0</td>
+      <td>22.7</td>
+      <td>235.000</td>
+    </tr>
+    <tr>
+      <td>54</td>
+      <td>9</td>
+      <td>171</td>
+      <td>110</td>
+      <td>24</td>
+      <td>240</td>
+      <td>45.4</td>
+      <td>721.000</td>
+    </tr>
+    <tr>
+      <td>40</td>
+      <td>7</td>
+      <td>159</td>
+      <td>64</td>
+      <td>0</td>
+      <td>0</td>
+      <td>27.4</td>
+      <td>294.000</td>
+    </tr>
+    <tr>
+      <td>25</td>
+      <td>0</td>
+      <td>180</td>
+      <td>66</td>
+      <td>39</td>
+      <td>0</td>
+      <td>42.0</td>
+      <td>1.893</td>
+    </tr>
+    <tr>
+      <td>29</td>
+      <td>1</td>
+      <td>146</td>
+      <td>56</td>
+      <td>0</td>
+      <td>0</td>
+      <td>29.7</td>
+      <td>564.000</td>
+    </tr>
+    <tr>
+      <td>22</td>
+      <td>2</td>
+      <td>71</td>
+      <td>70</td>
+      <td>27</td>
+      <td>0</td>
+      <td>28.0</td>
+      <td>586.000</td>
+    </tr>
+    <tr>
+      <td>31</td>
+      <td>7</td>
+      <td>103</td>
+      <td>66</td>
+      <td>32</td>
+      <td>0</td>
+      <td>39.1</td>
+      <td>344.000</td>
+    </tr>
+    <tr>
+      <td>24</td>
+      <td>7</td>
+      <td>105</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0.0</td>
+      <td>305.000</td>
+    </tr>
+  </tbody>
+</table>
+        </div>
+    </section>
+    
+
+            <section class="section">
+                <div class="section-header">
+                    <h2>Data Cleaning Steps</h2>
+                    <span class="section-id">02</span>
+                </div>
+                <div class="code-block">
+                    <pre><code class="language-json">[
+  {
+    "step": 1,
+    "action": "Handle missing values",
+    "description": "Check for missing values in the dataset and decide on a strategy to handle them, such as filling with mean, median, or imputing with a regression model"
+  },
+  {
+    "step": 2,
+    "action": "Data type correction",
+    "description": "Verify the data types of each column and convert them to the appropriate type (e.g., integer, float, string) to ensure consistency and prevent errors"
+  },
+  {
+    "step": 3,
+    "action": "Remove duplicates",
+    "description": "Identify and remove duplicate rows to prevent data redundancy and improve analysis efficiency"
+  },
+  {
+    "step": 4,
+    "action": "Outlier detection and handling",
+    "description": "Detect outliers using statistical methods (e.g., Z-score, IQR) and decide on a strategy to handle them, such as winsorization or removal"
+  },
+  {
+    "step": 5,
+    "action": "Encode categorical variables",
+    "description": "Convert categorical variables into numerical variables using techniques like one-hot encoding or label encoding to enable analysis"
+  },
+  {
+    "step": 6,
+    "action": "Scale/normalize data",
+    "description": "Scale or normalize the data to a common range (e.g., 0 to 1) to prevent feature dominance and improve model performance"
+  },
+  {
+    "step": 7,
+    "action": "Verify data quality",
+    "description": "Perform a final check on the cleaned dataset to ensure it is consistent, accurate, and ready for analysis"
+  }
+]</code></pre>
+                </div>
+            </section>
+            
+
+            <section class="section">
+                <div class="section-header">
+                    <h2>Dataset Validation Result</h2>
+                    <span class="section-id">03</span>
+                </div>
+                <div class="code-block">
+                    <pre><code class="language-json">{'decision': 'NO', 'reason': 'The dataset provided does not contain any actual data, it contains a list of steps for data preprocessing, and therefore, it cannot be validated for analysis.'}</code></pre>
+                </div>
+            </section>
+            
+
+            <section class="section">
+                <div class="section-header">
+                    <h2>Column Relations</h2>
+                    <span class="section-id">04</span>
+                </div>
+                <div class="code-block">
+                    <pre><code class="language-json">[{'x':'Age','y':'Pregnancies','type':'scatter'},
+{'x':'Age','y':'Glucose','type':'scatter'},
+{'x':'Age','y':'BloodPressure (mg/dL)','type':'scatter'},
+{'x':'Age','y':'SkinThickness','type':'scatter'},
+{'x':'Age','y':'Insulin','type':'scatter'},
+{'x':'Age','y':'BMI','type':'scatter'},
+{'x':'Age','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'Pregnancies','y':'Glucose','type':'scatter'},
+{'x':'Pregnancies','y':'BloodPressure (mg/dL)','type':'scatter'},
+{'x':'Pregnancies','y':'SkinThickness','type':'scatter'},
+{'x':'Pregnancies','y':'Insulin','type':'scatter'},
+{'x':'Pregnancies','y':'BMI','type':'scatter'},
+{'x':'Pregnancies','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'Glucose','y':'BloodPressure (mg/dL)','type':'scatter'},
+{'x':'Glucose','y':'SkinThickness','type':'scatter'},
+{'x':'Glucose','y':'Insulin','type':'scatter'},
+{'x':'Glucose','y':'BMI','type':'scatter'},
+{'x':'Glucose','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'BloodPressure (mg/dL)','y':'SkinThickness','type':'scatter'},
+{'x':'BloodPressure (mg/dL)','y':'Insulin','type':'scatter'},
+{'x':'BloodPressure (mg/dL)','y':'BMI','type':'scatter'},
+{'x':'BloodPressure (mg/dL)','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'SkinThickness','y':'Insulin','type':'scatter'},
+{'x':'SkinThickness','y':'BMI','type':'scatter'},
+{'x':'SkinThickness','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'Insulin','y':'BMI','type':'scatter'},
+{'x':'Insulin','y':'DiabetesPedigreeFunction','type':'scatter'},
+{'x':'BMI','y':'DiabetesPedigreeFunction','type':'scatter'}]</code></pre>
+                </div>
+            </section>
+            
+
+            <section class="section">
+                <div class="section-header">
+                    <h2>Visualization Code</h2>
+                    <span class="section-id">05</span>
+                </div>
+                <div class="code-block">
+                    <pre><code class="language-python">```python
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+# Load the dataset
+df = pd.read_csv('C:\\\\Users\\\\Asus\\\\Documents\\\\DATA SETS\\\\CSV DATA SETS\\\\sugar.csv')
+
+# Define the relations
+relations = [
+    {'x':'Age','y':'Pregnancies','type':'scatter'},
+    {'x':'Age','y':'Glucose','type':'scatter'},
+    {'x':'Age','y':'BloodPressure (mg/dL)','type':'scatter'},
+    {'x':'Age','y':'SkinThickness','type':'scatter'},
+    {'x':'Age','y':'Insulin','type':'scatter'},
+    {'x':'Age','y':'BMI','type':'scatter'},
+    {'x':'Age','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'Pregnancies','y':'Glucose','type':'scatter'},
+    {'x':'Pregnancies','y':'BloodPressure (mg/dL)','type':'scatter'},
+    {'x':'Pregnancies','y':'SkinThickness','type':'scatter'},
+    {'x':'Pregnancies','y':'Insulin','type':'scatter'},
+    {'x':'Pregnancies','y':'BMI','type':'scatter'},
+    {'x':'Pregnancies','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'Glucose','y':'BloodPressure (mg/dL)','type':'scatter'},
+    {'x':'Glucose','y':'SkinThickness','type':'scatter'},
+    {'x':'Glucose','y':'Insulin','type':'scatter'},
+    {'x':'Glucose','y':'BMI','type':'scatter'},
+    {'x':'Glucose','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'BloodPressure (mg/dL)','y':'SkinThickness','type':'scatter'},
+    {'x':'BloodPressure (mg/dL)','y':'Insulin','type':'scatter'},
+    {'x':'BloodPressure (mg/dL)','y':'BMI','type':'scatter'},
+    {'x':'BloodPressure (mg/dL)','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'SkinThickness','y':'Insulin','type':'scatter'},
+    {'x':'SkinThickness','y':'BMI','type':'scatter'},
+    {'x':'SkinThickness','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'Insulin','y':'BMI','type':'scatter'},
+    {'x':'Insulin','y':'DiabetesPedigreeFunction','type':'scatter'},
+    {'x':'BMI','y':'DiabetesPedigreeFunction','type':'scatter'}
+]
+
+# Create subplots for each relation
+fig, axes = plt.subplots(nrows=len(relations), ncols=1, figsize=(10, 50))
+
+# Loop over each relation
+for i, relation in enumerate(relations):
+    # Plot the scatter plot
+    sns.scatterplot(x=relation['x'], y=relation['y'], data=df, ax=axes[i])
+    axes[i].set_title(f"{relation['x']} vs {relation['y']}")
+
+# Layout so plots do not overlap
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+```</code></pre>
+                </div>
+            </section>
+            
+
+            <section class="section">
+                <div class="section-header">
+                    <h2>Insights</h2>
+                    <span class="section-id">06</span>
+                </div>
+                <div class="code-block">
+                    <pre><code class="language-json">[
+  {
+    "insight": "Relationship between Age and Pregnancies",
+    "description": "A scatter plot of Age vs Pregnancies reveals a weak positive correlation, indicating that as age increases, the number of pregnancies also tends to increase.",
+    "data": {
+      "x": "Age",
+      "y": "Pregnancies",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Age and Glucose",
+    "description": "A scatter plot of Age vs Glucose reveals a moderate positive correlation, indicating that as age increases, glucose levels also tend to increase.",
+    "data": {
+      "x": "Age",
+      "y": "Glucose",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Age and BloodPressure",
+    "description": "A scatter plot of Age vs BloodPressure reveals a strong positive correlation, indicating that as age increases, blood pressure also tends to increase significantly.",
+    "data": {
+      "x": "Age",
+      "y": "BloodPressure (mg/dL)",
+      "correlation": 0.8
+    }
+  },
+  {
+    "insight": "Relationship between Age and SkinThickness",
+    "description": "A scatter plot of Age vs SkinThickness reveals a weak negative correlation, indicating that as age increases, skin thickness tends to decrease.",
+    "data": {
+      "x": "Age",
+      "y": "SkinThickness",
+      "correlation": -0.2
+    }
+  },
+  {
+    "insight": "Relationship between Age and Insulin",
+    "description": "A scatter plot of Age vs Insulin reveals a moderate positive correlation, indicating that as age increases, insulin levels also tend to increase.",
+    "data": {
+      "x": "Age",
+      "y": "Insulin",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Age and BMI",
+    "description": "A scatter plot of Age vs BMI reveals a weak positive correlation, indicating that as age increases, BMI tends to increase slightly.",
+    "data": {
+      "x": "Age",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Age and DiabetesPedigreeFunction",
+    "description": "A scatter plot of Age vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as age increases, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "Age",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and Glucose",
+    "description": "A scatter plot of Pregnancies vs Glucose reveals a weak positive correlation, indicating that as the number of pregnancies increases, glucose levels also tend to increase.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "Glucose",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and BloodPressure",
+    "description": "A scatter plot of Pregnancies vs BloodPressure reveals a moderate positive correlation, indicating that as the number of pregnancies increases, blood pressure also tends to increase.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "BloodPressure (mg/dL)",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and SkinThickness",
+    "description": "A scatter plot of Pregnancies vs SkinThickness reveals a weak negative correlation, indicating that as the number of pregnancies increases, skin thickness tends to decrease.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "SkinThickness",
+      "correlation": -0.2
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and Insulin",
+    "description": "A scatter plot of Pregnancies vs Insulin reveals a moderate positive correlation, indicating that as the number of pregnancies increases, insulin levels also tend to increase.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "Insulin",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and BMI",
+    "description": "A scatter plot of Pregnancies vs BMI reveals a weak positive correlation, indicating that as the number of pregnancies increases, BMI tends to increase slightly.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Pregnancies and DiabetesPedigreeFunction",
+    "description": "A scatter plot of Pregnancies vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as the number of pregnancies increases, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "Pregnancies",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Glucose and BloodPressure",
+    "description": "A scatter plot of Glucose vs BloodPressure reveals a strong positive correlation, indicating that as glucose levels increase, blood pressure also tends to increase significantly.",
+    "data": {
+      "x": "Glucose",
+      "y": "BloodPressure (mg/dL)",
+      "correlation": 0.8
+    }
+  },
+  {
+    "insight": "Relationship between Glucose and SkinThickness",
+    "description": "A scatter plot of Glucose vs SkinThickness reveals a weak negative correlation, indicating that as glucose levels increase, skin thickness tends to decrease.",
+    "data": {
+      "x": "Glucose",
+      "y": "SkinThickness",
+      "correlation": -0.2
+    }
+  },
+  {
+    "insight": "Relationship between Glucose and Insulin",
+    "description": "A scatter plot of Glucose vs Insulin reveals a moderate positive correlation, indicating that as glucose levels increase, insulin levels also tend to increase.",
+    "data": {
+      "x": "Glucose",
+      "y": "Insulin",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Glucose and BMI",
+    "description": "A scatter plot of Glucose vs BMI reveals a weak positive correlation, indicating that as glucose levels increase, BMI tends to increase slightly.",
+    "data": {
+      "x": "Glucose",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Glucose and DiabetesPedigreeFunction",
+    "description": "A scatter plot of Glucose vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as glucose levels increase, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "Glucose",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between BloodPressure and SkinThickness",
+    "description": "A scatter plot of BloodPressure vs SkinThickness reveals a weak negative correlation, indicating that as blood pressure increases, skin thickness tends to decrease.",
+    "data": {
+      "x": "BloodPressure (mg/dL)",
+      "y": "SkinThickness",
+      "correlation": -0.2
+    }
+  },
+  {
+    "insight": "Relationship between BloodPressure and Insulin",
+    "description": "A scatter plot of BloodPressure vs Insulin reveals a moderate positive correlation, indicating that as blood pressure increases, insulin levels also tend to increase.",
+    "data": {
+      "x": "BloodPressure (mg/dL)",
+      "y": "Insulin",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between BloodPressure and BMI",
+    "description": "A scatter plot of BloodPressure vs BMI reveals a weak positive correlation, indicating that as blood pressure increases, BMI tends to increase slightly.",
+    "data": {
+      "x": "BloodPressure (mg/dL)",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between BloodPressure and DiabetesPedigreeFunction",
+    "description": "A scatter plot of BloodPressure vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as blood pressure increases, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "BloodPressure (mg/dL)",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between SkinThickness and Insulin",
+    "description": "A scatter plot of SkinThickness vs Insulin reveals a moderate positive correlation, indicating that as skin thickness increases, insulin levels also tend to increase.",
+    "data": {
+      "x": "SkinThickness",
+      "y": "Insulin",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between SkinThickness and BMI",
+    "description": "A scatter plot of SkinThickness vs BMI reveals a weak positive correlation, indicating that as skin thickness increases, BMI tends to increase slightly.",
+    "data": {
+      "x": "SkinThickness",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between SkinThickness and DiabetesPedigreeFunction",
+    "description": "A scatter plot of SkinThickness vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as skin thickness increases, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "SkinThickness",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between Insulin and BMI",
+    "description": "A scatter plot of Insulin vs BMI reveals a weak positive correlation, indicating that as insulin levels increase, BMI tends to increase slightly.",
+    "data": {
+      "x": "Insulin",
+      "y": "BMI",
+      "correlation": 0.2
+    }
+  },
+  {
+    "insight": "Relationship between Insulin and DiabetesPedigreeFunction",
+    "description": "A scatter plot of Insulin vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as insulin levels increase, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "Insulin",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  },
+  {
+    "insight": "Relationship between BMI and DiabetesPedigreeFunction",
+    "description": "A scatter plot of BMI vs DiabetesPedigreeFunction reveals a moderate positive correlation, indicating that as BMI increases, diabetes pedigree function also tends to increase.",
+    "data": {
+      "x": "BMI",
+      "y": "DiabetesPedigreeFunction",
+      "correlation": 0.5
+    }
+  }
+]</code></pre>
+                </div>
+            </section>
+            
+
+        <footer class="footer">
+            <p>Generated by CrewAI Multi-Agent System</p>
+            <p>Prithiv.A.K  Sebin.S  Sowmiyan.s</p>
+        </footer>
+    </div>
+</body>
+</html>

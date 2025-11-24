@@ -1,0 +1,12 @@
+crewai
+pandas>=1.5
+matplotlib>=3.6
+seaborn>=0.12
+requests
+# Note: This project expects a locally running Ollama API (or compatible LLM endpoint).
+# Install Ollama separately (https://ollama.com/) and configure agents to point at the base_url in the agent definitions.
+crewai
+matplotlib
+pandas
+requests
+seaborn
