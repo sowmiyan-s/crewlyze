@@ -5,6 +5,10 @@
 # Multi Agent Data Analysis with Crew AI
 
 <p align="center">
+  <img src="assets/complete_workflow.svg" alt="Multi Agent Data Analysis with Crew AI" width="100%" />
+</p>
+
+<p align="center">
 	<img src="assets/stars.svg" alt="5-star" height="28" />
 	&nbsp;&nbsp;
 	<img src="assets/badge_crewai.svg" alt="crewai" height="28" />

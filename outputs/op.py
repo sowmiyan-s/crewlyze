@@ -1,3 +1,4 @@
+# Import necessary libraries
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -5,42 +6,54 @@ import seaborn as sns
 # Load the dataset
 data = pd.read_csv('data/cleaned_csv.csv')
 
-# Plot 1: Scatter plot
-plt.figure(figsize=(10,6))
-sns.scatterplot(x='age', y='income', data=data)
-plt.title('Scatter Plot of Age vs Income')
-plt.xlabel('Age')
-plt.ylabel('Income')
-plt.show()
+# Define a function to create plots
+def create_plots(relations):
+    for relation in relations:
+        if 'y' in relation:
+            if relation['type'] == 'scatter':
+                # Create scatter plot
+                sns.scatterplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Scatter Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'bar':
+                # Create bar plot
+                sns.barplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Bar Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'box':
+                # Create box plot
+                sns.boxplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Box Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'heatmap':
+                # Create heatmap
+                plt.figure(figsize=(10,8))
+                sns.heatmap(data.pivot_table(index=relation['x'], columns=relation['y'], aggfunc='size', fill_value=0), annot=True, cmap='Blues')
+                plt.title(f'Heatmap of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'line':
+                # Create line plot
+                sns.lineplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Line Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+        else:
+            if relation['type'] == 'histogram':
+                # Create histogram
+                sns.histplot(data[relation['x']], kde=True)
+                plt.title(f'Histogram of {relation["x"]}')
+                plt.show()
 
-# Plot 2: Bar plot
-plt.figure(figsize=(10,6))
-sns.barplot(x='gender', y='income', data=data)
-plt.title('Bar Plot of Gender vs Income')
-plt.xlabel('Gender')
-plt.ylabel('Income')
-plt.show()
+# Define the relations
+relations = [
+    {"x":"age","y":"salary","type":"scatter"}, 
+    {"x":"department","y":"salary","type":"bar"}, 
+    {"x":"age","type":"histogram"}, 
+    {"x":"salary","type":"histogram"}, 
+    {"x":"department","y":"age","type":"box"}, 
+    {"x":"age","y":"salary","type":"heatmap"}, 
+    {"x":"department","y":"salary","type":"bar"}, 
+    {"x":"age","type":"histogram"}
+]
 
-# Plot 3: Histogram
-plt.figure(figsize=(10,6))
-sns.histplot(x='age', data=data, kde=True)
-plt.title('Histogram of Age')
-plt.xlabel('Age')
-plt.ylabel('Count')
-plt.show()
-
-# Plot 4: Box plot
-plt.figure(figsize=(10,6))
-sns.boxplot(x='gender', y='income', data=data)
-plt.title('Box Plot of Gender vs Income')
-plt.xlabel('Gender')
-plt.ylabel('Income')
-plt.show()
-
-# Plot 5: Heatmap
-plt.figure(figsize=(10,6))
-sns.kdeplot(x='age', y='income', data=data, cmap='Blues', shade=True, shade_lowest=False)
-plt.title('Heatmap of Age vs Income')
-plt.xlabel('Age')
-plt.ylabel('Income')
-plt.show()
+# Create the plots
+create_plots(relations)

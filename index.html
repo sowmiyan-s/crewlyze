@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!-- 
+Multi Agent Data Analysis with Crew AI
+Copyright (c) 2025 Sowmiyan S
+Licensed under the MIT License
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -2803,27 +2808,27 @@
   {
     "step": 1,
     "action": "Handle missing values",
-    "description": "Replace missing values in the 'age' column with the mean age"
+    "description": "Replace missing values in columns 'name' and 'age' with empty strings and mean values respectively"
   },
   {
     "step": 2,
-    "action": "Data normalization",
-    "description": "Normalize the 'income' column by scaling values between 0 and 1"
+    "action": "Remove duplicates",
+    "description": "Delete duplicate rows based on 'id' column"
   },
   {
     "step": 3,
-    "action": "Remove duplicates",
-    "description": "Delete duplicate rows based on the 'id' column"
+    "action": "Data normalization",
+    "description": "Scale values in 'salary' column to a range between 0 and 1"
   },
   {
     "step": 4,
-    "action": "Encode categorical variables",
-    "description": "Convert the 'gender' column into numerical values using one-hot encoding"
+    "action": "Outlier detection",
+    "description": "Remove rows with values outside 2 standard deviations from the mean in 'age' column"
   },
   {
     "step": 5,
-    "action": "Remove unnecessary columns",
-    "description": "Drop the 'unnecessary_column' column"
+    "action": "Encode categorical variables",
+    "description": "One-hot encode 'department' column"
   }
 ]</code></pre>
                     </div>
@@ -2838,7 +2843,7 @@
                 </div>
                 <div class="content-wrapper">
                     <div class="code-block">
-                        <pre><code class="language-json">{'decision': 'YES', 'reason': 'The dataset has undergone necessary cleaning and preparation steps including handling missing values, data normalization, removing duplicates, encoding categorical variables, and removing unnecessary columns, which should provide a robust foundation for analysis.'}</code></pre>
+                        <pre><code class="language-json">{'decision': 'YES', 'reason': 'The dataset has undergone necessary preprocessing steps including handling missing values, removing duplicates, data normalization, outlier detection, and encoding categorical variables, which suggests it is ready for analysis.'}</code></pre>
                     </div>
                 </div>
             </section>
@@ -2851,13 +2856,7 @@
                 </div>
                 <div class="content-wrapper">
                     <div class="code-block">
-                        <pre><code class="language-json">[
-  {'x':'age','y':'income','type':'scatter'},
-  {'x':'gender','y':'income','type':'bar'},
-  {'x':'age','y':None,'type':'histogram'},
-  {'x':'gender','y':'income','type':'box'},
-  {'x':'age','y':'income','type':'heatmap'}
-]</code></pre>
+                        <pre><code class="language-json">[{"x":"age","y":"salary","type":"scatter"}, {"x":"department","y":"salary","type":"bar"}, {"x":"age","type":"histogram"}, {"x":"salary","type":"histogram"}, {"x":"department","y":"age","type":"box"}, {"x":"age","y":"salary","type":"heatmap"}, {"x":"department","y":"salary","type":"bar"}, {"x":"age","type":"histogram"}]</code></pre>
                     </div>
                 </div>
             </section>
@@ -2871,6 +2870,7 @@
                 <div class="content-wrapper">
                     <div class="code-block">
                         <pre><code class="language-python">```python
+# Import necessary libraries
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -2878,45 +2878,57 @@ import seaborn as sns
 # Load the dataset
 data = pd.read_csv('data/cleaned_csv.csv')
 
-# Plot 1: Scatter plot
-plt.figure(figsize=(10,6))
-sns.scatterplot(x='age', y='income', data=data)
-plt.title('Scatter Plot of Age vs Income')
-plt.xlabel('Age')
-plt.ylabel('Income')
-plt.show()
+# Define a function to create plots
+def create_plots(relations):
+    for relation in relations:
+        if 'y' in relation:
+            if relation['type'] == 'scatter':
+                # Create scatter plot
+                sns.scatterplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Scatter Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'bar':
+                # Create bar plot
+                sns.barplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Bar Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'box':
+                # Create box plot
+                sns.boxplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Box Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'heatmap':
+                # Create heatmap
+                plt.figure(figsize=(10,8))
+                sns.heatmap(data.pivot_table(index=relation['x'], columns=relation['y'], aggfunc='size', fill_value=0), annot=True, cmap='Blues')
+                plt.title(f'Heatmap of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+            elif relation['type'] == 'line':
+                # Create line plot
+                sns.lineplot(x=relation['x'], y=relation['y'], data=data)
+                plt.title(f'Line Plot of {relation["x"]} vs {relation["y"]}')
+                plt.show()
+        else:
+            if relation['type'] == 'histogram':
+                # Create histogram
+                sns.histplot(data[relation['x']], kde=True)
+                plt.title(f'Histogram of {relation["x"]}')
+                plt.show()
 
-# Plot 2: Bar plot
-plt.figure(figsize=(10,6))
-sns.barplot(x='gender', y='income', data=data)
-plt.title('Bar Plot of Gender vs Income')
-plt.xlabel('Gender')
-plt.ylabel('Income')
-plt.show()
+# Define the relations
+relations = [
+    {"x":"age","y":"salary","type":"scatter"}, 
+    {"x":"department","y":"salary","type":"bar"}, 
+    {"x":"age","type":"histogram"}, 
+    {"x":"salary","type":"histogram"}, 
+    {"x":"department","y":"age","type":"box"}, 
+    {"x":"age","y":"salary","type":"heatmap"}, 
+    {"x":"department","y":"salary","type":"bar"}, 
+    {"x":"age","type":"histogram"}
+]
 
-# Plot 3: Histogram
-plt.figure(figsize=(10,6))
-sns.histplot(x='age', data=data, kde=True)
-plt.title('Histogram of Age')
-plt.xlabel('Age')
-plt.ylabel('Count')
-plt.show()
-
-# Plot 4: Box plot
-plt.figure(figsize=(10,6))
-sns.boxplot(x='gender', y='income', data=data)
-plt.title('Box Plot of Gender vs Income')
-plt.xlabel('Gender')
-plt.ylabel('Income')
-plt.show()
-
-# Plot 5: Heatmap
-plt.figure(figsize=(10,6))
-sns.kdeplot(x='age', y='income', data=data, cmap='Blues', shade=True, shade_lowest=False)
-plt.title('Heatmap of Age vs Income')
-plt.xlabel('Age')
-plt.ylabel('Income')
-plt.show()
+# Create the plots
+create_plots(relations)
 ```</code></pre>
                     </div>
                 </div>
@@ -2932,29 +2944,24 @@ plt.show()
                     <div class="code-block">
                         <pre><code class="language-json">[
   {
-    "insight": "The relationship between age and income is positively correlated, as shown by the scatter plot, indicating that as age increases, income also tends to increase.",
-    "supported_by": ["Scatter plot of Age vs Income", "Heatmap of Age vs Income"],
-    "implication": "This correlation could be used to inform decisions about marketing strategies or product development, as older individuals may have more disposable income."
+    "insight": "The relationship between age and salary is a key area of interest, with multiple visualizations (scatter plot, heatmap) suggesting a correlation between the two variables, which could have implications for HR and compensation strategies.",
+    "support": "Multiple scatter plots and heatmaps of age vs salary"
   },
   {
-    "insight": "There is a significant difference in income between genders, with one gender tend to have higher incomes than the other, as shown by the bar plot and box plot.",
-    "supported_by": ["Bar plot of Gender vs Income", "Box plot of Gender vs Income"],
-    "implication": "This difference could be used to inform decisions about targeted marketing or recruitment strategies, as certain gender groups may be more likely to respond to certain types of marketing or job opportunities."
+    "insight": "Department is a significant factor influencing salary, as evidenced by the bar plots and box plots, which could inform decisions on department-level resource allocation and staffing.",
+    "support": "Bar plots of department vs salary and box plots of department vs age"
   },
   {
-    "insight": "The distribution of age is skewed to the right, with most individuals being younger, as shown by the histogram.",
-    "supported_by": ["Histogram of Age"],
-    "implication": "This skewed distribution could be used to inform decisions about product development or marketing strategies, as younger individuals may have different preferences or needs than older individuals."
+    "insight": "Age distribution is an important demographic factor, with histograms of age indicating a potential skew towards younger or older employees, which could have implications for training, development, and succession planning.",
+    "support": "Histograms of age"
   },
   {
-    "insight": "There is a strong linear relationship between age and income, as shown by the scatter plot and heatmap, indicating that age is a good predictor of income.",
-    "supported_by": ["Scatter plot of Age vs Income", "Heatmap of Age vs Income"],
-    "implication": "This strong linear relationship could be used to inform decisions about credit scoring or loan approval, as age could be used as a factor in determining creditworthiness."
+    "insight": "Salary distribution is also a critical aspect, with histograms of salary suggesting a potential range of salaries across the organization, which could inform compensation and benefits strategies.",
+    "support": "Histograms of salary"
   },
   {
-    "insight": "The data is well-structured and has undergone necessary cleaning and preparation steps, including handling missing values, data normalization, removing duplicates, encoding categorical variables, and removing unnecessary columns.",
-    "supported_by": ["Data cleaning and preparation steps"],
-    "implication": "This well-structured data provides a robust foundation for further analysis and modeling, and could be used to inform decisions about business strategy or operations."
+    "insight": "The interaction between department and age is a complex one, with box plots suggesting varying age distributions across departments, which could have implications for department-level management and leadership development.",
+    "support": "Box plots of department vs age"
   }
 ]</code></pre>
                     </div>
@@ -2965,8 +2972,13 @@ plt.show()
         <footer class="footer">
             <p><strong>Multi Agent Data Analysis with Crew AI</strong></p>
             <p>Developed by Prithiv.A.K, Sebin.S, Sowmiyan.s</p>
-            <p style="font-size: 0.75rem; margin-top: 1rem; opacity: 0.7;">Generated on 2025-11-26 00:06:05</p>
+            <p style="font-size: 0.75rem; margin-top: 1rem; opacity: 0.7;">Generated on 2025-11-26 11:29:08</p>
         </footer>
     </div>
 </body>
+<!-- 
+Multi Agent Data Analysis with Crew AI
+Copyright (c) 2025 Sowmiyan S
+Licensed under the MIT License
+-->
 </html>

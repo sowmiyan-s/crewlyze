@@ -40,7 +40,7 @@ def main():
     
     try:
         default_path = (Path.cwd() / "Data Set" / "TB_Burden_Country.csv").resolve()
-        a = input(f"Enter the load data/input.csv (default: {default_path}): ") or str(default_path)
+        a = input(f"Enter the load data/input.csv  ") or str(default_path)
         df = pd.read_csv(a)
     except FileNotFoundError:
         print("Error: data/input.csv not found.")
