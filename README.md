@@ -137,7 +137,7 @@ pip install -r requirements.txt
 ├── crew.py               # Main entry point
 ├── requirements.txt      # Python dependencies
 ├── README.md             # This file
-├── USAGE.md              # Detailed usage guide
+├── USAGE.md              # Detailed usage 
 ├── CHANGELOG.md          # Version history
 └── LICENSE               # License information
 ```
