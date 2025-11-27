@@ -1,59 +1,36 @@
-# Import necessary libraries
+# Import required libraries
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Load the dataset
-data = pd.read_csv('data/cleaned_csv.csv')
+df = pd.read_csv('data/cleaned_csv.csv')
 
-# Define a function to create plots
-def create_plots(relations):
-    for relation in relations:
-        if 'y' in relation:
-            if relation['type'] == 'scatter':
-                # Create scatter plot
-                sns.scatterplot(x=relation['x'], y=relation['y'], data=data)
-                plt.title(f'Scatter Plot of {relation["x"]} vs {relation["y"]}')
-                plt.show()
-            elif relation['type'] == 'bar':
-                # Create bar plot
-                sns.barplot(x=relation['x'], y=relation['y'], data=data)
-                plt.title(f'Bar Plot of {relation["x"]} vs {relation["y"]}')
-                plt.show()
-            elif relation['type'] == 'box':
-                # Create box plot
-                sns.boxplot(x=relation['x'], y=relation['y'], data=data)
-                plt.title(f'Box Plot of {relation["x"]} vs {relation["y"]}')
-                plt.show()
-            elif relation['type'] == 'heatmap':
-                # Create heatmap
-                plt.figure(figsize=(10,8))
-                sns.heatmap(data.pivot_table(index=relation['x'], columns=relation['y'], aggfunc='size', fill_value=0), annot=True, cmap='Blues')
-                plt.title(f'Heatmap of {relation["x"]} vs {relation["y"]}')
-                plt.show()
-            elif relation['type'] == 'line':
-                # Create line plot
-                sns.lineplot(x=relation['x'], y=relation['y'], data=data)
-                plt.title(f'Line Plot of {relation["x"]} vs {relation["y"]}')
-                plt.show()
-        else:
-            if relation['type'] == 'histogram':
-                # Create histogram
-                sns.histplot(data[relation['x']], kde=True)
-                plt.title(f'Histogram of {relation["x"]}')
-                plt.show()
+# Create figure
+plt.figure(figsize=(10, 6))
 
-# Define the relations
-relations = [
-    {"x":"age","y":"salary","type":"scatter"}, 
-    {"x":"department","y":"salary","type":"bar"}, 
-    {"x":"age","type":"histogram"}, 
-    {"x":"salary","type":"histogram"}, 
-    {"x":"department","y":"age","type":"box"}, 
-    {"x":"age","y":"salary","type":"heatmap"}, 
-    {"x":"department","y":"salary","type":"bar"}, 
-    {"x":"age","type":"histogram"}
-]
+# Generate plots using the column names from the relations task
+for plot_data in [{"x": col_x, "y": col_y, "type": plot_type} for col_x, col_y, plot_type in [
+    {"x": "col_1", "y": "col_2", "type": "scatter"},
+    {"x": "col_3", "y": "col_4", "type": "scatter"},
+    {"x": "col_5", "y": "time", "type": "line"},
+    {"x": "col_6", "type": "bar"},
+    {"x": "col_7", "type": "histogram"},
+    {"x": "col_8", "y": "col_1", "type": "box"}
+]]:
+    if plot_type == "scatter":
+        plt.scatter(df[col_x], df[col_y])
+    elif plot_type == "line":
+        plt.plot(df[col_x], df[col_y])
+    elif plot_type == "bar":
+        plt.bar(df[col_x])
+    elif plot_type == "histogram":
+        plt.hist(df[col_x])
+    elif plot_type == "box":
+        plt.boxplot([df[col_x]], vert=False)
 
-# Create the plots
-create_plots(relations)
+# Save the plot
+plt.savefig('outputs/plot.png', bbox_inches='tight', dpi=300)
+
+# Close the plot
+plt.close()

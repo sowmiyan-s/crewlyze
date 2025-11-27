@@ -1,3 +1,14 @@
+---
+title: Multi Agent Data Analysis
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: streamlit
+sdk_version: 1.31.0
+app_file: app.py
+pinned: false
+---
+
 <!-- Enhanced README: hero, badges, tech icons, screenshots -->
 
 
@@ -28,7 +39,54 @@
 
 ## Quick Start
 
-1. Create and activate a virtual environment:
+### Option 1: Streamlit Web App (Recommended)
+
+Run the interactive web interface:
+```bash
+streamlit run app.py
+```
+
+### Option 2: Command Line Interface
+
+Run the pipeline directly from the terminal:
+```bash
+python crew.py
+```
+
+## Deploying to Hugging Face Spaces
+
+1.  **Create a New Space**:
+    *   Go to [huggingface.co/spaces](https://huggingface.co/spaces).
+    *   Click **Create new Space**.
+    *   Enter a name (e.g., `multi-agent-data-analyst`).
+    *   Select **Streamlit** as the SDK.
+    *   Click **Create Space**.
+
+2.  **Upload Files**:
+    *   Clone your new Space locally:
+        ```bash
+        git clone https://huggingface.co/spaces/your-username/multi-agent-data-analyst
+        ```
+    *   Copy all files from this project into that directory.
+    *   Push the files:
+        ```bash
+        git add .
+        git commit -m "Initial commit"
+        git push
+        ```
+    *   *Alternatively, you can upload files directly via the "Files" tab on the Hugging Face website.*
+
+3.  **Configure Secrets**:
+    *   Go to the **Settings** tab of your Space.
+    *   Scroll to **Variables and secrets**.
+    *   Click **New secret**.
+    *   Add your API keys (e.g., `GROQ_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`).
+    *   *Note: You do not need to set `LLM_PROVIDER` here; the user selects it in the app.*
+
+4.  **Run**:
+    *   The app will build and launch automatically!
+
+## Installation
 
 ```powershell
 python -m venv .venv
@@ -36,18 +94,19 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-2. Configure your LLM provider in `.env` (Groq, OpenAI, Ollama, etc.).
+2. Configure your LLM provider in `.env` (Groq, OpenAI, Ollama, Hugging Face, Mistral, etc.).
 
-3. Run the pipeline:
+3. Run the application.
 
-```powershell
-python crew.py
-```
-
-4. Enter the path to your CSV file when prompted.
+4. Upload your CSV file (Web App) or enter the path (CLI).
 
 ## What you'll get
 
+- **Premium Web Interface**: A sleek, single-page application with a modern "Obsidian & Electric Violet" theme.
+    - **Interactive Dashboard**: Real-time analysis logs and progress tracking.
+    - **Beautiful Visualizations**: Inline charts and graphs.
+    - **Structured Insights**: Clean, bulleted lists for cleaning steps and business insights.
+    - **Relation Mapping**: Visual cards showing column relationships.
 - `outputs/op.py` — collected Python snippets extracted from agent outputs.
 - `index.html` — A professional **Data Analysis Report** featuring:
     - **Data Quality Assessment**: Score, decision, and warnings.

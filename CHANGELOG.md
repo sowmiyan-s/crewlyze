@@ -5,6 +5,22 @@ All notable changes to the Multi Agent Data Analysis with Crew AI project will b
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-11-27
+
+### UI Overhaul
+- **Premium Design**: Introduced a new "Obsidian & Electric Violet" theme with glassmorphism effects.
+- **Single-Page Layout**: Removed sidebar navigation for a seamless, scrolling experience.
+- **Enhanced Components**:
+    - Redesigned "Column Relations" display with visual cards.
+    - Styled bullet points for cleaner readability.
+    - Modern typography using 'Outfit' and 'JetBrains Mono'.
+- **Interactive Sidebar**: Redesigned configuration panel and "About" section with GitHub integration.
+
+### Improvements
+- **Robustness**: Improved error handling for LLM API calls and visualization generation.
+- **Consistency**: Unified styling for both live analysis results and cached sessions.
+
+
 ## [2.0.0] - 2025-11-26
 
 ### Major Features

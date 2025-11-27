@@ -7,7 +7,7 @@
 ## Prerequisites
 
 - **Python**: Version 3.10 or higher
-- **API Key**: A Groq, OpenAI, or Anthropic API key (or a local Ollama setup).
+- **API Key**: A Groq, OpenAI, Anthropic, or Hugging Face API key (or a local Ollama setup).
 
 ## Installation
 
@@ -32,8 +32,13 @@
 4. Configure your environment:
    Create a `.env` file in the root directory:
    ```env
+   # Example for Groq
    LLM_PROVIDER=groq
    GROQ_API_KEY=your_groq_api_key_here
+
+   # Example for Hugging Face
+   # LLM_PROVIDER=huggingface
+   # HUGGINGFACE_API_KEY=your_huggingface_api_key_here
    ```
 
 ## Quick Start

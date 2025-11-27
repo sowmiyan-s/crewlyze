@@ -9,7 +9,7 @@ cleaner_agent = Agent(
     name="Data Cleaner",
     role="Clean dataset",
     backstory="A no-nonsense data mechanic who hates messy CSVs. You grew up debugging trash datasets and built a rep for turning corrupt data into clean, analysis-ready gold.",
-    goal="Generate JSON instructions for cleaning dataframe without modifying code.",
+    goal="List the data cleaning steps performed, one per line. Be concise. DO NOT use JSON. Example:\n- Removed duplicates\n- Filled missing values",
     llm=LLM(**get_llm_params()),
     verbose=True
 )
