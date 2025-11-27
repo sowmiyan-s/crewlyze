@@ -78,7 +78,7 @@ python crew.py
 ├── crew.py               # Main entry point
 ├── requirements.txt      # Python dependencies
 ├── README.md             # This file
-├── USAGE.md              # Detailed usage guide
+├── USAGE.md              # Detailed usage 
 ├── CHANGELOG.md          # Version history
 └── LICENSE               # License information
 ```
