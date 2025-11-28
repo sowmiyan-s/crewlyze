@@ -35,3 +35,25 @@ Thumbs.db
 # Replit
 .replit
 replit.md
+
+# Binary Files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.ico
+*.pdf
+*.zip
+*.tar
+*.gz
+*.7z
+*.exe
+*.dll
+*.so
+*.dylib
+*.class
+*.jar
+*.war
+*.ear
+*.sqlite
+*.db

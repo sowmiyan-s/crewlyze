@@ -11,6 +11,7 @@ import glob
 from PIL import Image
 
 from crew import run_crew
+import numpy as np
 
 # Set page config
 st.set_page_config(
@@ -184,6 +185,54 @@ def display_relations(text):
                 </div>
                 """, unsafe_allow_html=True)
 
+def render_visualizations(df, key_prefix=""):
+    """Renders interactive Streamlit visualizations for the dataframe."""
+    st.markdown("### 📈 Visualizations")
+    
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+    categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    
+    # 1. Distribution plots
+    if numeric_cols:
+        st.markdown("#### Distribution of Numeric Variables")
+        col_to_plot = st.selectbox("Select column for distribution", numeric_cols, key=f"{key_prefix}_dist_col")
+        
+        # Calculate histogram
+        hist_values, bin_edges = np.histogram(df[col_to_plot].dropna(), bins=20)
+        hist_df = pd.DataFrame({"Frequency": hist_values}, index=bin_edges[:-1])
+        st.bar_chart(hist_df)
+        
+    # 2. Correlation Heatmap
+    if len(numeric_cols) >= 2:
+        st.markdown("#### Correlation Heatmap")
+        corr = df[numeric_cols].corr()
+        st.dataframe(corr.style.background_gradient(cmap="coolwarm"))
+        
+    # 3. Scatter Plot
+    if len(numeric_cols) >= 2:
+        st.markdown("#### Scatter Plot")
+        c1, c2 = st.columns(2)
+        with c1:
+            x_col = st.selectbox("X Axis", numeric_cols, index=0, key=f"{key_prefix}_scatter_x")
+        with c2:
+            y_col = st.selectbox("Y Axis", numeric_cols, index=1 if len(numeric_cols) > 1 else 0, key=f"{key_prefix}_scatter_y")
+        
+        st.scatter_chart(df, x=x_col, y=y_col)
+        
+    # 4. Categorical vs Numeric
+    if categorical_cols and numeric_cols:
+        st.markdown("#### Categorical vs Numeric")
+        c1, c2 = st.columns(2)
+        with c1:
+            cat_col = st.selectbox("Category", categorical_cols, index=0, key=f"{key_prefix}_cat_col")
+        with c2:
+            num_col = st.selectbox("Numeric", numeric_cols, index=0, key=f"{key_prefix}_num_col")
+            
+        # Aggregate mean
+        chart_data = df.groupby(cat_col)[num_col].mean().sort_values(ascending=False).head(10)
+        st.bar_chart(chart_data)
+        st.caption(f"Average {num_col} by Top 10 {cat_col}")
+
 def main():
     # Sidebar
     with st.sidebar:
@@ -351,17 +400,7 @@ def main():
                         display_relations(result['relations'])
                         
                         # Visualizations
-                        st.markdown("### 📈 Visualizations")
-                        output_dir = result['output_dir']
-                        png_files = sorted(glob.glob(str(output_dir / "*.png")))
-                        if png_files:
-                            cols = st.columns(2)
-                            for idx, png_file in enumerate(png_files):
-                                with cols[idx % 2]:
-                                    img = Image.open(png_file)
-                                    st.image(img, use_column_width=True, caption=Path(png_file).stem)
-                        else:
-                            st.warning("No visualizations generated.")
+                        render_visualizations(result['dataframe'], key_prefix="main")
 
                         # Generated Code Info
                         st.markdown("### ⚙️ Visualization Method")
@@ -405,17 +444,7 @@ def main():
         st.markdown("### 🔗 Column Relations")
         display_relations(result['relations'])
 
-        st.markdown("### 📈 Visualizations")
-        output_dir = result['output_dir']
-        png_files = sorted(glob.glob(str(output_dir / "*.png")))
-        if png_files:
-            cols = st.columns(2)
-            for idx, png_file in enumerate(png_files):
-                with cols[idx % 2]:
-                    img = Image.open(png_file)
-                    st.image(img, use_column_width=True, caption=Path(png_file).stem)
-        else:
-            st.warning("No visualizations generated.")
+        render_visualizations(result['dataframe'], key_prefix="cached")
 
         st.markdown("### 💡 Key Insights")
         display_text_as_bullets(result['insights'], "✨")
