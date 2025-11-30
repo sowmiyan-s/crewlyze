@@ -36,6 +36,7 @@ pinned: false
 - Run: `python crew.py`
 - Outputs: `outputs/op.py`, `index.html`
 - Agents: `agents/` — each agent defines its LLM model and endpoint.
+- **Live Demo**: [Hugging Face Space](https://huggingface.co/spaces/sowmiyan-s/Multi-Agent-Data-Analysis-with-CrewAI)
 
 ## Quick Start
 
@@ -54,6 +55,8 @@ python crew.py
 ```
 
 ## Deploying to Hugging Face Spaces
+
+**[View Live Demo](https://huggingface.co/spaces/sowmiyan-s/Multi-Agent-Data-Analysis-with-CrewAI)**
 
 1.  **Create a New Space**:
     *   Go to [huggingface.co/spaces](https://huggingface.co/spaces).

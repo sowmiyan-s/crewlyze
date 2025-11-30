@@ -13,6 +13,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Disable CrewAI Telemetry to prevent timeouts
+os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
+os.environ["OTEL_SDK_DISABLED"] = "true"
+
 logging.getLogger("urllib3").setLevel(logging.ERROR)
 logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 

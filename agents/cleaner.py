@@ -5,12 +5,15 @@
 from crewai import Agent, LLM
 from config.llm_config import get_llm_params
 
+from tools.dataset_tools import DatasetTools
+
 cleaner_agent = Agent(
     name="Data Cleaner",
     role="Clean dataset",
     backstory="A no-nonsense data mechanic who hates messy CSVs. You grew up debugging trash datasets and built a rep for turning corrupt data into clean, analysis-ready gold.",
     goal="List the data cleaning steps performed, one per line. Be concise. DO NOT use JSON. Example:\n- Removed duplicates\n- Filled missing values",
     llm=LLM(**get_llm_params()),
+    tools=[DatasetTools.read_dataset_head, DatasetTools.get_dataset_info],
     verbose=True
 )
 

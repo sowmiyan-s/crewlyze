@@ -13,6 +13,10 @@ from PIL import Image
 from crew import run_crew
 import numpy as np
 
+# Disable CrewAI Telemetry
+os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
+os.environ["OTEL_SDK_DISABLED"] = "true"
+
 # Set page config
 st.set_page_config(
     page_title="Agentic Data Analyst",
@@ -314,17 +318,19 @@ def main():
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
             
-        st.success(f"✅ File uploaded successfully: {uploaded_file.name}")
+        # Check if we need to run analysis (new file or no result yet)
+        current_file_key = f"analysis_done_{uploaded_file.name}"
         
-        # Preview
-        df = pd.read_csv(file_path)
-        with st.expander("📊 Preview Dataset"):
-            st.dataframe(df.head())
-        
-        # Analysis Button
-        if st.button("🚀 Start Analysis"):
+        if current_file_key not in st.session_state:
+            st.success(f"✅ File uploaded successfully: {uploaded_file.name}")
+            
+            # Preview
+            df = pd.read_csv(file_path)
+            with st.expander("📊 Preview Dataset", expanded=True):
+                st.dataframe(df.head())
+            
             st.markdown("---")
-            st.markdown("### 🔄 Analysis in Progress")
+            st.markdown("### 🔄 Auto-Starting Analysis...")
             
             # Container for logs
             log_container = st.empty()
@@ -356,98 +362,68 @@ def main():
             # Run analysis
             with contextlib.redirect_stdout(StreamlitLogger()):
                 try:
-                    with st.spinner("🤖 Agents are working..."):
+                    with st.spinner("🤖 Agents are analyzing your data..."):
                         result = run_crew(str(file_path))
                     
                     if result:
-                        st.session_state['analysis_result'] = result
-                        st.markdown("---")
-                        st.success("### ✅ Analysis Complete!")
-                        st.balloons()
-                        
-                        # Display Results
-                        st.markdown("## 📊 Analysis Results")
-                        
-                        # Dataset Preview
-                        st.markdown("### 🔍 Dataset Preview")
-                        st.dataframe(result['dataframe'].head(50))
-                        
-                        # Cleaning Steps
-                        st.markdown("### 🧹 Data Cleaning Steps")
-                        display_text_as_bullets(result['cleaning_steps'], "🔹")
-                        
-                        # Validation
-                        st.markdown("### ✅ Dataset Validation")
-                        val_text = result['validation']
-                        if "Decision:" in val_text:
-                            parts = val_text.split("Decision:")
-                            if len(parts) > 1:
-                                decision_part = parts[1].split("Reason:")[0].strip()
-                                reason_part = val_text.split("Reason:")[1].strip() if "Reason:" in val_text else ""
-                                
-                                color = "#10b981" if "YES" in decision_part.upper() else "#ef4444"
-                                st.markdown(f"""
-                                <div style="padding: 15px; border-left: 5px solid {color}; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                                    <h4 style="margin:0; color:{color}">Decision: {decision_part}</h4>
-                                    <p style="margin-top:10px;">{reason_part}</p>
-                                </div>
-                                """, unsafe_allow_html=True)
-                        else:
-                            st.text(val_text)
-                        
-                        # Relations
-                        st.markdown("### 🔗 Column Relations")
-                        display_relations(result['relations'])
-                        
-                        # Visualizations
-                        render_visualizations(result['dataframe'], key_prefix="main")
-
-                        # Generated Code Info
-                        st.markdown("### ⚙️ Visualization Method")
-                        st.info(result.get('code', 'Automatic visualization generation'))
-                        
-                        # Insights
-                        st.markdown("### 💡 Key Insights")
-                        display_text_as_bullets(result['insights'], "✨")
+                        st.session_state[current_file_key] = result
+                        st.session_state['current_active_file'] = current_file_key
+                        st.rerun()
                         
                 except Exception as e:
                     st.error(f"❌ An error occurred: {str(e)}")
                     st.exception(e)
-    
-    # Display stored results if available
-    elif 'analysis_result' in st.session_state:
-        result = st.session_state['analysis_result']
-        st.markdown("## 📊 Analysis Results (Cached)")
-        st.dataframe(result['dataframe'].head(50))
         
-        st.markdown("### 🧹 Data Cleaning Steps")
-        display_text_as_bullets(result['cleaning_steps'], "🔹")
-        
-        st.markdown("### ✅ Dataset Validation")
-        val_text = result['validation']
-        if "Decision:" in val_text:
-            parts = val_text.split("Decision:")
-            if len(parts) > 1:
-                decision_part = parts[1].split("Reason:")[0].strip()
-                reason_part = val_text.split("Reason:")[1].strip() if "Reason:" in val_text else ""
-                
-                color = "#10b981" if "YES" in decision_part.upper() else "#ef4444"
-                st.markdown(f"""
-                <div style="padding: 15px; border-left: 5px solid {color}; background: rgba(255,255,255,0.05); border-radius: 5px;">
-                    <h4 style="margin:0; color:{color}">Decision: {decision_part}</h4>
-                    <p style="margin-top:10px;">{reason_part}</p>
-                </div>
-                """, unsafe_allow_html=True)
-        else:
-            st.text(val_text)
+        # Display Results if available
+        elif current_file_key in st.session_state:
+            result = st.session_state[current_file_key]
+            
+            st.success("### ✅ Analysis Complete!")
+            
+            # Display Results
+            st.markdown("## 📊 Analysis Results")
+            
+            # Dataset Preview
+            st.markdown("### 🔍 Dataset Preview")
+            st.dataframe(result['dataframe'].head(50))
+            
+            # Cleaning Steps
+            st.markdown("### 🧹 Data Cleaning Steps")
+            display_text_as_bullets(result['cleaning_steps'], "🔹")
+            
+            # Validation
+            st.markdown("### ✅ Dataset Validation")
+            val_text = result['validation']
+            if "Decision:" in val_text:
+                parts = val_text.split("Decision:")
+                if len(parts) > 1:
+                    decision_part = parts[1].split("Reason:")[0].strip()
+                    reason_part = val_text.split("Reason:")[1].strip() if "Reason:" in val_text else ""
+                    
+                    color = "#10b981" if "YES" in decision_part.upper() else "#ef4444"
+                    st.markdown(f"""
+                    <div style="padding: 15px; border-left: 5px solid {color}; background: rgba(255,255,255,0.05); border-radius: 5px;">
+                        <h4 style="margin:0; color:{color}">Decision: {decision_part}</h4>
+                        <p style="margin-top:10px;">{reason_part}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.text(val_text)
+            
+            # Relations
+            st.markdown("### 🔗 Column Relations")
+            display_relations(result['relations'])
+            
+            # Visualizations
+            render_visualizations(result['dataframe'], key_prefix="main")
 
-        st.markdown("### 🔗 Column Relations")
-        display_relations(result['relations'])
-
-        render_visualizations(result['dataframe'], key_prefix="cached")
-
-        st.markdown("### 💡 Key Insights")
-        display_text_as_bullets(result['insights'], "✨")
+            # Generated Code Info
+            st.markdown("### ⚙️ Visualization Method")
+            st.info(result.get('code', 'Automatic visualization generation'))
+            
+            # Insights
+            st.markdown("### 💡 Key Insights")
+            display_text_as_bullets(result['insights'], "✨")
 
 if __name__ == "__main__":
     main()
