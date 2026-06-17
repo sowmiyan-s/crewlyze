@@ -52,58 +52,47 @@ def run_crew(csv_path: str):
     print(f"Loaded {len(df)} rows, {len(df.columns)} columns")
     print(f"Columns: {', '.join(df.columns[:10])}...")
 
-    # Data Cleaning
-    print("\n--- Starting Data Cleaning ---")
-    df = df.drop_duplicates()
-    
-    # Fill numeric missing values with mean
-    numeric_cols = df.select_dtypes(include=['number']).columns
-    df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-    
-    # Fill categorical missing values with mode
-    categorical_cols = df.select_dtypes(include=['object']).columns
-    for col in categorical_cols:
-        if df[col].isnull().any():
-            mode_val = df[col].mode()
-            if not mode_val.empty:
-                df[col] = df[col].fillna(mode_val[0])
-            else:
-                df[col] = df[col].fillna("Unknown")
-
+    # Data Cleaning - delegate to cleaner agent
+    print("\n--- Copying original dataset to data/cleaned_csv.csv for Agent Cleaning ---")
     cleaned_file_path = Path("data") / "cleaned_csv.csv"
-    # Ensure data directory exists
     cleaned_file_path.parent.mkdir(exist_ok=True)
     df.to_csv(cleaned_file_path, index=False)
-    print(f"Cleaned dataset saved to {cleaned_file_path}")
+    print("Dataset copied. Cleaner agent will clean this file.\n")
     
-    # Update dataset path for agents
-    a = str(cleaned_file_path.absolute())
-    print("--- Data Cleaning Complete ---\n")
+    import importlib
+    import sys
+
+    # Reload modules if already loaded to ensure fresh initialization with current env vars
+    for module_name in ['agents.cleaner', 'agents.relation', 'agents.insights', 'agents.visualizer', 'workflows.pipeline']:
+        if module_name in sys.modules:
+            importlib.reload(sys.modules[module_name])
 
     from agents.cleaner import cleaner_agent
-    from agents.validator import validator_agent
     from agents.relation import relation_agent
     from agents.insights import insights_agent
+    from agents.visualizer import visualizer_agent
     from workflows.pipeline import (
         clean_task,
-        validate_task,
         relation_task,
         insight_task,
+        visualize_task,
     )
 
     crew = Crew(
         agents=[
             cleaner_agent,
-            validator_agent,
             relation_agent,
             insights_agent,
+            visualizer_agent,
         ],
         tasks=[
             clean_task,
-            validate_task,
             relation_task,
             insight_task,
+            visualize_task,
         ],
+        max_rpm=15,
+        cache=True,
         verbose=True,
     )
 
@@ -114,47 +103,38 @@ def run_crew(csv_path: str):
         return {
             'dataframe': df,
             'cleaning_steps': "Error during analysis",
-            'validation': "Error during analysis",
+            'validation': "N/A",
             'relations': "Error during analysis",
             'code': "Error during analysis",
             'insights': f"Analysis failed: {str(e)}",
             'output_dir': output_dir
         }
     
+    # Extract outputs safely based on sequence order
+    clean_output = ""
+    relation_output = ""
+    insights_output = ""
+    visualize_output = ""
+    
+    if len(crew.tasks) >= 4:
+        clean_output = str(crew.tasks[0].output.raw if hasattr(crew.tasks[0].output, 'raw') else crew.tasks[0].output)
+        relation_output = str(crew.tasks[1].output.raw if hasattr(crew.tasks[1].output, 'raw') else crew.tasks[1].output)
+        insights_output = str(crew.tasks[2].output.raw if hasattr(crew.tasks[2].output, 'raw') else crew.tasks[2].output)
+        visualize_output = str(crew.tasks[3].output.raw if hasattr(crew.tasks[3].output, 'raw') else crew.tasks[3].output)
 
-    task_outputs = {}
-    
-   
-    if hasattr(crew, 'tasks'):
-        for i, task in enumerate(crew.tasks):
-            if hasattr(task, 'output') and task.output:
-                task_name = task.description.split()[0].lower()
-                if hasattr(task.output, 'raw'):
-                    task_outputs[task_name] = str(task.output.raw)
-                else:
-                    task_outputs[task_name] = str(task.output)
-    
- 
-    if hasattr(result, 'raw'):
-        final_output = str(result.raw)
-    else:
-        final_output = str(result)
-    
- 
-    clean_output = task_outputs.get('clean', '')
-    validate_output = task_outputs.get('validate', 'The Coloums in the datasets are' + str(df.columns))
-    relation_output = task_outputs.get('identify', 'The Coloums in the datasets are' + str(df.columns))
-    code_output = task_outputs.get('generate', 'The Coloums in the datasets are' + str(df.columns) + "and the path to database is : " + a)
-    insights_output = task_outputs.get('produce', final_output)
-    
+    # Reload the dataframe since it was cleaned in-place by the cleaner agent
+    try:
+        cleaned_df = pd.read_csv(cleaned_file_path)
+    except Exception:
+        cleaned_df = df
 
     # Return structured data
     return {
-        'dataframe': df,
+        'dataframe': cleaned_df,
         'cleaning_steps': clean_output,
-        'validation': validate_output,
+        'validation': "Skipped - replaced by visualization workflow",
         'relations': relation_output,
-        'code': "Visualizations will be generated by Streamlit",
+        'code': visualize_output,
         'insights': insights_output,
         'output_dir': output_dir
     }

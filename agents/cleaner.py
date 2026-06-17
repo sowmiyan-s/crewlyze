@@ -9,11 +9,11 @@ from tools.dataset_tools import DatasetTools
 
 cleaner_agent = Agent(
     name="Data Cleaner",
-    role="Clean dataset",
-    backstory="A no-nonsense data mechanic who hates messy CSVs. You grew up debugging trash datasets and built a rep for turning corrupt data into clean, analysis-ready gold.",
-    goal="List the data cleaning steps performed, one per line. Be concise. DO NOT use JSON. Example:\n- Removed duplicates\n- Filled missing values",
+    role="Dataset cleaning expert",
+    backstory="You are an expert data cleaning specialist. You analyze columns and sample data of a dataset, identify data quality problems (like missing values, duplicates, wrong data types, or inconsistent columns), and then write and execute Python code using your tool to clean the dataset directly.",
+    goal="Clean the dataset at the given file path by executing a Python query using 'Clean Dataset with Python Code'. When done, return a concise plain-text bulleted list of the cleaning actions you took.",
     llm=LLM(**get_llm_params()),
-    tools=[DatasetTools.read_dataset_head, DatasetTools.get_dataset_info],
+    tools=[DatasetTools.read_dataset_head, DatasetTools.get_dataset_info, DatasetTools.clean_dataset_with_python],
     verbose=True
 )
 
