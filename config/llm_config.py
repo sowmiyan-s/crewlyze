@@ -10,89 +10,68 @@ load_dotenv()
 
 
 # ========================
-# LLM PROVIDER CONFIGURATION
+# LLM PROVIDER CONFIGURATION & DETAILS
 # ========================
-# Change this to switch providers: "groq", "openai", "ollama", "anthropic"
-PROVIDER = os.getenv("LLM_PROVIDER", "groq")
-
-# ========================
-# PROVIDER CONFIGURATIONS
-# ========================
-
-GROQ_CONFIG = {
-    "model": "groq/llama-3.3-70b-versatile",
-    "api_key": os.getenv("GROQ_API_KEY"),
-}
-
-OPENAI_CONFIG = {
-    "model": "gpt-4o-mini",
-    "api_key": os.getenv("OPENAI_API_KEY"),
-}
-
-OLLAMA_CONFIG = {
-    "model": "ollama/llama3",
-    "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-}
-
-ANTHROPIC_CONFIG = {
-    "model": "claude-3-5-sonnet-20241022",
-    "api_key": os.getenv("ANTHROPIC_API_KEY"),
-}
-
-HUGGINGFACE_CONFIG = {
-    "model": "huggingface/HuggingFaceH4/zephyr-7b-beta",
-    "api_key": os.getenv("HUGGINGFACE_API_KEY"),
-}
-
-MISTRAL_CONFIG = {
-    "model": "mistral/mistral-tiny",
-    "api_key": os.getenv("MISTRAL_API_KEY"),
-}
-
-GEMINI_CONFIG = {
-    "model": "gemini/gemini-pro",
-    "api_key": os.getenv("GEMINI_API_KEY"),
-}
-
-
-
-# ========================
-# PROVIDER MAP
-# ========================
-PROVIDER_CONFIGS = {
-    "groq": GROQ_CONFIG,
-    "openai": OPENAI_CONFIG,
-    "ollama": OLLAMA_CONFIG,
-    "anthropic": ANTHROPIC_CONFIG,
-    "huggingface": HUGGINGFACE_CONFIG,
-    "mistral": MISTRAL_CONFIG,
-    "gemini": GEMINI_CONFIG,
-}
-
 
 def get_llm_config():
+    # Retrieve provider dynamically at runtime
+    provider = os.getenv("LLM_PROVIDER", "nvidia")
     
-    if PROVIDER not in PROVIDER_CONFIGS:
+    configs = {
+        "nvidia": {
+            "model": "nvidia_nim/mistralai/mistral-medium-3.5-128b",
+            "api_key": os.getenv("NVIDIA_API_KEY", "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"),
+        },
+        "groq": {
+            "model": "groq/llama-3.1-8b-instant",
+            "api_key": os.getenv("GROQ_API_KEY"),
+        },
+        "openai": {
+            "model": "gpt-4o-mini",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+        },
+        "ollama": {
+            "model": "ollama/llama3",
+            "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        },
+        "anthropic": {
+            "model": "claude-3-5-sonnet-20241022",
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+        },
+        "huggingface": {
+            "model": "huggingface/HuggingFaceH4/zephyr-7b-beta",
+            "api_key": os.getenv("HUGGINGFACE_API_KEY"),
+        },
+        "mistral": {
+            "model": "mistral/mistral-tiny",
+            "api_key": os.getenv("MISTRAL_API_KEY"),
+        },
+        "gemini": {
+            "model": "gemini/gemini-pro",
+            "api_key": os.getenv("GEMINI_API_KEY"),
+        },
+    }
+    
+    if provider not in configs:
         raise ValueError(
-            f"Invalid LLM provider: {PROVIDER}. "
-            f"Choose from: {', '.join(PROVIDER_CONFIGS.keys())}"
+            f"Invalid LLM provider: {provider}. "
+            f"Choose from: {', '.join(configs.keys())}"
         )
     
-    config = PROVIDER_CONFIGS[PROVIDER]
+    config = configs[provider]
     
     # Validate that required credentials are present
-    if PROVIDER in ["groq", "openai", "anthropic", "huggingface", "mistral", "gemini"]:
+    if provider in ["groq", "openai", "anthropic", "huggingface", "mistral", "gemini", "nvidia"]:
         if not config.get("api_key"):
             raise ValueError(
-                f"{PROVIDER.upper()}_API_KEY environment variable is not set. "
-                f"Please add it to Replit Secrets."
+                f"{provider.upper()}_API_KEY environment variable is not set. "
+                f"Please enter your API key in the sidebar configuration."
             )
     
     return config
 
 
 def get_llm_params():
-    
     config = get_llm_config()
     
     # Check if a specific model is requested via env var
@@ -102,7 +81,8 @@ def get_llm_params():
         
     params = {
         "model": model,
-        "temperature": 0.1
+        "temperature": 0.1,
+        "max_retries": 5
     }
     
     if "api_key" in config and config["api_key"]:
