@@ -20,7 +20,7 @@ def get_llm_config():
     configs = {
         "nvidia": {
             "model": "nvidia_nim/mistralai/mistral-medium-3.5-128b",
-            "api_key": os.getenv("NVIDIA_API_KEY", "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"),
+            "api_key": os.getenv("NVIDIA_API_KEY"),
         },
         "groq": {
             "model": "groq/llama-3.1-8b-instant",

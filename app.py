@@ -514,7 +514,7 @@ def main():
         
         default_key = ""
         if provider == "nvidia":
-            default_key = os.getenv("NVIDIA_API_KEY", "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")
+            default_key = os.getenv("NVIDIA_API_KEY", "")
         else:
             default_key = os.getenv(f"{provider.upper()}_API_KEY", "")
 
