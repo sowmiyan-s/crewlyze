@@ -8,3 +8,4 @@ streamlit
 python-dotenv
 Pillow
 reportlab
+plotly>=5.0

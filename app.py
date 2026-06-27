@@ -5,18 +5,13 @@
 """
 Streamlit entry point for the Agentic Data Analyst application.
 
-Key improvements over the original:
-- LLM config stored in st.session_state (per-user), not os.environ (process-global)
-- os.environ set only at analysis invocation time, not on every sidebar widget change
-- Session ID generated per browser session → per-user file isolation
-- Cache key uses MD5 of file content (not filename) → no stale results
-- XSS: all LLM output is html.escape()'d before unsafe_allow_html injection (in components)
-- PDF export is @st.cache_data wrapped — not rebuilt on every rerender
-- app.py split: CSS → ui/styles, components → ui/components, PDF → ui/export
-- StreamlitLogger lives at module level (in ui/components), not inside a conditional
-- Numbered list stripping uses regex for all items N, not just 1-3
-- 'validation' stub key removed
-- Explicit "Run Analysis" button — user controls when the pipeline fires
+Performance improvements in this version:
+- st.status() provides a live progress log as each pipeline stage completes
+- on_progress callback surfaces intermediate results without blocking the UI
+- Plotly interactive charts rendered via st.plotly_chart() in the Visual tab
+  (with agent-generated PNGs as fallback if Plotly charts are unavailable)
+- Default API cooldown reduced from 15s → 5s
+- 'ollama' added as a zero-cooldown provider option in the sidebar
 """
 
 import contextlib
@@ -36,7 +31,7 @@ from ui.export import export_pdf_cached
 
 # Disable CrewAI Telemetry
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
-os.environ["OTEL_SDK_DISABLED"] = "true"
+os.environ["OTEL_SDK_DISABLED"]        = "true"
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -80,6 +75,7 @@ def _render_sidebar() -> dict:
             "huggingface": ["huggingface/HuggingFaceH4/zephyr-7b-beta", "huggingface/meta-llama/Llama-2-7b-chat-hf", "huggingface/tiiuae/falcon-7b-instruct"],
             "mistral":     ["mistral/mistral-tiny", "mistral/mistral-small", "mistral/mistral-medium", "mistral/mistral-large-latest"],
             "gemini":      ["gemini/gemini-pro", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"],
+            "ollama":      ["ollama/llama3", "ollama/mistral", "ollama/gemma2"],
         }
 
         provider = st.selectbox(
@@ -99,23 +95,36 @@ def _render_sidebar() -> dict:
         st.session_state["llm_model"] = selected_model
 
         # Pre-fill key from env (initial load only) — stored in session_state
-        env_key_name = "NVIDIA_API_KEY" if provider in ("nvidia", "minimax") else f"{provider.upper()}_API_KEY"
-        default_key  = st.session_state.get("api_key") or os.getenv(env_key_name, "")
+        if provider == "ollama":
+            env_key_name = "OLLAMA_BASE_URL"
+            default_key  = st.session_state.get("api_key") or os.getenv(env_key_name, "http://localhost:11434")
+        elif provider in ("nvidia", "minimax"):
+            env_key_name = "NVIDIA_API_KEY"
+            default_key  = st.session_state.get("api_key") or os.getenv(env_key_name, "")
+        else:
+            env_key_name = f"{provider.upper()}_API_KEY"
+            default_key  = st.session_state.get("api_key") or os.getenv(env_key_name, "")
 
         api_key = st.text_input(
-            f"{provider.upper()} API Key",
+            f"{provider.upper()} API Key" if provider != "ollama" else "Ollama Base URL",
             value=default_key,
-            type="password",
-            help=f"Enter your {provider} API key",
+            type="password" if provider != "ollama" else "default",
+            help=f"Enter your {provider} API key" if provider != "ollama"
+                 else "URL of your local Ollama server",
         )
         st.session_state["api_key"] = api_key
 
+        # Cooldown: default 5s (was 15s); Ollama users typically set to 0
+        default_cooldown = 0 if provider == "ollama" else int(os.getenv("API_COOLDOWN", "5"))
         cooldown = st.slider(
             "API Cooldown (seconds)",
             min_value=0,
             max_value=60,
-            value=int(os.getenv("API_COOLDOWN", "15")),
-            help="Time to sleep between agent tasks to prevent rate limiting.",
+            value=default_cooldown,
+            help=(
+                "Seconds to sleep between agent tasks to prevent rate limiting. "
+                "Set to 0 for self-hosted models (Ollama) with no rate limits."
+            ),
         )
         st.session_state["api_cooldown"] = cooldown
 
@@ -164,9 +173,9 @@ def _apply_env(cfg: dict) -> None:
     """Write LLM settings to os.environ immediately before run_crew()."""
     if cfg["api_key"]:
         os.environ[cfg["env_key_name"]] = cfg["api_key"]
-    os.environ["LLM_PROVIDER"]  = cfg["provider"]
-    os.environ["LLM_MODEL"]     = cfg["model"]
-    os.environ["API_COOLDOWN"]  = str(cfg["cooldown"])
+    os.environ["LLM_PROVIDER"] = cfg["provider"]
+    os.environ["LLM_MODEL"]    = cfg["model"]
+    os.environ["API_COOLDOWN"] = str(cfg["cooldown"])
 
 
 # ── Results display ───────────────────────────────────────────────────────────
@@ -227,13 +236,25 @@ def _render_results(result: dict) -> None:
         display_text_as_bullets(result["insights"], "✨")
 
     with tab_plots:
-        st.markdown("### 📈 Agent Generated Visualizations")
+        st.markdown("### 📈 Visual Intelligence")
+
+        # ── Interactive Plotly charts (generated from relation output, no LLM) ──
+        plotly_charts = result.get("plotly_charts", [])
+        if plotly_charts:
+            st.markdown("#### 🎯 Interactive Charts")
+            st.caption("Zoom, pan, and hover for details on any chart.")
+            for chart in plotly_charts:
+                st.plotly_chart(chart["fig"], use_container_width=True)
+            st.markdown("---")
+
+        # ── Agent-generated static PNGs (supplementary / fallback) ──────────────
         output_dir = Path(result.get("output_dir", "outputs"))
         png_files  = sorted(output_dir.glob("*.png"))
         if png_files:
+            st.markdown("#### 🖼️ Agent-Generated Visualizations")
             for png_file in png_files:
                 st.image(str(png_file), caption=png_file.stem, use_container_width=True)
-        else:
+        elif not plotly_charts:
             st.info("No visualizations generated by the agent.")
 
     # Generated code block
@@ -248,18 +269,17 @@ def _render_results(result: dict) -> None:
 
     with c1:
         try:
-            # Stable cache key: hash the text content — PDF only rebuilds on actual change
             cache_key = hashlib.md5(
                 (result["cleaning_steps"] + result["relations"] + result["insights"]).encode()
             ).hexdigest()
             pdf_bytes = export_pdf_cached(
-                cache_key           = cache_key,
-                result_cleaning     = result["cleaning_steps"],
-                result_relations    = result["relations"],
-                result_insights     = result["insights"],
-                result_code         = result.get("code", ""),
-                output_dir_str      = result.get("output_dir", "outputs"),
-                df_csv              = result["dataframe"].to_csv(index=False),
+                cache_key        = cache_key,
+                result_cleaning  = result["cleaning_steps"],
+                result_relations = result["relations"],
+                result_insights  = result["insights"],
+                result_code      = result.get("code", ""),
+                output_dir_str   = result.get("output_dir", "outputs"),
+                df_csv           = result["dataframe"].to_csv(index=False),
             )
             st.download_button(
                 label="📄 Export Full Report as PDF",
@@ -301,7 +321,7 @@ def main() -> None:
         return
 
     # ── Save file ─────────────────────────────────────────────────────────────
-    data_dir = Path("data")
+    data_dir  = Path("data")
     data_dir.mkdir(exist_ok=True)
     file_path = data_dir / uploaded_file.name
 
@@ -324,7 +344,6 @@ def main() -> None:
     # ── Show results if already cached ───────────────────────────────────────
     if cache_key in st.session_state:
         _render_results(st.session_state[cache_key])
-        # Allow re-run
         if st.button("🔄 Re-run Analysis", use_container_width=True):
             del st.session_state[cache_key]
             st.rerun()
@@ -342,10 +361,35 @@ def main() -> None:
     log_container = st.empty()
     logs: list[str] = []
 
+    # ── Progressive status display ────────────────────────────────────────────
+    _STAGE_LABELS = {
+        "profiling":     "📊 Dataset profiled (eliminated tool-call round-trips)",
+        "cleaning":      "🧹 Data cleaning complete",
+        "relations":     "🔗 Relationships identified",
+        "insights":      "💡 Business insights generated",
+        "visualization": "🖼️ Agent visualizations complete",
+        "plotly":        "🎯 Interactive charts built",
+    }
+
     with contextlib.redirect_stdout(StreamlitLogger(log_container, logs)):
         try:
-            with st.spinner("🤖 Agents are analysing your data..."):
-                result = run_crew(str(file_path), session_id=session_id)
+            with st.status("🤖 Agents are analysing your data...", expanded=True) as status:
+                status.write("⚙️ Starting pipeline...")
+
+                def on_progress(stage: str, data=None) -> None:
+                    label = _STAGE_LABELS.get(stage, f"✅ {stage} complete")
+                    status.write(label)
+
+                result = run_crew(
+                    str(file_path),
+                    session_id=session_id,
+                    on_progress=on_progress,
+                )
+                status.update(
+                    label="✅ Analysis complete!",
+                    state="complete",
+                    expanded=False,
+                )
 
             if result:
                 st.session_state[cache_key] = result
