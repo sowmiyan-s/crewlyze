@@ -188,7 +188,122 @@ CSS_BLOCK = """
     div[data-testid="stFileUploader"]:hover {
         border-color: rgba(6, 182, 212, 0.4);
     }
+
+    /* PREMIUM BUSINESS INTELLIGENCE CARDS */
+    .insight-card {
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(139, 92, 246, 0.15);
+        border-left: 5px solid #8b5cf6;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .insight-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(139, 92, 246, 0.35);
+        box-shadow: 0 8px 30px rgba(139, 92, 246, 0.15);
+    }
+    .insight-header {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #a78bfa;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 0.5rem;
+    }
+    .insight-section {
+        margin-bottom: 0.75rem;
+    }
+    .insight-section:last-child {
+        margin-bottom: 0;
+    }
+    .insight-label {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-bottom: 0.25rem;
+        letter-spacing: 0.05em;
+    }
+    .label-obs {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .label-imp {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .label-strat {
+        background: rgba(6, 182, 212, 0.15);
+        color: #22d3ee;
+        border: 1px solid rgba(6, 182, 212, 0.3);
+    }
+    .insight-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+        margin: 0;
+    }
+    .insight-text-strat {
+        font-weight: 500;
+        color: #e2e8f0;
+    }
+
+    /* TIMELINE AUDIT TRAIL */
+    .timeline-container {
+        border-left: 2px solid rgba(139, 92, 246, 0.2);
+        margin-left: 10px;
+        padding-left: 20px;
+        position: relative;
+    }
+    .timeline-item {
+        background: rgba(15, 23, 42, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    .timeline-item::before {
+        content: "✔";
+        position: absolute;
+        left: -31px;
+        top: 15px;
+        background: #8b5cf6;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        font-size: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+    }
+    .timeline-step {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #a78bfa;
+        text-transform: uppercase;
+        margin-bottom: 0.25rem;
+    }
+    .timeline-desc {
+        font-size: 0.95rem;
+        color: #cbd5e1;
+        margin: 0;
+    }
     </style>
+
 """
 
 
