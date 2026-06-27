@@ -5,6 +5,36 @@ All notable changes to the Multi Agent Data Analysis with Crew AI project will b
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-06-27
+
+### Architecture Refactor
+- **Modular UI Package**: Extracted all Streamlit UI logic from `app.py` into a dedicated `ui/` package:
+    - `ui/styles.py` — CSS injection (glassmorphism "Obsidian & Electric Violet" theme)
+    - `ui/components.py` — `display_text_as_bullets`, `display_relations`, `StreamlitLogger` (module-level, not inline)
+    - `ui/export.py` — ReportLab PDF builder, wrapped with `@st.cache_data`
+- **Security — Subprocess Sandboxing**: All LLM-generated Python code (cleaning and visualization) now runs in an isolated child process via `subprocess.run()`. `exec()` is never called in the parent process, eliminating RCE risk.
+- **Per-session File Isolation**: Each browser session gets its own `data/sessions/<id>/` and `outputs/<id>/` directories. No cross-session data leakage.
+- **Content-hashed Caching**: Analysis results and PDF exports are cached by MD5 of the uploaded file content, not the filename. Re-uploading the same file never triggers a redundant re-run.
+- **XSS-safe Output**: All LLM-generated text is `html.escape()`'d before injection into `unsafe_allow_html` markdown blocks.
+
+### Improvements
+- **Explicit Run Button**: Analysis no longer fires automatically on upload. Users configure the LLM provider in the sidebar and then click **▶️ Run Analysis**.
+- **Numbered List Regex**: Bullet stripping now uses `re.sub(r"^[\d]+\.\s+", "", line)` — handles all numbered items (N.), not just 1–3.
+- **LLM Config Isolation**: Provider/model/API key are stored in `st.session_state` and only written to `os.environ` immediately before `run_crew()` is invoked.
+- **Agent Factory Pattern**: All agent factories (`make_cleaner_agent`, etc.) are called fresh on every `run_crew()` invocation, picking up the latest sidebar config without requiring `importlib.reload()`.
+- **Session Cleanup**: `_cleanup_old_sessions()` automatically removes session directories older than 24 hours on every run.
+
+### Fixed
+- **Session Isolation Bug**: `execute_visualization_code` tool no longer creates a root-level `outputs/` directory, which previously bypassed per-session isolation.
+- **Stale Cached PDF**: PDF export is now `@st.cache_data` wrapped with a content-hash key — it is never rebuilt on every Streamlit rerender.
+- **Unicode Crash**: `StreamlitLogger.write()` re-encodes through the terminal's actual encoding with `errors='replace'`, preventing `UnicodeEncodeError` on Windows cp1252 terminals.
+
+### Removed
+- `validator.py` (merged into cleaner agent's responsibility)
+- `code_gen.py` (replaced by inline visualization task in `visualizer.py`)
+- `index.html` report output (replaced by the interactive Streamlit dashboard)
+- `outputs/op.py` collected code output (agent code is shown in "Visualization Architecture" section)
+
 ## [2.1.0] - 2025-11-27
 
 ### UI Overhaul

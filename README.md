@@ -33,9 +33,10 @@ pinned: false
 
 ## Quick Links
 
-- Run: `python crew.py`
-- Outputs: `outputs/op.py`, `index.html`
-- Agents: `agents/` — each agent defines its LLM model and endpoint.
+- **Web App**: `streamlit run app.py`
+- **CLI**: `python crew.py`
+- **Agents**: `agents/` — each agent is a factory function that picks up the current LLM config at runtime.
+- **Outputs**: session-isolated PNG visualizations under `outputs/<session_id>/`
 - **Live Demo**: [Hugging Face Space](https://huggingface.co/spaces/sowmiyan-s/Multi-Agent-Data-Analysis-with-CrewAI)
 
 ## Quick Start
@@ -106,56 +107,65 @@ pip install -r requirements.txt
 ## What you'll get
 
 - **Premium Web Interface**: A sleek, single-page application with a modern "Obsidian & Electric Violet" theme.
-    - **Interactive Dashboard**: Real-time analysis logs and progress tracking.
-    - **Beautiful Visualizations**: Inline charts and graphs.
-    - **Structured Insights**: Clean, bulleted lists for cleaning steps and business insights.
-    - **Relation Mapping**: Visual cards showing column relationships.
-- `outputs/op.py` — collected Python snippets extracted from agent outputs.
-- `index.html` — A professional **Data Analysis Report** featuring:
-    - **Data Quality Assessment**: Score, decision, and warnings.
-    - **Data Cleaning Steps**: Audit trail of changes.
-    - **Visualizations**: Matplotlib/Seaborn charts.
-    - **Business Insights**: Strategic findings synthesized from the analysis.
+    - **Executive Dashboard**: Scorecards showing row count, column count, numeric and categorical field totals.
+    - **Tabbed Results View**: Five dedicated tabs — Data Preview, Clean Report, Relations Map, Key Insights, Visual Intelligence.
+    - **Real-time Agent Logs**: A terminal-style scrollable log widget streams agent output as the pipeline runs.
+    - **Structured Insights**: Styled bullet and relation cards for cleaning steps, column relationships, and BI insights.
+    - **Agent-Generated Visualizations**: PNG charts produced by the visualizer agent, displayed inline.
+    - **PDF & CSV Export**: Download a formatted PDF report or the cleaned dataset as CSV.
+    - **Per-session Isolation**: Each browser session writes to its own `data/sessions/<id>/` and `outputs/<id>/` directories.
+    - **Content-hashed Caching**: Results are cached by MD5 of the file content — no stale data on re-upload of the same file.
 
 ## Project Structure
 
 ```
-├── agents/               # AI agent definitions
-│   ├── cleaner.py        # Data Cleaner
-│   ├── validator.py      # Data Quality Assurance Specialist
-│   ├── relation.py       # Relationship Analyst
-│   ├── code_gen.py       # Code Generator
-│   └── insights.py       # Business Intelligence Analyst
-├── config/               # Configuration files
-│   ├── llm_config.py     # LLM backend configuration
+.
+├── agents/               # AI agent factory functions
+│   ├── cleaner.py        # Data Cleaner agent
+│   ├── relation.py       # Relationship Analyst agent
+│   ├── insights.py       # Business Intelligence Analyst agent
+│   └── visualizer.py     # Data Visualizer agent
+├── config/               # Configuration
+│   ├── llm_config.py     # LLM provider config & param builder
 │   └── __init__.py
-├── data/                 # Input data directory
-│   └── cleaned_csv.csv   # Processed dataset
-├── outputs/              # Generated outputs
-│   └── op.py             # Generated Python code
-├── tools/                # Utility functions
-├── workflows/            # Workflow definitions
-│   ├── pipeline.py       # Main analysis pipeline
-├── assets/               # Static assets
-├── crew.py               # Main entry point
+├── data/                 # Input data
+│   └── sessions/         # Per-session working copies (auto-created)
+│       └── <session_id>/
+│           ├── original.csv   # Pre-cleaning backup
+│           └── cleaned.csv    # Cleaned dataset (modified in-place)
+├── outputs/              # Generated visualizations
+│   └── <session_id>/     # Per-session PNG plots (auto-created)
+├── tools/                # CrewAI tool definitions
+│   └── dataset_tools.py  # read_head, get_info, clean_python, exec_viz
+├── ui/                   # Streamlit UI helpers
+│   ├── styles.py         # CSS injection (glassmorphism theme)
+│   ├── components.py     # Bullet/relation renderers, StreamlitLogger
+│   └── export.py         # PDF report builder (ReportLab)
+├── workflows/            # Pipeline orchestration
+│   └── pipeline.py       # Agent + Task factory (make_pipeline)
+├── assets/               # Static assets (SVG badges, diagrams)
+├── app.py                # Streamlit entry point
+├── crew.py               # Core orchestration (run_crew)
 ├── requirements.txt      # Python dependencies
 ├── README.md             # This file
-├── USAGE.md              # Detailed usage 
+├── USAGE.md              # Detailed usage guide
 ├── CHANGELOG.md          # Version history
-└── LICENSE               # License information
+└── LICENSE               # MIT License
 ```
 
 ## Customization
 
 ### Agent Configuration
-Modify agent behaviors by editing files in `agents/`:
-- **Validator**: Adjust quality thresholds in `agents/validator.py`.
+Modify agent behaviours by editing files in `agents/`:
+- **Cleaner**: Adjust cleaning heuristics in `agents/cleaner.py`.
 - **Insights**: Change analysis focus in `agents/insights.py`.
+- **Relation**: Tune relationship detection in `agents/relation.py`.
+- **Visualizer**: Adjust chart generation prompts in `agents/visualizer.py`.
 
 ### Pipeline Extension
 Extend analysis capabilities:
-- Add new agents for specific tasks
-- Modify `workflows/pipeline.py` for custom workflows
+- Add new agent factories under `agents/`
+- Register them in `workflows/pipeline.py`
 
 ## Contributing
 
