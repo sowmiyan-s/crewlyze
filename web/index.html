@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Data Analyst — Autonomous Business Intelligence Platform</title>
+    <!-- Outfit & JetBrains Mono Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Plotly.js for interactive client-side charts -->
+    <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- ── Left Sidebar Settings Panel ────────────────────────────────── -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📊 Configuration</h2>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>LLM Provider Settings</h3>
+                
+                <div class="form-group">
+                    <label for="provider">Select Provider</label>
+                    <select id="provider">
+                        <option value="nvidia">NVIDIA NIM</option>
+                        <option value="minimax">MiniMax (Nvidia)</option>
+                        <option value="groq" selected>Groq</option>
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="huggingface">Hugging Face</option>
+                        <option value="mistral">Mistral AI</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="model-override-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="override-model-checkbox"> Custom Model Name
+                    </label>
+                </div>
+
+                <div class="form-group" id="model-select-group">
+                    <label for="model">Select Model</label>
+                    <select id="model">
+                        <!-- Populated dynamically in app.js -->
+                    </select>
+                </div>
+
+                <div class="form-group" id="model-text-group" style="display: none;">
+                    <label for="model-input">Enter Model Identifier</label>
+                    <input type="text" id="model-input" placeholder="e.g. ollama/mistral">
+                </div>
+
+                <div class="form-group">
+                    <label id="key-label" for="api-key">API Key / Base URL</label>
+                    <input type="password" id="api-key" placeholder="Enter key...">
+                </div>
+
+                <div class="form-group">
+                    <label for="cooldown">API Cooldown: <span id="cooldown-val">5</span>s</label>
+                    <input type="range" id="cooldown" min="0" max="60" value="5">
+                    <span class="field-help">Time to sleep between agent tasks to prevent rate limiting. Set to 0 for Ollama.</span>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="about-card">
+                    <p class="about-title">Agentic Data Analyst</p>
+                    <p class="about-desc">An intelligent system powered by CrewAI that automates dataset QA, cleaning, relationship profiling, and visualization.</p>
+                    <hr>
+                    <p class="developers">Developed by:<br>• Prithiv.A.K &nbsp; • Sebin.S &nbsp; • Sowmiyan.S</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ── Right Main Panels ─────────────────────────────────────────── -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1 class="main-title">Agentic Data Analyst</h1>
+                <p class="main-subtitle">Autonomous Multi-Agent Business Intelligence and Data Engineering System</p>
+            </header>
+
+            <!-- Upload Dropzone -->
+            <section class="glass-card upload-section">
+                <div class="dropzone" id="dropzone">
+                    <span class="upload-icon">📥</span>
+                    <h3>Drag & Drop CSV dataset here</h3>
+                    <p>or click to browse local files</p>
+                    <input type="file" id="file-input" accept=".csv" style="display: none;">
+                </div>
+                <div id="file-info" style="display: none;">
+                    <div class="file-info-badge">
+                        <span class="file-icon">📄</span>
+                        <span id="file-name">dataset.csv</span>
+                        <span id="file-size">(0 bytes)</span>
+                        <button id="remove-file-btn">✕</button>
+                    </div>
+                    <button class="btn btn-primary" id="run-btn">▶️ Run Analysis</button>
+                </div>
+            </section>
+
+            <!-- Real-time Terminal Log Window -->
+            <section class="terminal-section" id="terminal-section" style="display: none;">
+                <div class="terminal-header">
+                    <span class="terminal-dot red"></span>
+                    <span class="terminal-dot yellow"></span>
+                    <span class="terminal-dot green"></span>
+                    <span class="terminal-title">agentic_terminal_output</span>
+                    <span class="terminal-status" id="terminal-status">RUNNING</span>
+                </div>
+                <pre class="terminal-body" id="terminal-log">$ initializing_pipeline_engine...
+</pre>
+            </section>
+
+            <!-- Analysis Dashboard -->
+            <section id="dashboard-section" style="display: none;">
+                
+                <div class="dashboard-banner">
+                    <h2>📊 Executive Dashboard</h2>
+                </div>
+
+                <!-- Visual Scorecard stats grid -->
+                <div class="stat-container">
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-records">-</div>
+                        <div class="stat-lbl">Total Records</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-columns">-</div>
+                        <div class="stat-lbl">Total Columns</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-numeric">-</div>
+                        <div class="stat-lbl">Numeric Fields</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-categorical">-</div>
+                        <div class="stat-lbl">Categorical Fields</div>
+                    </div>
+                </div>
+
+                <!-- Tabbed Results Explorer -->
+                <div class="glass-card results-container">
+                    <div class="tab-header">
+                        <button class="tab-btn active" data-tab="preview">🔍 Data Preview</button>
+                        <button class="tab-btn" data-tab="cleaning">🧹 Clean Report</button>
+                        <button class="tab-btn" data-tab="relations">🔗 Relations Map</button>
+                        <button class="tab-btn" data-tab="insights">💡 Key Insights</button>
+                        <button class="tab-btn" data-tab="visual">📈 Visual Intelligence</button>
+                    </div>
+
+                    <div class="tab-content active" id="tab-preview">
+                        <h3>🔍 Dataset Explorer</h3>
+                        <div class="table-wrapper">
+                            <table id="preview-table">
+                                <!-- Populated dynamically -->
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-cleaning">
+                        <h3>🧹 Data Cleaning Operations</h3>
+                        <div id="cleaning-timeline" class="timeline-container">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-relations">
+                        <h3>🔗 Column Relationships</h3>
+                        <div id="relations-grid" class="relations-grid">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-insights">
+                        <h3>💡 Business Intelligence Insights</h3>
+                        <div id="insights-container">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="tab-visual">
+                        <h3>📈 Visual Intelligence</h3>
+                        
+                        <div id="plotly-charts-section">
+                            <h4>🎯 Interactive Charts</h4>
+                            <p class="caption">Zoom, pan, and hover for details on any chart.</p>
+                            <div id="plotly-gallery" class="plotly-gallery">
+                                <!-- Dynamic JS charts -->
+                            </div>
+                            <hr class="section-divider">
+                        </div>
+
+                        <div id="static-charts-section" style="display: none;">
+                            <h4>🖼️ Agent-Generated Visualizations</h4>
+                            <div id="static-gallery" class="static-gallery">
+                                <!-- PNG Fallbacks -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Code Expander -->
+                <div class="glass-card expander-card">
+                    <details>
+                        <summary>⚙️ Visualization Architecture Code</summary>
+                        <pre class="code-block"><code id="code-content"></code></pre>
+                    </details>
+                </div>
+
+                <!-- Export options -->
+                <div class="glass-card export-card">
+                    <h3>📥 Export Options</h3>
+                    <div class="export-grid">
+                        <button class="btn btn-primary" id="download-pdf-btn">📄 Export Full Report as PDF</button>
+                        <button class="btn btn-secondary" id="download-csv-btn">📥 Download Cleaned Dataset (CSV)</button>
+                    </div>
+                </div>
+
+                <!-- AI Copilot Chat Box -->
+                <div class="glass-card copilot-card">
+                    <div class="copilot-header">
+                        <h3>💬 Interactive AI Data Copilot</h3>
+                        <p>Ask questions, query columns, or generate new visualizations in real-time.</p>
+                    </div>
+                    <div class="chat-history" id="chat-history">
+                        <!-- Message bubble elements -->
+                        <div class="message assistant">
+                            <div class="bubble">Hello! I am your AI Data Copilot. Ask me anything about your cleaned dataset!</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-wrapper">
+                        <input type="text" id="chat-input" placeholder="e.g. 'Show average sensor vibration by defect type' or 'Plot column A vs B'...">
+                        <button id="chat-send-btn">Send</button>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>

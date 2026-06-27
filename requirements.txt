@@ -9,3 +9,7 @@ python-dotenv
 Pillow
 reportlab
 plotly>=5.0
+fastapi
+uvicorn
+python-multipart
+
