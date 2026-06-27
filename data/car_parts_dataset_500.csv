@@ -1,0 +1,501 @@
+id,image_filename,image_description,sensor_temp_c,sensor_vibration_hz,sensor_acoustic_db,defect_type,bbox_xmin,bbox_ymin,bbox_xmax,bbox_ymax
+001,part_001.jpg,Metal housing showing rust patches near bolts (approx 2.74% of image).,55.37,4.71,45.99,Rust,248,91,382,189
+002,part_002.jpg,Injection-molded plastic part with smooth surface and consistent color.,62.72,12.43,46.95,None,0,0,0,0
+003,part_003.jpg,Metal housing showing rust patches near bolts (approx 2.76% of image).,59.22,4.71,36.97,Rust,517,129,641,236
+004,part_004.jpg,Metal housing showing rust patches near bolts (approx 10.07% of image).,58.51,10.46,40.65,Rust,173,359,446,536
+005,part_005.jpg,Polished steel connector with intact threads and no deformation.,61.52,6.67,37.63,None,0,0,0,0
+006,part_006.jpg,Injection-molded plastic part with smooth surface and consistent color.,64.85,11.08,36.6,None,0,0,0,0
+007,part_007.jpg,Multiple scratches along the surface; linear abrasions visible.,64.09,10.99,43.03,Scratch,47,221,270,393
+008,part_008.jpg,Polished steel connector with intact threads and no deformation.,57.65,10.52,37.88,None,0,0,0,0
+009,part_009.jpg,Aluminum casing showing even machining marks and no corrosion.,53.93,10.51,32.61,None,0,0,0,0
+010,part_010.jpg,Visible surface crack extending across component edge; crack region ~10.16%.,66.79,15.68,46.86,Crack,505,175,776,355
+011,part_011.jpg,Aluminum casing showing even machining marks and no corrosion.,54.17,9.99,41.25,None,0,0,0,0
+012,part_012.jpg,Chrome-plated component with uniform finish and no visible defects.,60.69,10.91,46.04,None,0,0,0,0
+013,part_013.jpg,Aluminum casing showing even machining marks and no corrosion.,69.6,4.86,40.35,None,0,0,0,0
+014,part_014.jpg,Polished steel connector with intact threads and no deformation.,64.9,11.88,44.88,None,0,0,0,0
+015,part_015.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~10.07%.,68.08,9.41,39.32,Corrosion,160,341,397,545
+016,part_016.jpg,Metal housing showing rust patches near bolts (approx 3.52% of image).,65.06,10.28,39.74,Rust,276,109,373,283
+017,part_017.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.37,8.98,44.45,None,0,0,0,0
+018,part_018.jpg,Injection-molded plastic part with smooth surface and consistent color.,65.51,5.27,39.98,None,0,0,0,0
+019,part_019.jpg,Severe surface corrosion with flaking detected in region of interest.,66.5,7.96,42.92,Corrosion,479,368,661,548
+020,part_020.jpg,Polished steel connector with intact threads and no deformation.,61.53,11.35,38.14,None,0,0,0,0
+021,part_021.jpg,Chrome-plated component with uniform finish and no visible defects.,63.46,10.21,47.01,None,0,0,0,0
+022,part_022.jpg,Aluminum casing showing even machining marks and no corrosion.,69.58,5.61,37.39,None,0,0,0,0
+023,part_023.jpg,Polished steel connector with intact threads and no deformation.,62.71,12.35,32.39,None,0,0,0,0
+024,part_024.jpg,Polished steel connector with intact threads and no deformation.,62.63,14.56,39.84,None,0,0,0,0
+025,part_025.jpg,Injection-molded plastic part with smooth surface and consistent color.,53.25,14.9,47.64,None,0,0,0,0
+026,part_026.jpg,Aluminum casing showing even machining marks and no corrosion.,54.07,10.07,42.55,None,0,0,0,0
+027,part_027.jpg,Polished steel connector with intact threads and no deformation.,60.37,7.98,47.53,None,0,0,0,0
+028,part_028.jpg,Chrome-plated component with uniform finish and no visible defects.,59.48,8.68,38.47,None,0,0,0,0
+029,part_029.jpg,Dented outer rim with localized deformation approx 4.26% area.,57.92,16.28,38.73,Dent,169,168,334,292
+030,part_030.jpg,Injection-molded plastic part with smooth surface and consistent color.,64.44,11.67,35.48,None,0,0,0,0
+031,part_031.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,60.46,5.7,45.45,Paint_Wear,402,232,582,423
+032,part_032.jpg,Polished steel connector with intact threads and no deformation.,52.47,9.72,41.68,None,0,0,0,0
+033,part_033.jpg,Aluminum casing showing even machining marks and no corrosion.,56.41,15.17,40.77,None,0,0,0,0
+034,part_034.jpg,Polished steel connector with intact threads and no deformation.,63.15,12.11,49.6,None,0,0,0,0
+035,part_035.jpg,Chrome-plated component with uniform finish and no visible defects.,54.38,5.94,40.13,None,0,0,0,0
+036,part_036.jpg,Aluminum casing showing even machining marks and no corrosion.,57.79,11.96,40.74,None,0,0,0,0
+037,part_037.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.8,8.6,39.53,None,0,0,0,0
+038,part_038.jpg,Aluminum casing showing even machining marks and no corrosion.,63.93,10.46,38.35,None,0,0,0,0
+039,part_039.jpg,Chrome-plated component with uniform finish and no visible defects.,68.86,13.96,42.72,None,0,0,0,0
+040,part_040.jpg,Polished steel connector with intact threads and no deformation.,63.36,6.48,38.76,None,0,0,0,0
+041,part_041.jpg,Chrome-plated component with uniform finish and no visible defects.,61.0,8.31,43.49,None,0,0,0,0
+042,part_042.jpg,Structural warp visible as misaligned edges; distortion area ~1.74%.,66.04,14.29,52.59,Warp,691,84,770,190
+043,part_043.jpg,Aluminum casing showing even machining marks and no corrosion.,63.94,11.31,46.42,None,0,0,0,0
+044,part_044.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~4.22%.,65.15,11.25,50.36,Corrosion,459,181,621,306
+045,part_045.jpg,Chrome-plated component with uniform finish and no visible defects.,60.19,12.82,37.89,None,0,0,0,0
+046,part_046.jpg,Dented outer rim with localized deformation approx 1.19% area.,62.47,17.8,37.43,Dent,306,67,385,139
+047,part_047.jpg,Injection-molded plastic part with smooth surface and consistent color.,64.99,10.49,32.07,None,0,0,0,0
+048,part_048.jpg,Injection-molded plastic part with smooth surface and consistent color.,62.46,7.21,33.02,None,0,0,0,0
+049,part_049.jpg,Part shows bending and warpage under inspection in image.,65.56,13.2,43.65,Warp,336,109,526,283
+050,part_050.jpg,Aluminum casing showing even machining marks and no corrosion.,59.4,12.57,49.05,None,0,0,0,0
+051,part_051.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.65,11.71,45.56,None,0,0,0,0
+052,part_052.jpg,Polished steel connector with intact threads and no deformation.,57.19,11.08,35.27,None,0,0,0,0
+053,part_053.jpg,Chrome-plated component with uniform finish and no visible defects.,62.24,5.1,47.48,None,0,0,0,0
+054,part_054.jpg,"Hairline fracture near mounting hole, crack length notable in image.",54.57,13.8,50.52,Crack,389,223,569,271
+055,part_055.jpg,Aluminum casing showing even machining marks and no corrosion.,59.28,11.14,53.74,None,0,0,0,0
+056,part_056.jpg,Aluminum casing showing even machining marks and no corrosion.,65.83,8.78,40.57,None,0,0,0,0
+057,part_057.jpg,Structural warp visible as misaligned edges; distortion area ~3.48%.,59.87,11.8,42.76,Warp,38,366,237,450
+058,part_058.jpg,Impact dent on casing visible as concave distortion along the outer edge.,55.29,12.49,43.61,Dent,652,80,742,246
+059,part_059.jpg,Polished steel connector with intact threads and no deformation.,59.32,12.44,45.3,None,0,0,0,0
+060,part_060.jpg,Polished steel connector with intact threads and no deformation.,52.77,9.04,44.05,None,0,0,0,0
+061,part_061.jpg,Chrome-plated component with uniform finish and no visible defects.,62.87,10.42,45.05,None,0,0,0,0
+062,part_062.jpg,Paint chipping and abrasion exposing bare metal over ~5.31% of surface.,65.17,8.87,39.05,Paint_Wear,242,122,386,299
+063,part_063.jpg,Aluminum casing showing even machining marks and no corrosion.,65.96,10.47,40.77,None,0,0,0,0
+064,part_064.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~2.73%.,56.25,9.62,51.15,Corrosion,386,495,629,549
+065,part_065.jpg,"Hairline fracture near mounting hole, crack length notable in image.",60.75,14.26,35.45,Crack,286,298,359,475
+066,part_066.jpg,Burn or thermal discoloration present near connector; charred area ~2.22%.,74.4,10.68,48.59,Burn_Mark,162,245,227,409
+067,part_067.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.35,8.51,39.93,None,0,0,0,0
+068,part_068.jpg,Chrome-plated component with uniform finish and no visible defects.,49.76,10.85,43.77,None,0,0,0,0
+069,part_069.jpg,Chrome-plated component with uniform finish and no visible defects.,45.94,9.06,32.55,None,0,0,0,0
+070,part_070.jpg,"Hairline fracture near mounting hole, crack length notable in image.",63.55,11.38,43.08,Crack,468,306,542,466
+071,part_071.jpg,"Corroded surface with brown oxidization around seams, visible area ~4.95%.",61.39,8.9,31.1,Rust,523,60,640,263
+072,part_072.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,54.75,13.0,42.69,Paint_Wear,636,25,730,119
+073,part_073.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~3.41%.,66.14,10.3,40.92,Corrosion,540,383,663,516
+074,part_074.jpg,Chrome-plated component with uniform finish and no visible defects.,58.77,6.37,34.15,None,0,0,0,0
+075,part_075.jpg,Aluminum casing showing even machining marks and no corrosion.,56.1,4.91,42.29,None,0,0,0,0
+076,part_076.jpg,"Hairline fracture near mounting hole, crack length notable in image.",55.05,20.12,46.73,Crack,76,354,187,427
+077,part_077.jpg,Injection-molded plastic part with smooth surface and consistent color.,62.71,8.79,39.17,None,0,0,0,0
+078,part_078.jpg,Injection-molded plastic part with smooth surface and consistent color.,63.17,8.02,37.9,None,0,0,0,0
+079,part_079.jpg,Chrome-plated component with uniform finish and no visible defects.,71.6,10.15,37.41,None,0,0,0,0
+080,part_080.jpg,Severe surface corrosion with flaking detected in region of interest.,56.14,12.69,36.72,Corrosion,384,179,624,329
+081,part_081.jpg,"Hairline fracture near mounting hole, crack length notable in image.",59.48,10.08,42.61,Crack,423,340,666,527
+082,part_082.jpg,Polished steel connector with intact threads and no deformation.,61.36,7.48,34.6,None,0,0,0,0
+083,part_083.jpg,Visible surface crack extending across component edge; crack region ~4.86%.,59.46,14.86,55.11,Crack,516,112,759,208
+084,part_084.jpg,Chrome-plated component with uniform finish and no visible defects.,69.21,9.08,35.72,None,0,0,0,0
+085,part_085.jpg,Chrome-plated component with uniform finish and no visible defects.,56.58,9.18,29.96,None,0,0,0,0
+086,part_086.jpg,Chrome-plated component with uniform finish and no visible defects.,63.55,9.37,33.42,None,0,0,0,0
+087,part_087.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.38,15.82,40.35,None,0,0,0,0
+088,part_088.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.49,6.58,41.56,None,0,0,0,0
+089,part_089.jpg,Polished steel connector with intact threads and no deformation.,56.13,11.97,41.62,None,0,0,0,0
+090,part_090.jpg,Chrome-plated component with uniform finish and no visible defects.,64.43,8.23,41.09,None,0,0,0,0
+091,part_091.jpg,Mounting hole missing bolt; loose gap visible near seam.,54.73,14.92,47.1,Missing_Bolt,161,191,368,279
+092,part_092.jpg,Aluminum casing showing even machining marks and no corrosion.,51.67,7.55,32.71,None,0,0,0,0
+093,part_093.jpg,Surface scratch marks concentrated in the central region.,57.99,9.32,51.83,Scratch,579,539,682,576
+094,part_094.jpg,Visible surface crack extending across component edge; crack region ~8.1%.,52.54,14.94,42.14,Crack,393,232,663,376
+095,part_095.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.65,14.65,41.97,None,0,0,0,0
+096,part_096.jpg,Metal housing showing rust patches near bolts (approx 6.93% of image).,63.87,9.29,41.4,Rust,555,195,732,383
+097,part_097.jpg,Polished steel connector with intact threads and no deformation.,66.84,13.33,39.37,None,0,0,0,0
+098,part_098.jpg,Paint chipping and abrasion exposing bare metal over ~0.67% of surface.,56.16,8.63,40.36,Paint_Wear,201,330,274,374
+099,part_099.jpg,Polished steel connector with intact threads and no deformation.,61.71,11.14,38.33,None,0,0,0,0
+100,part_100.jpg,Multiple scratches along the surface; linear abrasions visible.,56.78,10.79,37.32,Scratch,112,141,240,304
+101,part_101.jpg,Surface scratch marks concentrated in the central region.,55.82,9.81,32.71,Scratch,122,102,271,246
+102,part_102.jpg,Chrome-plated component with uniform finish and no visible defects.,54.52,13.04,40.54,None,0,0,0,0
+103,part_103.jpg,Polished steel connector with intact threads and no deformation.,58.38,12.37,30.96,None,0,0,0,0
+104,part_104.jpg,Chrome-plated component with uniform finish and no visible defects.,69.51,12.84,31.72,None,0,0,0,0
+105,part_105.jpg,Polished steel connector with intact threads and no deformation.,63.21,11.05,40.53,None,0,0,0,0
+106,part_106.jpg,Aluminum casing showing even machining marks and no corrosion.,68.57,7.13,37.36,None,0,0,0,0
+107,part_107.jpg,Multiple scratches along the surface; linear abrasions visible.,61.53,10.27,44.07,Scratch,329,64,565,201
+108,part_108.jpg,Severe surface corrosion with flaking detected in region of interest.,54.81,10.6,37.2,Corrosion,41,102,219,249
+109,part_109.jpg,"Corroded surface with brown oxidization around seams, visible area ~4.81%.",58.11,10.96,34.19,Rust,645,95,780,266
+110,part_110.jpg,Paint chipping and abrasion exposing bare metal over ~3.48% of surface.,57.27,7.97,44.79,Paint_Wear,377,54,472,230
+111,part_111.jpg,Paint chipping and abrasion exposing bare metal over ~3.96% of surface.,60.6,5.96,31.16,Paint_Wear,211,296,475,368
+112,part_112.jpg,Injection-molded plastic part with smooth surface and consistent color.,65.08,7.39,48.87,None,0,0,0,0
+113,part_113.jpg,Polished steel connector with intact threads and no deformation.,60.72,13.36,39.61,None,0,0,0,0
+114,part_114.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.38,13.54,38.95,None,0,0,0,0
+115,part_115.jpg,Aluminum casing showing even machining marks and no corrosion.,59.11,7.77,37.05,None,0,0,0,0
+116,part_116.jpg,Severe surface corrosion with flaking detected in region of interest.,61.0,12.67,50.99,Corrosion,530,285,724,416
+117,part_117.jpg,"Corroded surface with brown oxidization around seams, visible area ~2.83%.",55.24,8.95,41.84,Rust,506,75,668,159
+118,part_118.jpg,Polished steel connector with intact threads and no deformation.,58.64,11.83,46.5,None,0,0,0,0
+119,part_119.jpg,Injection-molded plastic part with smooth surface and consistent color.,63.48,11.36,47.25,None,0,0,0,0
+120,part_120.jpg,Chrome-plated component with uniform finish and no visible defects.,60.69,10.3,48.02,None,0,0,0,0
+121,part_121.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.81,14.32,51.75,None,0,0,0,0
+122,part_122.jpg,Injection-molded plastic part with smooth surface and consistent color.,66.46,10.92,45.03,None,0,0,0,0
+123,part_123.jpg,Metal housing showing rust patches near bolts (approx 3.59% of image).,61.63,6.78,36.99,Rust,21,69,128,230
+124,part_124.jpg,"Corroded surface with brown oxidization around seams, visible area ~4.1%.",63.4,7.23,32.14,Rust,307,132,454,266
+125,part_125.jpg,Aluminum casing showing even machining marks and no corrosion.,55.28,4.25,37.22,None,0,0,0,0
+126,part_126.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.03,6.76,36.7,None,0,0,0,0
+127,part_127.jpg,"Corroded surface with brown oxidization around seams, visible area ~1.31%.",69.04,10.53,43.52,Rust,664,395,780,449
+128,part_128.jpg,Impact dent on casing visible as concave distortion along the outer edge.,64.25,12.0,36.85,Dent,27,385,248,469
+129,part_129.jpg,Injection-molded plastic part with smooth surface and consistent color.,50.64,12.94,48.56,None,0,0,0,0
+130,part_130.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",61.61,18.21,47.56,Missing_Bolt,316,164,491,322
+131,part_131.jpg,Chrome-plated component with uniform finish and no visible defects.,56.54,10.8,35.5,None,0,0,0,0
+132,part_132.jpg,Injection-molded plastic part with smooth surface and consistent color.,60.25,8.46,52.1,None,0,0,0,0
+133,part_133.jpg,Aluminum casing showing even machining marks and no corrosion.,59.11,7.48,36.61,None,0,0,0,0
+134,part_134.jpg,Injection-molded plastic part with smooth surface and consistent color.,57.14,9.34,31.01,None,0,0,0,0
+135,part_135.jpg,Mounting hole missing bolt; loose gap visible near seam.,62.66,20.62,48.23,Missing_Bolt,523,106,762,170
+136,part_136.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.95,7.53,44.37,None,0,0,0,0
+137,part_137.jpg,Visible surface crack extending across component edge; crack region ~4.3%.,62.34,15.43,43.99,Crack,474,420,643,542
+138,part_138.jpg,Polished steel connector with intact threads and no deformation.,59.13,12.08,41.23,None,0,0,0,0
+139,part_139.jpg,Severe surface corrosion with flaking detected in region of interest.,48.59,8.7,44.22,Corrosion,35,93,226,153
+140,part_140.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,58.59,10.82,35.69,Paint_Wear,467,201,668,278
+141,part_141.jpg,Impact dent on casing visible as concave distortion along the outer edge.,55.18,12.6,51.42,Dent,226,482,476,562
+142,part_142.jpg,Chrome-plated component with uniform finish and no visible defects.,65.26,7.53,42.98,None,0,0,0,0
+143,part_143.jpg,Polished steel connector with intact threads and no deformation.,63.35,9.11,43.11,None,0,0,0,0
+144,part_144.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~3.65%.,71.37,13.38,46.01,Corrosion,237,289,399,397
+145,part_145.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.17,10.49,35.45,None,0,0,0,0
+146,part_146.jpg,Aluminum casing showing even machining marks and no corrosion.,60.35,12.95,44.17,None,0,0,0,0
+147,part_147.jpg,Polished steel connector with intact threads and no deformation.,60.5,10.31,35.55,None,0,0,0,0
+148,part_148.jpg,Polished steel connector with intact threads and no deformation.,60.72,7.38,46.38,None,0,0,0,0
+149,part_149.jpg,Chrome-plated component with uniform finish and no visible defects.,62.59,10.42,46.34,None,0,0,0,0
+150,part_150.jpg,Polished steel connector with intact threads and no deformation.,53.95,7.74,42.46,None,0,0,0,0
+151,part_151.jpg,Mounting hole missing bolt; loose gap visible near seam.,60.23,13.83,44.35,Missing_Bolt,658,372,723,532
+152,part_152.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.46,6.92,47.67,None,0,0,0,0
+153,part_153.jpg,Chrome-plated component with uniform finish and no visible defects.,55.48,10.87,39.17,None,0,0,0,0
+154,part_154.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~3.36%.,61.18,9.23,43.48,Corrosion,325,71,421,239
+155,part_155.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.11,9.67,38.09,None,0,0,0,0
+156,part_156.jpg,Structural warp visible as misaligned edges; distortion area ~3.22%.,58.14,10.74,52.82,Warp,625,130,775,233
+157,part_157.jpg,Aluminum casing showing even machining marks and no corrosion.,65.16,9.22,39.56,None,0,0,0,0
+158,part_158.jpg,Chrome-plated component with uniform finish and no visible defects.,68.78,9.64,42.76,None,0,0,0,0
+159,part_159.jpg,Aluminum casing showing even machining marks and no corrosion.,56.11,7.2,35.06,None,0,0,0,0
+160,part_160.jpg,Chrome-plated component with uniform finish and no visible defects.,61.64,10.76,39.94,None,0,0,0,0
+161,part_161.jpg,Aluminum casing showing even machining marks and no corrosion.,59.2,12.66,43.1,None,0,0,0,0
+162,part_162.jpg,Aluminum casing showing even machining marks and no corrosion.,57.28,11.17,45.95,None,0,0,0,0
+163,part_163.jpg,Surface shows heat damage and dark soot near key joints.,71.69,13.32,49.19,Burn_Mark,234,248,493,357
+164,part_164.jpg,Chrome-plated component with uniform finish and no visible defects.,71.19,8.8,45.94,None,0,0,0,0
+165,part_165.jpg,Polished steel connector with intact threads and no deformation.,63.62,12.69,45.33,None,0,0,0,0
+166,part_166.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~8.14%.,62.32,16.84,40.65,Corrosion,430,173,617,382
+167,part_167.jpg,Polished steel connector with intact threads and no deformation.,59.7,9.65,35.77,None,0,0,0,0
+168,part_168.jpg,Chrome-plated component with uniform finish and no visible defects.,53.87,8.06,37.34,None,0,0,0,0
+169,part_169.jpg,Paint chipping and abrasion exposing bare metal over ~4.41% of surface.,50.54,5.69,39.09,Paint_Wear,161,276,416,359
+170,part_170.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.41,12.66,50.49,None,0,0,0,0
+171,part_171.jpg,Aluminum casing showing even machining marks and no corrosion.,60.33,6.71,42.07,None,0,0,0,0
+172,part_172.jpg,Aluminum casing showing even machining marks and no corrosion.,52.27,8.04,44.49,None,0,0,0,0
+173,part_173.jpg,Aluminum casing showing even machining marks and no corrosion.,60.93,8.48,49.09,None,0,0,0,0
+174,part_174.jpg,Polished steel connector with intact threads and no deformation.,56.16,3.88,38.9,None,0,0,0,0
+175,part_175.jpg,Visible surface crack extending across component edge; crack region ~4.26%.,58.45,18.03,48.89,Crack,330,209,461,365
+176,part_176.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.18,7.52,37.97,None,0,0,0,0
+177,part_177.jpg,Chrome-plated component with uniform finish and no visible defects.,54.97,8.74,38.09,None,0,0,0,0
+178,part_178.jpg,Polished steel connector with intact threads and no deformation.,57.37,11.82,39.79,None,0,0,0,0
+179,part_179.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",72.93,17.03,43.53,Missing_Bolt,419,468,541,525
+180,part_180.jpg,Polished steel connector with intact threads and no deformation.,49.42,7.48,41.15,None,0,0,0,0
+181,part_181.jpg,Aluminum casing showing even machining marks and no corrosion.,65.71,10.21,42.02,None,0,0,0,0
+182,part_182.jpg,Injection-molded plastic part with smooth surface and consistent color.,57.49,7.16,37.63,None,0,0,0,0
+183,part_183.jpg,Polished steel connector with intact threads and no deformation.,65.86,12.87,42.7,None,0,0,0,0
+184,part_184.jpg,Chrome-plated component with uniform finish and no visible defects.,59.02,9.34,34.39,None,0,0,0,0
+185,part_185.jpg,"Hairline fracture near mounting hole, crack length notable in image.",62.94,13.49,37.45,Crack,352,489,530,537
+186,part_186.jpg,Chrome-plated component with uniform finish and no visible defects.,56.42,9.2,43.19,None,0,0,0,0
+187,part_187.jpg,Severe surface corrosion with flaking detected in region of interest.,60.4,11.53,37.21,Corrosion,249,258,497,383
+188,part_188.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.02,7.35,36.17,None,0,0,0,0
+189,part_189.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.85,10.53,44.95,None,0,0,0,0
+190,part_190.jpg,Polished steel connector with intact threads and no deformation.,58.19,11.04,47.36,None,0,0,0,0
+191,part_191.jpg,Chrome-plated component with uniform finish and no visible defects.,51.78,13.19,40.63,None,0,0,0,0
+192,part_192.jpg,Aluminum casing showing even machining marks and no corrosion.,62.03,13.56,42.65,None,0,0,0,0
+193,part_193.jpg,Polished steel connector with intact threads and no deformation.,58.47,6.97,40.73,None,0,0,0,0
+194,part_194.jpg,Mounting hole missing bolt; loose gap visible near seam.,65.51,17.23,51.35,Missing_Bolt,348,225,608,300
+195,part_195.jpg,Polished steel connector with intact threads and no deformation.,60.48,10.44,36.5,None,0,0,0,0
+196,part_196.jpg,Surface scratch marks concentrated in the central region.,51.24,11.27,45.9,Scratch,39,174,105,356
+197,part_197.jpg,Visible surface crack extending across component edge; crack region ~4.89%.,53.81,14.81,35.07,Crack,382,273,655,359
+198,part_198.jpg,Impact dent on casing visible as concave distortion along the outer edge.,55.84,10.94,41.92,Dent,432,257,614,376
+199,part_199.jpg,Aluminum casing showing even machining marks and no corrosion.,57.87,7.58,41.9,None,0,0,0,0
+200,part_200.jpg,Chrome-plated component with uniform finish and no visible defects.,61.82,8.25,40.58,None,0,0,0,0
+201,part_201.jpg,Chrome-plated component with uniform finish and no visible defects.,67.16,13.53,35.46,None,0,0,0,0
+202,part_202.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.44,9.27,40.2,None,0,0,0,0
+203,part_203.jpg,Mounting hole missing bolt; loose gap visible near seam.,69.13,16.45,47.28,Missing_Bolt,124,114,385,253
+204,part_204.jpg,Chrome-plated component with uniform finish and no visible defects.,49.83,11.7,37.48,None,0,0,0,0
+205,part_205.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",55.3,15.97,48.5,Missing_Bolt,110,326,247,455
+206,part_206.jpg,Aluminum casing showing even machining marks and no corrosion.,66.28,7.61,38.5,None,0,0,0,0
+207,part_207.jpg,Aluminum casing showing even machining marks and no corrosion.,67.62,10.75,43.16,None,0,0,0,0
+208,part_208.jpg,Metal housing showing rust patches near bolts (approx 5.42% of image).,57.2,10.48,40.77,Rust,456,76,673,196
+209,part_209.jpg,Surface scratch marks concentrated in the central region.,64.69,10.33,38.32,Scratch,228,50,503,153
+210,part_210.jpg,Aluminum casing showing even machining marks and no corrosion.,62.01,12.7,36.44,None,0,0,0,0
+211,part_211.jpg,Aluminum casing showing even machining marks and no corrosion.,54.79,9.82,38.61,None,0,0,0,0
+212,part_212.jpg,Aluminum casing showing even machining marks and no corrosion.,74.06,10.47,37.6,None,0,0,0,0
+213,part_213.jpg,Aluminum casing showing even machining marks and no corrosion.,56.87,11.06,39.08,None,0,0,0,0
+214,part_214.jpg,Visible surface crack extending across component edge; crack region ~4.03%.,63.71,14.74,49.11,Crack,190,286,358,401
+215,part_215.jpg,Polished steel connector with intact threads and no deformation.,57.8,7.75,35.09,None,0,0,0,0
+216,part_216.jpg,Chrome-plated component with uniform finish and no visible defects.,58.69,6.76,48.84,None,0,0,0,0
+217,part_217.jpg,Paint chipping and abrasion exposing bare metal over ~10.23% of surface.,58.91,7.44,37.04,Paint_Wear,293,93,541,291
+218,part_218.jpg,Structural warp visible as misaligned edges; distortion area ~10.13%.,60.47,13.9,44.95,Warp,175,46,417,247
+219,part_219.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.69,10.2,42.0,None,0,0,0,0
+220,part_220.jpg,Polished steel connector with intact threads and no deformation.,58.0,15.26,37.09,None,0,0,0,0
+221,part_221.jpg,Aluminum casing showing even machining marks and no corrosion.,63.61,10.05,41.64,None,0,0,0,0
+222,part_222.jpg,Metal housing showing rust patches near bolts (approx 5.71% of image).,70.14,10.88,37.09,Rust,514,111,775,216
+223,part_223.jpg,Part shows bending and warpage under inspection in image.,64.16,13.13,54.99,Warp,450,67,524,182
+224,part_224.jpg,Chrome-plated component with uniform finish and no visible defects.,65.11,8.65,41.82,None,0,0,0,0
+225,part_225.jpg,Burn or thermal discoloration present near connector; charred area ~8.13%.,60.43,12.7,47.71,Burn_Mark,288,168,543,321
+226,part_226.jpg,Aluminum casing showing even machining marks and no corrosion.,63.13,10.95,38.29,None,0,0,0,0
+227,part_227.jpg,Impact dent on casing visible as concave distortion along the outer edge.,64.73,10.63,54.3,Dent,290,393,517,556
+228,part_228.jpg,Polished steel connector with intact threads and no deformation.,57.31,4.13,45.64,None,0,0,0,0
+229,part_229.jpg,Dented outer rim with localized deformation approx 4.08% area.,56.49,12.26,38.26,Dent,583,397,707,555
+230,part_230.jpg,Metal housing showing rust patches near bolts (approx 5.39% of image).,55.67,11.36,34.94,Rust,170,419,448,512
+231,part_231.jpg,Aluminum casing showing even machining marks and no corrosion.,58.66,10.55,49.75,None,0,0,0,0
+232,part_232.jpg,Polished steel connector with intact threads and no deformation.,56.35,3.44,36.09,None,0,0,0,0
+233,part_233.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,60.77,8.68,42.73,Paint_Wear,244,139,495,330
+234,part_234.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.65,13.41,41.13,None,0,0,0,0
+235,part_235.jpg,Injection-molded plastic part with smooth surface and consistent color.,64.58,9.0,37.25,None,0,0,0,0
+236,part_236.jpg,Aluminum casing showing even machining marks and no corrosion.,58.17,10.16,31.4,None,0,0,0,0
+237,part_237.jpg,Severe surface corrosion with flaking detected in region of interest.,64.56,13.25,25.61,Corrosion,109,38,200,146
+238,part_238.jpg,Chrome-plated component with uniform finish and no visible defects.,56.83,5.54,38.54,None,0,0,0,0
+239,part_239.jpg,Polished steel connector with intact threads and no deformation.,54.59,12.47,40.13,None,0,0,0,0
+240,part_240.jpg,Chrome-plated component with uniform finish and no visible defects.,62.32,8.25,38.32,None,0,0,0,0
+241,part_241.jpg,Dented outer rim with localized deformation approx 5.14% area.,62.53,5.66,47.21,Dent,567,221,691,420
+242,part_242.jpg,Chrome-plated component with uniform finish and no visible defects.,51.13,11.83,43.27,None,0,0,0,0
+243,part_243.jpg,Dented outer rim with localized deformation approx 4.24% area.,60.57,11.45,39.63,Dent,87,434,240,567
+244,part_244.jpg,"Hairline fracture near mounting hole, crack length notable in image.",54.23,14.3,47.88,Crack,27,133,266,330
+245,part_245.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,62.24,11.12,39.53,Paint_Wear,63,229,177,395
+246,part_246.jpg,Chrome-plated component with uniform finish and no visible defects.,55.63,6.76,40.61,None,0,0,0,0
+247,part_247.jpg,Surface scratch marks concentrated in the central region.,63.25,9.45,46.15,Scratch,51,56,284,222
+248,part_248.jpg,Injection-molded plastic part with smooth surface and consistent color.,66.43,10.9,43.67,None,0,0,0,0
+249,part_249.jpg,Injection-molded plastic part with smooth surface and consistent color.,52.23,6.62,42.51,None,0,0,0,0
+250,part_250.jpg,Polished steel connector with intact threads and no deformation.,62.94,9.26,41.04,None,0,0,0,0
+251,part_251.jpg,Metal housing showing rust patches near bolts (approx 3.82% of image).,68.51,11.14,37.4,Rust,158,326,253,519
+252,part_252.jpg,"Corroded surface with brown oxidization around seams, visible area ~1.63%.",61.78,6.49,40.93,Rust,130,505,331,544
+253,part_253.jpg,Chrome-plated component with uniform finish and no visible defects.,62.53,8.08,41.8,None,0,0,0,0
+254,part_254.jpg,Surface shows heat damage and dark soot near key joints.,70.42,11.72,45.28,Burn_Mark,410,383,627,557
+255,part_255.jpg,"Corroded surface with brown oxidization around seams, visible area ~2.61%.",50.1,9.28,41.73,Rust,388,244,527,334
+256,part_256.jpg,"Corroded surface with brown oxidization around seams, visible area ~9.2%.",71.87,6.45,51.13,Rust,141,21,381,205
+257,part_257.jpg,Polished steel connector with intact threads and no deformation.,54.85,14.42,31.84,None,0,0,0,0
+258,part_258.jpg,Severe surface corrosion with flaking detected in region of interest.,58.72,10.74,47.44,Corrosion,134,277,309,340
+259,part_259.jpg,Chrome-plated component with uniform finish and no visible defects.,61.07,8.4,44.25,None,0,0,0,0
+260,part_260.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",65.27,16.25,50.03,Missing_Bolt,501,355,777,478
+261,part_261.jpg,Multiple scratches along the surface; linear abrasions visible.,53.83,11.71,45.52,Scratch,224,204,450,325
+262,part_262.jpg,Surface shows heat damage and dark soot near key joints.,67.04,12.73,53.15,Burn_Mark,483,310,601,360
+263,part_263.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",57.31,13.42,47.43,Missing_Bolt,367,376,438,529
+264,part_264.jpg,Paint chipping and abrasion exposing bare metal over ~1.52% of surface.,67.2,8.0,42.66,Paint_Wear,358,36,430,137
+265,part_265.jpg,Polished steel connector with intact threads and no deformation.,62.84,8.0,47.38,None,0,0,0,0
+266,part_266.jpg,Aluminum casing showing even machining marks and no corrosion.,63.14,11.04,44.66,None,0,0,0,0
+267,part_267.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.85,12.86,42.63,None,0,0,0,0
+268,part_268.jpg,Aluminum casing showing even machining marks and no corrosion.,62.12,14.28,43.3,None,0,0,0,0
+269,part_269.jpg,"Corroded surface with brown oxidization around seams, visible area ~6.3%.",66.41,10.49,45.83,Rust,62,140,243,307
+270,part_270.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",53.58,11.45,39.14,Missing_Bolt,466,145,632,240
+271,part_271.jpg,Polished steel connector with intact threads and no deformation.,58.45,11.99,46.36,None,0,0,0,0
+272,part_272.jpg,Aluminum casing showing even machining marks and no corrosion.,67.08,7.28,37.21,None,0,0,0,0
+273,part_273.jpg,"Hairline fracture near mounting hole, crack length notable in image.",56.82,10.4,48.15,Crack,533,332,739,420
+274,part_274.jpg,Chrome-plated component with uniform finish and no visible defects.,68.8,7.99,45.37,None,0,0,0,0
+275,part_275.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~5.5%.,55.16,9.6,40.21,Corrosion,42,307,207,467
+276,part_276.jpg,Aluminum casing showing even machining marks and no corrosion.,67.07,7.85,52.45,None,0,0,0,0
+277,part_277.jpg,Part shows bending and warpage under inspection in image.,69.27,6.72,43.43,Warp,340,23,540,116
+278,part_278.jpg,Aluminum casing showing even machining marks and no corrosion.,67.85,9.78,43.59,None,0,0,0,0
+279,part_279.jpg,Polished steel connector with intact threads and no deformation.,63.06,13.47,39.01,None,0,0,0,0
+280,part_280.jpg,Polished steel connector with intact threads and no deformation.,62.35,10.06,40.92,None,0,0,0,0
+281,part_281.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,66.76,7.93,43.96,Paint_Wear,561,173,709,357
+282,part_282.jpg,"Hairline fracture near mounting hole, crack length notable in image.",52.9,13.29,45.38,Crack,210,202,398,383
+283,part_283.jpg,Aluminum casing showing even machining marks and no corrosion.,54.13,10.89,34.11,None,0,0,0,0
+284,part_284.jpg,Impact dent on casing visible as concave distortion along the outer edge.,55.85,11.15,47.48,Dent,259,129,454,221
+285,part_285.jpg,Paint chipping and abrasion exposing bare metal over ~1.64% of surface.,58.11,2.22,44.49,Paint_Wear,591,506,774,549
+286,part_286.jpg,Polished steel connector with intact threads and no deformation.,55.11,10.84,34.58,None,0,0,0,0
+287,part_287.jpg,Chrome-plated component with uniform finish and no visible defects.,64.93,8.39,39.33,None,0,0,0,0
+288,part_288.jpg,Dented outer rim with localized deformation approx 1.11% area.,66.04,12.19,42.52,Dent,233,243,381,279
+289,part_289.jpg,Injection-molded plastic part with smooth surface and consistent color.,60.02,11.26,47.79,None,0,0,0,0
+290,part_290.jpg,Mounting hole missing bolt; loose gap visible near seam.,65.49,16.8,47.23,Missing_Bolt,315,20,510,170
+291,part_291.jpg,Injection-molded plastic part with smooth surface and consistent color.,63.31,15.15,26.15,None,0,0,0,0
+292,part_292.jpg,Chrome-plated component with uniform finish and no visible defects.,53.72,5.16,39.43,None,0,0,0,0
+293,part_293.jpg,Injection-molded plastic part with smooth surface and consistent color.,65.02,10.27,36.74,None,0,0,0,0
+294,part_294.jpg,Paint chipping and abrasion exposing bare metal over ~1.31% of surface.,51.14,8.29,33.14,Paint_Wear,528,92,593,189
+295,part_295.jpg,Visible surface crack extending across component edge; crack region ~2.35%.,60.7,7.26,54.98,Crack,111,184,268,256
+296,part_296.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.28,5.38,40.55,None,0,0,0,0
+297,part_297.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,51.16,8.49,41.57,Paint_Wear,289,406,445,540
+298,part_298.jpg,Aluminum casing showing even machining marks and no corrosion.,67.33,12.84,48.66,None,0,0,0,0
+299,part_299.jpg,Visible surface crack extending across component edge; crack region ~3.71%.,65.25,10.92,37.72,Crack,611,134,746,266
+300,part_300.jpg,Polished steel connector with intact threads and no deformation.,56.62,9.94,40.35,None,0,0,0,0
+301,part_301.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.02,7.06,40.28,None,0,0,0,0
+302,part_302.jpg,Part shows bending and warpage under inspection in image.,74.12,14.3,45.26,Warp,205,222,419,291
+303,part_303.jpg,"Hairline fracture near mounting hole, crack length notable in image.",64.67,11.91,52.22,Crack,403,374,621,442
+304,part_304.jpg,Surface shows heat damage and dark soot near key joints.,70.31,11.42,47.59,Burn_Mark,402,61,629,178
+305,part_305.jpg,Aluminum casing showing even machining marks and no corrosion.,55.94,5.93,45.4,None,0,0,0,0
+306,part_306.jpg,Aluminum casing showing even machining marks and no corrosion.,61.63,14.18,38.17,None,0,0,0,0
+307,part_307.jpg,"Corroded surface with brown oxidization around seams, visible area ~6.29%.",65.58,9.49,43.02,Rust,25,217,209,381
+308,part_308.jpg,Surface scratch marks concentrated in the central region.,62.01,15.35,40.32,Scratch,644,212,723,311
+309,part_309.jpg,Polished steel connector with intact threads and no deformation.,65.1,15.84,37.58,None,0,0,0,0
+310,part_310.jpg,Chrome-plated component with uniform finish and no visible defects.,58.98,11.65,37.5,None,0,0,0,0
+311,part_311.jpg,Impact dent on casing visible as concave distortion along the outer edge.,57.92,13.65,46.68,Dent,54,352,263,527
+312,part_312.jpg,Injection-molded plastic part with smooth surface and consistent color.,60.15,11.81,30.92,None,0,0,0,0
+313,part_313.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,59.53,13.65,41.47,Paint_Wear,421,362,554,556
+314,part_314.jpg,Chrome-plated component with uniform finish and no visible defects.,59.27,11.44,34.15,None,0,0,0,0
+315,part_315.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.27,8.27,41.73,None,0,0,0,0
+316,part_316.jpg,Polished steel connector with intact threads and no deformation.,59.87,8.66,43.79,None,0,0,0,0
+317,part_317.jpg,Aluminum casing showing even machining marks and no corrosion.,53.58,9.46,37.8,None,0,0,0,0
+318,part_318.jpg,Mounting hole missing bolt; loose gap visible near seam.,62.26,13.76,45.84,Missing_Bolt,430,394,710,551
+319,part_319.jpg,Injection-molded plastic part with smooth surface and consistent color.,60.98,12.04,36.34,None,0,0,0,0
+320,part_320.jpg,Chrome-plated component with uniform finish and no visible defects.,54.25,8.9,43.73,None,0,0,0,0
+321,part_321.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",54.87,11.99,39.58,Missing_Bolt,424,59,703,248
+322,part_322.jpg,Polished steel connector with intact threads and no deformation.,62.94,13.42,42.6,None,0,0,0,0
+323,part_323.jpg,Aluminum casing showing even machining marks and no corrosion.,56.41,13.24,35.01,None,0,0,0,0
+324,part_324.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.28,9.36,40.83,None,0,0,0,0
+325,part_325.jpg,Injection-molded plastic part with smooth surface and consistent color.,53.26,8.34,45.06,None,0,0,0,0
+326,part_326.jpg,Structural warp visible as misaligned edges; distortion area ~1.76%.,58.39,14.82,50.65,Warp,604,235,738,298
+327,part_327.jpg,Injection-molded plastic part with smooth surface and consistent color.,62.68,8.8,37.2,None,0,0,0,0
+328,part_328.jpg,Polished steel connector with intact threads and no deformation.,54.11,10.15,41.03,None,0,0,0,0
+329,part_329.jpg,Surface scratch marks concentrated in the central region.,57.65,12.09,36.77,Scratch,65,235,191,351
+330,part_330.jpg,Chrome-plated component with uniform finish and no visible defects.,63.12,7.67,37.33,None,0,0,0,0
+331,part_331.jpg,Chrome-plated component with uniform finish and no visible defects.,57.65,12.09,38.82,None,0,0,0,0
+332,part_332.jpg,Visible surface crack extending across component edge; crack region ~5.75%.,58.16,14.24,43.37,Crack,511,217,645,423
+333,part_333.jpg,Polished steel connector with intact threads and no deformation.,56.65,8.54,37.35,None,0,0,0,0
+334,part_334.jpg,Multiple scratches along the surface; linear abrasions visible.,56.43,11.32,50.9,Scratch,428,266,557,442
+335,part_335.jpg,Polished steel connector with intact threads and no deformation.,57.01,9.67,47.13,None,0,0,0,0
+336,part_336.jpg,Polished steel connector with intact threads and no deformation.,65.45,12.12,40.99,None,0,0,0,0
+337,part_337.jpg,Polished steel connector with intact threads and no deformation.,58.06,7.97,40.67,None,0,0,0,0
+338,part_338.jpg,Impact dent on casing visible as concave distortion along the outer edge.,64.47,16.62,53.33,Dent,615,377,742,516
+339,part_339.jpg,Chrome-plated component with uniform finish and no visible defects.,55.97,11.19,41.92,None,0,0,0,0
+340,part_340.jpg,Injection-molded plastic part with smooth surface and consistent color.,71.94,9.96,33.37,None,0,0,0,0
+341,part_341.jpg,"Hairline fracture near mounting hole, crack length notable in image.",63.92,12.62,52.78,Crack,164,43,431,104
+342,part_342.jpg,Burn or thermal discoloration present near connector; charred area ~8.98%.,74.13,12.08,43.05,Burn_Mark,79,124,345,286
+343,part_343.jpg,Chrome-plated component with uniform finish and no visible defects.,60.98,10.19,38.15,None,0,0,0,0
+344,part_344.jpg,Polished steel connector with intact threads and no deformation.,53.02,9.45,35.57,None,0,0,0,0
+345,part_345.jpg,Aluminum casing showing even machining marks and no corrosion.,63.87,7.19,40.5,None,0,0,0,0
+346,part_346.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.34,2.1,41.21,None,0,0,0,0
+347,part_347.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.52,15.12,41.3,None,0,0,0,0
+348,part_348.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.55,12.54,32.88,None,0,0,0,0
+349,part_349.jpg,Aluminum casing showing even machining marks and no corrosion.,60.19,8.9,36.8,None,0,0,0,0
+350,part_350.jpg,Impact dent on casing visible as concave distortion along the outer edge.,60.53,12.18,41.21,Dent,518,450,696,514
+351,part_351.jpg,Surface scratch marks concentrated in the central region.,63.28,12.09,44.65,Scratch,541,103,753,306
+352,part_352.jpg,Injection-molded plastic part with smooth surface and consistent color.,64.37,9.0,34.64,None,0,0,0,0
+353,part_353.jpg,Aluminum casing showing even machining marks and no corrosion.,73.79,7.52,34.25,None,0,0,0,0
+354,part_354.jpg,Impact dent on casing visible as concave distortion along the outer edge.,64.68,9.2,39.55,Dent,211,75,297,264
+355,part_355.jpg,Multiple scratches along the surface; linear abrasions visible.,62.07,9.71,41.73,Scratch,225,26,386,215
+356,part_356.jpg,Mounting hole missing bolt; loose gap visible near seam.,60.97,10.81,42.54,Missing_Bolt,463,274,529,466
+357,part_357.jpg,Severe surface corrosion with flaking detected in region of interest.,58.02,9.78,39.86,Corrosion,20,257,266,430
+358,part_358.jpg,Impact dent on casing visible as concave distortion along the outer edge.,67.52,10.05,54.0,Dent,433,348,697,407
+359,part_359.jpg,Polished steel connector with intact threads and no deformation.,60.92,6.6,41.85,None,0,0,0,0
+360,part_360.jpg,Aluminum casing showing even machining marks and no corrosion.,69.21,11.58,40.46,None,0,0,0,0
+361,part_361.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.09,10.9,34.27,None,0,0,0,0
+362,part_362.jpg,Chrome-plated component with uniform finish and no visible defects.,50.23,7.32,42.29,None,0,0,0,0
+363,part_363.jpg,Aluminum casing showing even machining marks and no corrosion.,57.73,8.81,48.39,None,0,0,0,0
+364,part_364.jpg,Polished steel connector with intact threads and no deformation.,64.97,10.44,40.77,None,0,0,0,0
+365,part_365.jpg,Chrome-plated component with uniform finish and no visible defects.,52.19,9.09,40.33,None,0,0,0,0
+366,part_366.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~5.73%.,66.76,12.74,43.72,Corrosion,208,43,381,202
+367,part_367.jpg,Polished steel connector with intact threads and no deformation.,55.4,4.87,41.12,None,0,0,0,0
+368,part_368.jpg,Chrome-plated component with uniform finish and no visible defects.,68.0,7.69,50.56,None,0,0,0,0
+369,part_369.jpg,Visible surface crack extending across component edge; crack region ~1.03%.,57.46,12.69,41.72,Crack,232,349,308,414
+370,part_370.jpg,Metal housing showing rust patches near bolts (approx 4.17% of image).,60.59,12.45,45.39,Rust,212,227,456,309
+371,part_371.jpg,Metal housing showing rust patches near bolts (approx 6.89% of image).,52.49,10.31,38.58,Rust,67,370,345,489
+372,part_372.jpg,Polished steel connector with intact threads and no deformation.,61.31,10.47,43.9,None,0,0,0,0
+373,part_373.jpg,Injection-molded plastic part with smooth surface and consistent color.,62.18,13.69,44.7,None,0,0,0,0
+374,part_374.jpg,Surface shows heat damage and dark soot near key joints.,64.94,12.27,53.25,Burn_Mark,220,185,455,319
+375,part_375.jpg,Chrome-plated component with uniform finish and no visible defects.,58.92,8.99,59.82,None,0,0,0,0
+376,part_376.jpg,Polished steel connector with intact threads and no deformation.,66.09,12.09,47.66,None,0,0,0,0
+377,part_377.jpg,Polished steel connector with intact threads and no deformation.,66.1,10.86,45.41,None,0,0,0,0
+378,part_378.jpg,Surface shows heat damage and dark soot near key joints.,82.91,12.78,38.8,Burn_Mark,29,163,235,296
+379,part_379.jpg,Polished steel connector with intact threads and no deformation.,64.06,11.51,28.62,None,0,0,0,0
+380,part_380.jpg,"Hairline fracture near mounting hole, crack length notable in image.",53.27,12.68,43.82,Crack,454,247,658,432
+381,part_381.jpg,Aluminum casing showing even machining marks and no corrosion.,66.46,17.03,30.82,None,0,0,0,0
+382,part_382.jpg,Polished steel connector with intact threads and no deformation.,65.42,11.42,38.47,None,0,0,0,0
+383,part_383.jpg,Injection-molded plastic part with smooth surface and consistent color.,60.78,7.6,39.71,None,0,0,0,0
+384,part_384.jpg,Multiple scratches along the surface; linear abrasions visible.,55.9,10.79,41.52,Scratch,481,369,725,557
+385,part_385.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.05,6.12,47.35,None,0,0,0,0
+386,part_386.jpg,Polished steel connector with intact threads and no deformation.,67.09,10.22,34.94,None,0,0,0,0
+387,part_387.jpg,Chrome-plated component with uniform finish and no visible defects.,61.28,10.5,46.27,None,0,0,0,0
+388,part_388.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.11,5.21,35.53,None,0,0,0,0
+389,part_389.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~1.27%.,53.45,11.03,48.46,Corrosion,537,195,624,265
+390,part_390.jpg,Injection-molded plastic part with smooth surface and consistent color.,61.01,10.82,36.78,None,0,0,0,0
+391,part_391.jpg,Injection-molded plastic part with smooth surface and consistent color.,52.4,8.77,42.51,None,0,0,0,0
+392,part_392.jpg,Severe surface corrosion with flaking detected in region of interest.,63.95,10.73,50.37,Corrosion,511,107,756,261
+393,part_393.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.71,7.21,40.93,None,0,0,0,0
+394,part_394.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",56.4,15.62,49.99,Missing_Bolt,207,372,442,559
+395,part_395.jpg,Part shows bending and warpage under inspection in image.,71.47,13.85,48.02,Warp,369,221,605,333
+396,part_396.jpg,Polished steel connector with intact threads and no deformation.,67.61,7.64,39.97,None,0,0,0,0
+397,part_397.jpg,Polished steel connector with intact threads and no deformation.,60.34,6.91,43.05,None,0,0,0,0
+398,part_398.jpg,Polished steel connector with intact threads and no deformation.,64.82,9.11,40.59,None,0,0,0,0
+399,part_399.jpg,"Corroded surface with brown oxidization around seams, visible area ~2.44%.",65.97,9.02,39.81,Rust,161,508,395,558
+400,part_400.jpg,Aluminum casing showing even machining marks and no corrosion.,66.6,11.58,43.85,None,0,0,0,0
+401,part_401.jpg,Part shows bending and warpage under inspection in image.,71.18,12.66,47.33,Warp,342,453,563,521
+402,part_402.jpg,"Hairline fracture near mounting hole, crack length notable in image.",64.4,13.58,41.96,Crack,503,327,650,532
+403,part_403.jpg,Impact dent on casing visible as concave distortion along the outer edge.,53.72,13.26,30.64,Dent,407,416,624,528
+404,part_404.jpg,Chrome-plated component with uniform finish and no visible defects.,62.18,6.26,40.94,None,0,0,0,0
+405,part_405.jpg,Aluminum casing showing even machining marks and no corrosion.,57.85,9.58,46.5,None,0,0,0,0
+406,part_406.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",53.69,17.03,48.1,Missing_Bolt,454,57,539,176
+407,part_407.jpg,Polished steel connector with intact threads and no deformation.,59.82,11.24,35.25,None,0,0,0,0
+408,part_408.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.08,10.48,45.18,None,0,0,0,0
+409,part_409.jpg,Surface scratch marks concentrated in the central region.,69.81,9.57,38.44,Scratch,120,328,387,510
+410,part_410.jpg,"Hairline fracture near mounting hole, crack length notable in image.",66.02,12.7,45.83,Crack,208,21,361,95
+411,part_411.jpg,Polished steel connector with intact threads and no deformation.,60.3,8.63,41.19,None,0,0,0,0
+412,part_412.jpg,Dented outer rim with localized deformation approx 6.21% area.,60.79,15.54,50.4,Dent,121,394,331,536
+413,part_413.jpg,Polished steel connector with intact threads and no deformation.,69.55,12.15,45.18,None,0,0,0,0
+414,part_414.jpg,Polished steel connector with intact threads and no deformation.,52.2,15.16,44.14,None,0,0,0,0
+415,part_415.jpg,Surface shows scuffs and paint wear concentrated near bolt area.,59.62,8.48,37.66,Paint_Wear,311,335,502,521
+416,part_416.jpg,Severe surface corrosion with flaking detected in region of interest.,54.52,9.47,27.29,Corrosion,341,208,586,335
+417,part_417.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~2.26%.,62.05,8.76,51.21,Corrosion,256,321,369,417
+418,part_418.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.78,10.65,38.53,None,0,0,0,0
+419,part_419.jpg,Polished steel connector with intact threads and no deformation.,57.71,10.24,45.36,None,0,0,0,0
+420,part_420.jpg,Surface shows heat damage and dark soot near key joints.,66.69,10.65,53.16,Burn_Mark,482,403,654,521
+421,part_421.jpg,Polished steel connector with intact threads and no deformation.,56.6,10.57,38.45,None,0,0,0,0
+422,part_422.jpg,Burn or thermal discoloration present near connector; charred area ~7.62%.,83.73,13.97,45.74,Burn_Mark,59,170,240,372
+423,part_423.jpg,Aluminum casing showing even machining marks and no corrosion.,54.48,11.94,42.62,None,0,0,0,0
+424,part_424.jpg,Aluminum casing showing even machining marks and no corrosion.,55.71,9.89,35.31,None,0,0,0,0
+425,part_425.jpg,Polished steel connector with intact threads and no deformation.,63.78,10.45,39.51,None,0,0,0,0
+426,part_426.jpg,Impact dent on casing visible as concave distortion along the outer edge.,59.65,11.16,40.17,Dent,382,365,532,546
+427,part_427.jpg,Polished steel connector with intact threads and no deformation.,62.7,12.55,32.87,None,0,0,0,0
+428,part_428.jpg,Polished steel connector with intact threads and no deformation.,56.62,13.18,40.51,None,0,0,0,0
+429,part_429.jpg,Paint chipping and abrasion exposing bare metal over ~4.81% of surface.,51.69,11.12,44.39,Paint_Wear,94,389,310,496
+430,part_430.jpg,Aluminum casing showing even machining marks and no corrosion.,63.46,6.9,35.85,None,0,0,0,0
+431,part_431.jpg,"Hairline fracture near mounting hole, crack length notable in image.",61.96,12.67,42.92,Crack,53,256,119,448
+432,part_432.jpg,Injection-molded plastic part with smooth surface and consistent color.,63.07,10.45,48.42,None,0,0,0,0
+433,part_433.jpg,Surface scratch marks concentrated in the central region.,57.21,8.96,47.08,Scratch,554,291,772,436
+434,part_434.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.54,11.86,42.81,None,0,0,0,0
+435,part_435.jpg,Injection-molded plastic part with smooth surface and consistent color.,58.5,9.47,39.75,None,0,0,0,0
+436,part_436.jpg,Chrome-plated component with uniform finish and no visible defects.,59.56,9.84,31.22,None,0,0,0,0
+437,part_437.jpg,Polished steel connector with intact threads and no deformation.,57.42,9.12,47.06,None,0,0,0,0
+438,part_438.jpg,Injection-molded plastic part with smooth surface and consistent color.,66.0,10.53,44.71,None,0,0,0,0
+439,part_439.jpg,Chrome-plated component with uniform finish and no visible defects.,51.1,9.95,34.26,None,0,0,0,0
+440,part_440.jpg,Surface scratch marks concentrated in the central region.,59.61,7.69,47.67,Scratch,399,57,562,244
+441,part_441.jpg,Structural warp visible as misaligned edges; distortion area ~2.69%.,67.96,9.39,42.99,Warp,436,449,564,550
+442,part_442.jpg,Visible surface crack extending across component edge; crack region ~2.49%.,55.0,12.47,45.28,Crack,312,273,400,409
+443,part_443.jpg,Aluminum casing showing even machining marks and no corrosion.,51.7,6.98,37.71,None,0,0,0,0
+444,part_444.jpg,Metal housing showing rust patches near bolts (approx 1.65% of image).,62.62,6.97,41.6,Rust,523,338,610,429
+445,part_445.jpg,Metal housing showing rust patches near bolts (approx 4.16% of image).,64.7,5.12,44.42,Rust,391,136,486,346
+446,part_446.jpg,"Corroded surface with brown oxidization around seams, visible area ~4.77%.",48.86,2.2,37.96,Rust,426,36,592,174
+447,part_447.jpg,Polished steel connector with intact threads and no deformation.,61.19,13.63,45.42,None,0,0,0,0
+448,part_448.jpg,Severe surface corrosion with flaking detected in region of interest.,63.43,10.7,41.48,Corrosion,436,280,630,403
+449,part_449.jpg,Surface shows heat damage and dark soot near key joints.,65.35,8.61,44.94,Burn_Mark,548,137,716,265
+450,part_450.jpg,Injection-molded plastic part with smooth surface and consistent color.,63.96,13.31,44.41,None,0,0,0,0
+451,part_451.jpg,Injection-molded plastic part with smooth surface and consistent color.,55.98,9.64,45.62,None,0,0,0,0
+452,part_452.jpg,"Hairline fracture near mounting hole, crack length notable in image.",59.06,13.77,53.67,Crack,131,311,403,503
+453,part_453.jpg,Polished steel connector with intact threads and no deformation.,55.7,4.9,36.05,None,0,0,0,0
+454,part_454.jpg,Aluminum casing showing even machining marks and no corrosion.,67.69,8.25,33.57,None,0,0,0,0
+455,part_455.jpg,Dented outer rim with localized deformation approx 8.74% area.,51.6,12.0,38.02,Dent,41,190,263,379
+456,part_456.jpg,Polished steel connector with intact threads and no deformation.,65.6,10.15,36.21,None,0,0,0,0
+457,part_457.jpg,Chrome-plated component with uniform finish and no visible defects.,65.25,8.0,43.75,None,0,0,0,0
+458,part_458.jpg,Polished steel connector with intact threads and no deformation.,69.19,13.53,41.49,None,0,0,0,0
+459,part_459.jpg,Polished steel connector with intact threads and no deformation.,66.68,10.59,43.26,None,0,0,0,0
+460,part_460.jpg,Chrome-plated component with uniform finish and no visible defects.,52.68,9.55,38.7,None,0,0,0,0
+461,part_461.jpg,Severe surface corrosion with flaking detected in region of interest.,66.46,13.01,40.67,Corrosion,69,527,223,574
+462,part_462.jpg,Visible surface crack extending across component edge; crack region ~5.56%.,69.35,9.47,44.62,Crack,231,199,459,316
+463,part_463.jpg,Structural warp visible as misaligned edges; distortion area ~7.04%.,63.63,14.76,49.86,Warp,445,332,638,507
+464,part_464.jpg,Injection-molded plastic part with smooth surface and consistent color.,54.25,12.73,37.27,None,0,0,0,0
+465,part_465.jpg,Chrome-plated component with uniform finish and no visible defects.,59.11,8.5,42.19,None,0,0,0,0
+466,part_466.jpg,Injection-molded plastic part with smooth surface and consistent color.,53.67,4.23,42.7,None,0,0,0,0
+467,part_467.jpg,Polished steel connector with intact threads and no deformation.,58.68,10.26,35.33,None,0,0,0,0
+468,part_468.jpg,Aluminum casing showing even machining marks and no corrosion.,61.58,9.45,36.66,None,0,0,0,0
+469,part_469.jpg,Surface scratch marks concentrated in the central region.,54.84,10.28,40.4,Scratch,429,121,637,229
+470,part_470.jpg,Paint chipping and abrasion exposing bare metal over ~6.2% of surface.,53.55,13.75,34.84,Paint_Wear,60,383,252,538
+471,part_471.jpg,Localized corrosion and pitting around weld joint; visible pitting area ~4.65%.,53.65,12.09,48.07,Corrosion,495,86,650,230
+472,part_472.jpg,Polished steel connector with intact threads and no deformation.,62.82,8.05,44.31,None,0,0,0,0
+473,part_473.jpg,Mounting hole missing bolt; loose gap visible near seam.,60.07,21.84,46.09,Missing_Bolt,347,417,604,507
+474,part_474.jpg,Injection-molded plastic part with smooth surface and consistent color.,59.81,10.27,41.87,None,0,0,0,0
+475,part_475.jpg,Injection-molded plastic part with smooth surface and consistent color.,57.88,10.76,36.97,None,0,0,0,0
+476,part_476.jpg,Injection-molded plastic part with smooth surface and consistent color.,56.28,12.58,41.12,None,0,0,0,0
+477,part_477.jpg,Injection-molded plastic part with smooth surface and consistent color.,52.45,14.53,42.14,None,0,0,0,0
+478,part_478.jpg,Injection-molded plastic part with smooth surface and consistent color.,52.47,11.84,38.32,None,0,0,0,0
+479,part_479.jpg,"Hairline fracture near mounting hole, crack length notable in image.",63.92,17.8,45.43,Crack,439,347,695,441
+480,part_480.jpg,Aluminum casing showing even machining marks and no corrosion.,54.08,16.57,44.43,None,0,0,0,0
+481,part_481.jpg,Visible surface crack extending across component edge; crack region ~2.62%.,67.91,12.63,48.68,Crack,364,26,445,181
+482,part_482.jpg,Multiple scratches along the surface; linear abrasions visible.,62.57,5.81,44.64,Scratch,479,151,726,283
+483,part_483.jpg,Dented outer rim with localized deformation approx 10.16% area.,60.07,9.18,45.65,Dent,111,241,376,425
+484,part_484.jpg,Paint chipping and abrasion exposing bare metal over ~9.62% of surface.,47.53,8.67,31.59,Paint_Wear,474,245,695,454
+485,part_485.jpg,"Fastener absent from bolt hole, leaving exposed threaded cavity.",60.92,12.08,41.32,Missing_Bolt,430,271,588,419
+486,part_486.jpg,Polished steel connector with intact threads and no deformation.,64.07,10.2,41.32,None,0,0,0,0
+487,part_487.jpg,"Corroded surface with brown oxidization around seams, visible area ~3.12%.",64.96,9.31,47.37,Rust,377,223,502,343
+488,part_488.jpg,Part shows bending and warpage under inspection in image.,60.42,14.29,41.66,Warp,53,364,331,472
+489,part_489.jpg,Chrome-plated component with uniform finish and no visible defects.,62.12,12.25,35.9,None,0,0,0,0
+490,part_490.jpg,Metal housing showing rust patches near bolts (approx 3.06% of image).,63.84,10.43,41.82,Rust,235,501,488,559
+491,part_491.jpg,Aluminum casing showing even machining marks and no corrosion.,66.28,12.54,45.01,None,0,0,0,0
+492,part_492.jpg,Polished steel connector with intact threads and no deformation.,59.76,11.87,45.53,None,0,0,0,0
+493,part_493.jpg,Injection-molded plastic part with smooth surface and consistent color.,65.97,7.15,40.75,None,0,0,0,0
+494,part_494.jpg,Surface scratch marks concentrated in the central region.,59.85,13.81,35.94,Scratch,298,148,519,227
+495,part_495.jpg,Mounting hole missing bolt; loose gap visible near seam.,57.89,14.33,49.33,Missing_Bolt,318,413,555,466
+496,part_496.jpg,Burn or thermal discoloration present near connector; charred area ~0.75%.,73.6,12.58,40.04,Burn_Mark,658,263,735,310
+497,part_497.jpg,Metal housing showing rust patches near bolts (approx 1.98% of image).,61.38,8.69,38.89,Rust,287,208,431,274
+498,part_498.jpg,Polished steel connector with intact threads and no deformation.,70.21,8.19,34.28,None,0,0,0,0
+499,part_499.jpg,Polished steel connector with intact threads and no deformation.,61.38,11.17,37.28,None,0,0,0,0
+500,part_500.jpg,Injection-molded plastic part with smooth surface and consistent color.,66.77,7.67,35.56,None,0,0,0,0

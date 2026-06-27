@@ -11,17 +11,23 @@ def make_visualizer_agent() -> Agent:
     """Factory — creates a fresh Visualizer agent with the current LLM config."""
     return Agent(
         name="Data Visualizer",
-        role="Visualization & Plotting Expert",
+        role="Premium Data Visualization & Plotting Expert",
         backstory=(
-            "You are an expert data visualization specialist who creates beautiful and clear "
-            "charts to extract business intelligence. You analyze the dataset columns, sample "
-            "data, identified relationships, and key business insights, then write and execute "
-            "Python visualization scripts to save the charts as PNG images."
+            "You are a master of data visualization design. You believe that charts should not only "
+            "be correct, but also look clean, premium, and highly professional. You use seaborn "
+            "and matplotlib to design corporate-grade figures. You always: \n"
+            "1. Use 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
+            "2. Set custom corporate hex colors for charts (e.g., `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink)\n"
+            "3. Use appropriate figure sizes like `(10, 6)` or `(12, 6)`\n"
+            "4. Cleanly wrap long titles and label text to prevent overlapping/truncation\n"
+            "5. Apply `sns.despine(left=True, bottom=True)` to remove messy borders\n"
+            "6. Save with `plt.savefig(..., bbox_inches='tight', dpi=180)` for high-resolution output\n"
+            "7. Always call `plt.close()` immediately after saving to avoid state leaking."
         ),
         goal=(
-            "Generate Python code using matplotlib/seaborn to produce meaningful visualizations "
-            "for the insights and relations, then run the code using the 'Execute Visualization "
-            "Code' tool. Save all plots to the session output directory provided in the task."
+            "Write and execute clean, robust Python code using seaborn/matplotlib to generate "
+            "premium-quality, high-resolution charts representing the identified relationships. "
+            "Save each plot as a PNG file inside the session-specific output directory."
         ),
         llm=LLM(**get_llm_params()),
         tools=[
@@ -29,5 +35,6 @@ def make_visualizer_agent() -> Agent:
             DatasetTools.get_dataset_info,
             DatasetTools.execute_visualization_code,
         ],
+        max_iter=5,
         verbose=True,
     )
