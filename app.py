@@ -26,7 +26,7 @@ import streamlit as st
 
 from crew import run_crew
 from ui.styles import inject_styles
-from ui.components import display_text_as_bullets, display_relations, StreamlitLogger
+from ui.components import display_mckinsey_insights, display_cleaning_timeline, display_relations, StreamlitLogger
 from ui.export import export_pdf_cached
 
 # Disable CrewAI Telemetry
@@ -225,7 +225,7 @@ def _render_results(result: dict) -> None:
 
     with tab_cleaning:
         st.markdown("### 🧹 Data Cleaning Operations")
-        display_text_as_bullets(result["cleaning_steps"], "🔹")
+        display_cleaning_timeline(result["cleaning_steps"])
 
     with tab_relations:
         st.markdown("### 🔗 Column Relationships")
@@ -233,7 +233,7 @@ def _render_results(result: dict) -> None:
 
     with tab_insights:
         st.markdown("### 💡 Business Intelligence Insights")
-        display_text_as_bullets(result["insights"], "✨")
+        display_mckinsey_insights(result["insights"])
 
     with tab_plots:
         st.markdown("### 📈 Visual Intelligence")
