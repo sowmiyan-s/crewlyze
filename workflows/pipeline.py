@@ -168,19 +168,25 @@ def make_pipeline(session_id: str, profile: str = "", selected_tasks: Optional[l
     visualize_task = Task(
         agent=visualizer_agent,
         description=(
-            "Write and execute Python visualization code using 'Execute Visualization Code'. "
-            f"Read data from '{csv_path}' and save PNG plots to '{output_dir}'.\n\n"
-            "CODE REQUIREMENT:\n"
-            "- Always call matplotlib.use('Agg') before importing pyplot.\n"
-            "- Set theme: 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
-            "- Use hex colors (e.g. `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink).\n"
+            "Examine the columns and data types from the profile below. Using your AI reasoning, select "
+            "the 3-4 most insightful relationships, trends, or distributions that characterize this specific dataset.\n"
+            "Then, write and execute Python plotting code using 'Execute Visualization Code'.\n\n"
+            "ENVIRONMENT NOTE:\n"
+            "- The pandas DataFrame is pre-loaded as `df` in your execution environment.\n"
+            "- Pre-defined variable `OUTPUT_DIR` contains the target output folder path.\n"
+            "- A helper function `save_chart(filename_string)` is available to save the current figure.\n"
+            "- Matplotlib and Seaborn are pre-imported. Do NOT load CSVs or create folders yourself!\n\n"
+            "CODE REQUIREMENTS:\n"
+            "- Set style theme: 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
+            "- Use high-end palette hex colors (e.g. `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink, `#10b981` for Emerald).\n"
             "- Set figure size to `(10, 6)` or `(12, 6)`.\n"
-            "- Set clear, descriptive titles and wrap long text using 'textwrap.fill(title, 40)'.\n"
+            "- Set clear, descriptive titles and wrap long titles: 'plt.title(textwrap.fill(title, 40))'.\n"
             "- Apply 'sns.despine(left=True, bottom=True)' to remove borders.\n"
-            "- Save each plot using: `plt.savefig(..., bbox_inches='tight', dpi=180)`.\n"
-            "- Call `plt.close()` immediately after each save."
+            "- Save each plot with: `save_chart('chart_name')`.\n"
+            "- Call `plt.close()` immediately after each save to clear the state."
+            f"{profile_block}"
         ),
-        expected_output="Summary of generated and saved visualization plots.",
+        expected_output="Summary of the 3-4 custom visualization plots generated and saved.",
         callback=cb,
     )
 

@@ -226,6 +226,14 @@ def get_project_metadata(project_id: str) -> dict:
         
     created_at = session_dir.stat().st_ctime
     
+    # Check if there is any generated chart thumbnail
+    output_dir = OUTPUTS_DIR / project_id
+    thumbnail = None
+    if output_dir.exists() and output_dir.is_dir():
+        png_charts = sorted([f.name for f in output_dir.glob("*.png")])
+        if png_charts:
+            thumbnail = f"/api/charts/{project_id}/{png_charts[0]}"
+
     meta = {
         "id": project_id,
         "name": f"Project {project_id}",
@@ -233,7 +241,8 @@ def get_project_metadata(project_id: str) -> dict:
         "report_title": f"{filename.rsplit('.', 1)[0].replace('_', ' ').title()} Executive Analysis",
         "size": size,
         "created_at": created_at * 1000,
-        "status": status
+        "status": status,
+        "thumbnail": thumbnail
     }
     
     save_project_metadata(project_id, meta)
@@ -270,6 +279,8 @@ def run_crew_in_background(
     os.environ["API_COOLDOWN"]  = str(cooldown)
     os.environ["DEEP_ANALYSIS"] = "true" if deep_analysis else "false"
     os.environ["SELECTED_TASKS"] = ",".join(selected_tasks)
+    os.environ["CURRENT_SESSION_CSV"] = str(csv_path)
+    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(OUTPUTS_DIR / session_id)
     if api_key:
         os.environ[env_key_name] = api_key
 

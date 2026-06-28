@@ -536,22 +536,59 @@ class DatasetTools:
 
     @tool("Execute Visualization Code")
     def execute_visualization_code(python_code: str) -> str:
-        """Executes Python code to generate and save visualizations as PNG files.
+        """Executes Python plotting code to generate and save PNG visual charts.
 
-        The code runs in an isolated subprocess — it MUST import all libraries
-        it needs (pandas, matplotlib, seaborn, etc.) and use the session-specific
-        file paths given in the task description.
+        The code runs in a pre-configured Python environment where:
+          - 'df' is a pre-loaded pandas DataFrame containing the cleaned dataset.
+          - 'OUTPUT_DIR' is a pre-defined string representing the output folder path.
+          - 'save_chart(filename)' is a helper function to save the current plot into OUTPUT_DIR.
+          - Libraries 'pandas', 'matplotlib.pyplot as plt', and 'seaborn as sns' are already imported.
 
-        Always call matplotlib.use('Agg') before importing pyplot.
-        Save each plot with plt.savefig(..., bbox_inches='tight', dpi=150).
-        Always call plt.close() after saving each figure.
+        Example usage:
+          plt.figure(figsize=(10, 6))
+          sns.scatterplot(data=df, x='column_x', y='column_y')
+          plt.title('Relationship Title')
+          save_chart('chart_name.png')
+          plt.close()
         """
         clean_code = _strip_markdown_fences(python_code)
+        csv_path = os.getenv("CURRENT_SESSION_CSV", "")
+        output_dir = os.getenv("CURRENT_SESSION_OUTPUT_DIR", "")
 
-        # NOTE: The session-specific output directory is created by run_crew()
-        # before agents are invoked. Do NOT create a root-level "outputs/" here
-        # as it would bypass per-session file isolation.
-        success, output = _run_in_subprocess(clean_code)
+        # Fallbacks if env vars are missing
+        if not csv_path:
+            csv_path = "data/sessions/default/cleaned.csv"
+        if not output_dir:
+            output_dir = "outputs/default"
+
+        script = textwrap.dedent(f"""\
+            import os
+            import pandas as pd
+            import matplotlib
+            matplotlib.use('Agg')
+            import matplotlib.pyplot as plt
+            import seaborn as sns
+            import textwrap
+
+            CSV_PATH = {repr(csv_path)}
+            OUTPUT_DIR = {repr(output_dir)}
+
+            os.makedirs(OUTPUT_DIR, exist_ok=True)
+            df = pd.read_csv(CSV_PATH)
+
+            def save_chart(filename):
+                if not filename.endswith('.png'):
+                    filename += '.png'
+                path = os.path.join(OUTPUT_DIR, filename)
+                plt.savefig(path, bbox_inches='tight', dpi=180)
+                print(f"Saved chart: {{filename}}")
+
+            # ---- Agent Plotting Code ----
+            {textwrap.indent(clean_code, "            ").lstrip()}
+            # ---- End Agent Code ----
+        """)
+
+        success, output = _run_in_subprocess(script)
         if success:
-            return f"Visualization code executed successfully. Plots saved.\n{output}"
+            return f"Visualization executed successfully. Output:\n{output}"
         return f"Error executing visualization code:\n{output}"

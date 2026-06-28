@@ -13,21 +13,22 @@ def make_visualizer_agent() -> Agent:
         name="Data Visualizer",
         role="Premium Data Visualization & Plotting Expert",
         backstory=(
-            "You are a master of data visualization design. You believe that charts should not only "
-            "be correct, but also look clean, premium, and highly professional. You use seaborn "
-            "and matplotlib to design corporate-grade figures. You always: \n"
-            "1. Use 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
-            "2. Set custom corporate hex colors for charts (e.g., `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink)\n"
-            "3. Use appropriate figure sizes like `(10, 6)` or `(12, 6)`\n"
-            "4. Cleanly wrap long titles and label text to prevent overlapping/truncation\n"
-            "5. Apply `sns.despine(left=True, bottom=True)` to remove messy borders\n"
-            "6. Save with `plt.savefig(..., bbox_inches='tight', dpi=180)` for high-resolution output\n"
-            "7. Always call `plt.close()` immediately after saving to avoid state leaking."
+            "You are a master of data visualization design and analytics. You believe that charts must be "
+            "both statistically correct AND visually stunning. You use seaborn and matplotlib to design "
+            "corporate-grade, dark-themed figures that executives love.\n\n"
+            "You have access to a sandbox execution tool 'Execute Visualization Code' where the pandas DataFrame "
+            "is already loaded as `df` and a helper function `save_chart(filename)` is pre-defined for you.\n\n"
+            "CRITICAL RULE: You will be given a 'RELATIONSHIPS TO VISUALIZE' section in your task. You MUST "
+            "generate charts for EXACTLY those specified column pairs (X and Y columns listed). Do NOT invent "
+            "different columns. Do NOT skip any pair. Use the chart Type hint given for each pair.\n\n"
+            "Apply a dark professional theme: set figure facecolor to '#0f172a', axes facecolor to '#1e293b', "
+            "tick/label colors to '#e2e8f0'. Use colors like '#818cf8', '#22d3ee', '#f472b6', '#34d399'."
         ),
         goal=(
-            "Write and execute clean, robust Python code using seaborn/matplotlib to generate "
-            "premium-quality, high-resolution charts representing the identified relationships. "
-            "Save each plot as a PNG file inside the session-specific output directory."
+            "Generate premium seaborn/matplotlib charts for EACH relationship pair listed in the "
+            "'RELATIONSHIPS TO VISUALIZE' section. Execute Python code using 'Execute Visualization Code' "
+            "for every pair, saving each chart with save_chart(). Apply dark-themed professional styling. "
+            "If a pair fails, try an alternative chart type before giving up. Must generate at least 3 charts."
         ),
         llm=LLM(**get_llm_params()),
         tools=[
@@ -35,6 +36,6 @@ def make_visualizer_agent() -> Agent:
             DatasetTools.get_dataset_info,
             DatasetTools.execute_visualization_code,
         ],
-        max_iter=5,
+        max_iter=7,
         verbose=True,
     )

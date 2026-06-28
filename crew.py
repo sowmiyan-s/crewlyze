@@ -63,11 +63,13 @@ from workflows.pipeline import make_pipeline
 # Visualizer Fallback Generator (Pure Python, no LLM)
 # ---------------------------------------------------------------------------
 
-def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path) -> str:
+def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_text: str = "") -> str:
     """
     Pure Python statistical visualizer fallback that runs when the agent fails to save PNGs.
+    Uses discovered relation pairs first (relation-aware), then falls back to generic charts.
     Creates structured, premium plots with consistent layout styles.
     """
+    import re
     import pandas as pd
     import matplotlib
     matplotlib.use('Agg')
@@ -82,69 +84,172 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path) -> str:
         categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
         generated = []
-        sns.set_theme(style="whitegrid", palette="muted")
-        
-        # Color definitions for fallbacks
-        colors = ["#6366f1", "#06b6d4", "#ec4899", "#10b981"]
+        # Dark-themed premium style
+        sns.set_theme(style="darkgrid", palette="deep")
+        BG_DARK = "#0f172a"
+        BG_CARD = "#1e293b"
+        TEXT_COLOR = "#e2e8f0"
+        GRID_COLOR = "#334155"
+        colors = ["#818cf8", "#22d3ee", "#f472b6", "#34d399", "#fb923c"]
 
-        # 1. Distribution
-        if numeric_cols:
-            col = numeric_cols[0]
-            plt.figure(figsize=(10, 6))
-            sns.histplot(df[col].dropna(), kde=True, color=colors[0])
-            plt.title(f"Distribution of {col}", fontsize=14, fontweight="bold", pad=15, color="#1e1b4b")
-            plt.xlabel(col)
-            plt.ylabel("Frequency")
-            sns.despine(left=True, bottom=True)
-            plt.tight_layout()
-            dest = output_dir / f"distribution_{col}.png"
-            plt.savefig(dest, dpi=180, bbox_inches="tight")
-            plt.close()
-            generated.append(dest.name)
+        def _apply_dark_style(fig, ax_list):
+            fig.patch.set_facecolor(BG_DARK)
+            for ax in (ax_list if isinstance(ax_list, list) else [ax_list]):
+                ax.set_facecolor(BG_CARD)
+                ax.tick_params(colors=TEXT_COLOR)
+                ax.xaxis.label.set_color(TEXT_COLOR)
+                ax.yaxis.label.set_color(TEXT_COLOR)
+                ax.title.set_color(TEXT_COLOR)
+                for spine in ax.spines.values():
+                    spine.set_edgecolor(GRID_COLOR)
+                ax.grid(color=GRID_COLOR, linewidth=0.5)
 
-        # 2. Correlation
-        if len(numeric_cols) >= 2:
-            plt.figure(figsize=(10, 8))
-            corr = df[numeric_cols].corr()
-            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", square=True, cbar_kws={"shrink": .8})
-            plt.title("Correlation Matrix", fontsize=14, fontweight="bold", pad=15, color="#1e1b4b")
-            plt.tight_layout()
-            dest = output_dir / "correlation_matrix.png"
-            plt.savefig(dest, dpi=180, bbox_inches="tight")
-            plt.close()
-            generated.append(dest.name)
+        # ── PHASE 1: Parse relation pairs from agent output ────────────────────
+        relation_pairs = []
+        if relations_text:
+            for line in relations_text.split("\n"):
+                line = line.strip()
+                if not (line and "|" in line and "X:" in line):
+                    continue
+                try:
+                    parts = [p.strip() for p in line.lstrip("- ").split("|")]
+                    x_col = parts[0].split(":", 1)[1].strip()
+                    y_col = parts[1].split(":", 1)[1].strip()
+                    ptype = parts[2].split(":", 1)[1].strip().lower() if len(parts) > 2 else "scatter"
+                    if x_col in df.columns and y_col in df.columns and x_col != y_col:
+                        relation_pairs.append((x_col, y_col, ptype))
+                except (IndexError, ValueError):
+                    continue
 
-        # 3. Scatter
-        if len(numeric_cols) >= 2:
-            x, y = numeric_cols[0], numeric_cols[1]
-            plt.figure(figsize=(10, 6))
-            sns.scatterplot(data=df, x=x, y=y, color=colors[1], alpha=0.7)
-            plt.title(f"{x} vs {y} Relationship", fontsize=14, fontweight="bold", pad=15, color="#1e1b4b")
-            sns.despine(left=True, bottom=True)
-            plt.tight_layout()
-            dest = output_dir / f"scatter_{x}_vs_{y}.png"
-            plt.savefig(dest, dpi=180, bbox_inches="tight")
-            plt.close()
-            generated.append(dest.name)
+        # ── PHASE 2: Generate relation-based charts ────────────────────────────
+        for i, (x_col, y_col, ptype) in enumerate(relation_pairs[:5]):
+            color = colors[i % len(colors)]
+            try:
+                sample = df[[x_col, y_col]].dropna().head(2000)
+                if sample.empty:
+                    continue
 
-        # 4. Categorical Bar
-        if categorical_cols and numeric_cols:
-            cat, num = categorical_cols[0], numeric_cols[0]
-            # Use top 10 categories to keep the labels readable
-            top_cats = df[cat].value_counts().head(10).index
-            sub_df = df[df[cat].isin(top_cats)]
-            plt.figure(figsize=(10, 6))
-            sns.barplot(data=sub_df, x=cat, y=num, errorbar=None, color=colors[2])
-            plt.title(f"Average {num} by {cat} (Top 10)", fontsize=14, fontweight="bold", pad=15, color="#1e1b4b")
-            plt.xticks(rotation=45, ha="right")
-            sns.despine(left=True, bottom=True)
-            plt.tight_layout()
-            dest = output_dir / f"bar_{cat}_vs_{num}.png"
-            plt.savefig(dest, dpi=180, bbox_inches="tight")
-            plt.close()
-            generated.append(dest.name)
+                fig, ax = plt.subplots(figsize=(10, 6))
 
-        return f"Generated {len(generated)} auto-healing chart(s) in fallback."
+                x_is_num = pd.api.types.is_numeric_dtype(df[x_col])
+                y_is_num = pd.api.types.is_numeric_dtype(df[y_col])
+
+                if "bar" in ptype:
+                    agg = sample.groupby(x_col)[y_col].mean().reset_index().head(20)
+                    sns.barplot(data=agg, x=x_col, y=y_col, color=color, ax=ax)
+                    plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
+                    title = f"{y_col} by {x_col}"
+                elif "line" in ptype:
+                    sns.lineplot(data=sample.sort_values(x_col), x=x_col, y=y_col, color=color, ax=ax)
+                    title = f"{y_col} over {x_col}"
+                elif "box" in ptype:
+                    if not x_is_num:
+                        top_cats = df[x_col].value_counts().head(8).index
+                        sample = sample[sample[x_col].isin(top_cats)]
+                    sns.boxplot(data=sample, x=x_col if not x_is_num else None,
+                                y=y_col, color=color, ax=ax)
+                    title = f"Distribution of {y_col}"
+                elif "hist" in ptype:
+                    sns.histplot(sample[x_col].dropna(), kde=True, color=color, ax=ax)
+                    title = f"Distribution of {x_col}"
+                else:
+                    if x_is_num and y_is_num:
+                        sns.scatterplot(data=sample, x=x_col, y=y_col,
+                                        color=color, alpha=0.7, ax=ax)
+                    else:
+                        top_cats = df[x_col].value_counts().head(15).index
+                        sub = sample[sample[x_col].isin(top_cats)]
+                        sns.boxplot(data=sub, x=x_col, y=y_col, color=color, ax=ax)
+                        plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
+                    title = f"{x_col} vs {y_col} Relationship"
+
+                ax.set_title(title, fontsize=13, fontweight="bold", pad=14)
+                _apply_dark_style(fig, ax)
+                plt.tight_layout()
+                safe_name = re.sub(r"[^\w]+", "_", f"relation_{x_col}_vs_{y_col}").lower()
+                dest = output_dir / f"{safe_name}.png"
+                plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                plt.close()
+                generated.append(dest.name)
+                print(f"Relation chart saved: {dest.name}")
+
+            except Exception as chart_err:
+                print(f"Relation chart error ({x_col} vs {y_col}): {chart_err}")
+                plt.close()
+                continue
+
+        # ── PHASE 3: Generic fallback charts if no relation charts were made ───
+        if not generated:
+            # Correlation heatmap
+            if len(numeric_cols) >= 2:
+                try:
+                    fig, ax = plt.subplots(figsize=(10, 8))
+                    corr = df[numeric_cols].corr()
+                    sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f",
+                                square=True, cbar_kws={"shrink": .8}, ax=ax,
+                                annot_kws={"color": TEXT_COLOR})
+                    ax.set_title("Correlation Matrix", fontsize=14, fontweight="bold", pad=14)
+                    _apply_dark_style(fig, ax)
+                    plt.tight_layout()
+                    dest = output_dir / "correlation_matrix.png"
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.close()
+                    generated.append(dest.name)
+                except Exception:
+                    plt.close()
+
+            # Distribution of first numeric col
+            if numeric_cols:
+                try:
+                    col = numeric_cols[0]
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    sns.histplot(df[col].dropna(), kde=True, color=colors[0], ax=ax)
+                    ax.set_title(f"Distribution of {col}", fontsize=13, fontweight="bold", pad=14)
+                    _apply_dark_style(fig, ax)
+                    plt.tight_layout()
+                    dest = output_dir / f"distribution_{col}.png"
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.close()
+                    generated.append(dest.name)
+                except Exception:
+                    plt.close()
+
+            # First scatter pair
+            if len(numeric_cols) >= 2:
+                try:
+                    x, y = numeric_cols[0], numeric_cols[1]
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    sns.scatterplot(data=df.head(2000), x=x, y=y, color=colors[1], alpha=0.7, ax=ax)
+                    ax.set_title(f"{x} vs {y} Relationship", fontsize=13, fontweight="bold", pad=14)
+                    _apply_dark_style(fig, ax)
+                    plt.tight_layout()
+                    dest = output_dir / f"scatter_{x}_vs_{y}.png"
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.close()
+                    generated.append(dest.name)
+                except Exception:
+                    plt.close()
+
+            # Categorical bar
+            if categorical_cols and numeric_cols:
+                try:
+                    cat, num = categorical_cols[0], numeric_cols[0]
+                    top_cats = df[cat].value_counts().head(10).index
+                    sub_df = df[df[cat].isin(top_cats)]
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    sns.barplot(data=sub_df, x=cat, y=num, errorbar=None, color=colors[2], ax=ax)
+                    ax.set_title(f"Average {num} by {cat} (Top 10)", fontsize=13, fontweight="bold", pad=14)
+                    plt.xticks(rotation=45, ha="right", color=TEXT_COLOR)
+                    _apply_dark_style(fig, ax)
+                    plt.tight_layout()
+                    dest = output_dir / f"bar_{cat}_vs_{num}.png"
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.close()
+                    generated.append(dest.name)
+                except Exception:
+                    plt.close()
+
+        return f"Generated {len(generated)} chart(s) ({len(relation_pairs)} from relations, rest generic)."
     except Exception as e:
         return f"Fallback visualization failed: {e}"
 
@@ -340,6 +445,9 @@ def run_crew(
     print(f"Original backed up → {original_backup}")
     print(f"Working copy created → {cleaned_path}\n")
 
+    os.environ["CURRENT_SESSION_CSV"] = str(cleaned_path)
+    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(session_output_dir)
+
     # ── Pre-compute dataset profile (eliminates 6-8 agent tool-call round-trips)
     # Large files are sampled; the cleaner still operates on the full dataset.
     profile_max_rows = 5000 if n_rows > 10_000 else n_rows
@@ -493,8 +601,10 @@ def run_crew(
         # Auto-healing fallback check: if no PNG charts were successfully saved
         png_files = list(session_output_dir.glob("*.png"))
         if not png_files:
-            print("No PNG charts generated by agent. Running automatic visualizer fallback...")
-            fallback_msg = _run_auto_visualizer_fallback(cleaned_path, session_output_dir)
+            print("No PNG charts generated by agent. Running relation-aware visualizer fallback...")
+            fallback_msg = _run_auto_visualizer_fallback(
+                cleaned_path, session_output_dir, relations_text=relation_output
+            )
             visualize_output = f"{visualize_output}\n\n[Auto-Healing Fallback Status]: {fallback_msg}"
             print(fallback_msg)
     else:

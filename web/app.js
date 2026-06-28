@@ -219,6 +219,7 @@ const els = {
   customDialogCancelBtn:       $('customDialogCancelBtn'),
   customDialogConfirmBtn:      $('customDialogConfirmBtn'),
   closeCustomDialogBtn:        $('closeCustomDialogBtn'),
+  stagePovPanel:               $('stagePovPanel'),
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -825,10 +826,15 @@ function renderProjectsList() {
             <span class="db-project-date">${formattedDate}</span>
             <span class="db-project-status-badge ${p.status}">${p.status}</span>
           </div>
-          <div class="db-project-folder-icon">
-            <svg viewBox="0 0 24 24" class="folder-svg">
-              <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2z"></path>
-            </svg>
+          <div class="db-project-preview-wrap">
+            <img src="${p.thumbnail || '/default_preview.png'}" class="db-project-preview-img" alt="Project Preview" />
+            <div class="db-project-preview-overlay">
+              <div class="db-project-folder-icon ${p.status}">
+                <svg viewBox="0 0 24 24" class="folder-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+            </div>
           </div>
           <h3 class="db-project-card-title" title="${p.name}">${p.name}</h3>
           <div class="db-project-card-footer">
@@ -1243,11 +1249,168 @@ function appendLog(line) {
   els.logOutput.scrollTop = els.logOutput.scrollHeight;
 }
 
+let povInterval = null;
+
+function renderStagePov(stage) {
+  if (povInterval) {
+    clearInterval(povInterval);
+    povInterval = null;
+  }
+  
+  if (!els.stagePovPanel) return;
+
+  if (stage === 'cleaning') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title">🧹 Data Sanitizer Active</div>
+        <div class="pov-desc">Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-scanner-wrap" id="povScannerWrap">
+          <div class="pov-scanner-line"></div>
+          <div class="pov-scanner-row active" data-idx="0"><span>[SCAN] Reading source CSV...</span><span>SCANNING</span></div>
+          <div class="pov-scanner-row" data-idx="1"><span>[AUDIT] Assessing columns for missing cells...</span><span>PENDING</span></div>
+          <div class="pov-scanner-row" data-idx="2"><span>[CLEAN] Executing auto-imputation models...</span><span>PENDING</span></div>
+          <div class="pov-scanner-row" data-idx="3"><span>[EXPORT] Committing sanitized dataset...</span><span>PENDING</span></div>
+        </div>
+      </div>`;
+    
+    const rows = els.stagePovPanel.querySelectorAll('.pov-scanner-row');
+    let currentIdx = 0;
+    povInterval = setInterval(() => {
+      if (currentIdx < rows.length) {
+        rows.forEach((r, idx) => {
+          r.classList.toggle('active', idx === currentIdx);
+          const statusCol = r.querySelectorAll('span')[1];
+          if (idx < currentIdx) {
+            statusCol.textContent = 'COMPLETE';
+            statusCol.style.color = '#10b981';
+          } else if (idx === currentIdx) {
+            statusCol.textContent = 'RUNNING';
+            statusCol.style.color = '#ffffff';
+          } else {
+            statusCol.textContent = 'PENDING';
+          }
+        });
+        currentIdx++;
+      } else {
+        rows.forEach(r => {
+          const statusCol = r.querySelectorAll('span')[1];
+          statusCol.textContent = 'COMPLETE';
+          statusCol.style.color = '#10b981';
+        });
+        clearInterval(povInterval);
+      }
+    }, 2500);
+
+  } else if (stage === 'relations') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title">🔗 Correlation Detector Engaged</div>
+        <div class="pov-desc">Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping relationship strengths...</div>
+      </div>
+      <div class="pov-content">
+        <svg class="pov-chords-svg" viewBox="0 0 160 100">
+          <circle cx="80" cy="50" r="30" class="pov-chord-line" stroke-dasharray="2,2"></circle>
+          <circle cx="80" cy="50" r="35" class="pov-chord-line active"></circle>
+          
+          <circle cx="50" cy="30" r="4" class="pov-node"></circle>
+          <circle cx="110" cy="30" r="4" class="pov-node"></circle>
+          <circle cx="50" cy="70" r="4" class="pov-node"></circle>
+          <circle cx="110" cy="70" r="4" class="pov-node"></circle>
+          <circle cx="80" cy="15" r="4" class="pov-node"></circle>
+          <circle cx="80" cy="85" r="4" class="pov-node"></circle>
+          
+          <path d="M50 30 L110 70" class="pov-chord-line active" stroke-dasharray="none"></path>
+          <path d="M110 30 L50 70" class="pov-chord-line" stroke-dasharray="4,4"></path>
+          <path d="M80 15 L80 85" class="pov-chord-line active" stroke-dasharray="none"></path>
+        </svg>
+      </div>`;
+
+  } else if (stage === 'insights') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title">💡 Strategic Business Insights</div>
+        <div class="pov-desc">Correlating discovered patterns to business implications and drafting actionable McKinsey-level recommendation strategies...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-insight-bulb">
+          <svg class="pov-bulb-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+          <div class="pov-insight-bullets">
+            <div class="pov-bullet-text">🔍 Identifying key driver columns...</div>
+            <div class="pov-bullet-text">📈 Formulating risk matrices...</div>
+            <div class="pov-bullet-text">💡 Generating recommendations...</div>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (stage === 'visualization') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title">🎨 Visual Intelligence Compiler</div>
+        <div class="pov-desc">Writing corporate Seaborn/Matplotlib visualization scripts and compiling high-resolution PNG plots...</div>
+      </div>
+      <div class="pov-content">
+        <svg class="pov-compiler-svg" viewBox="0 0 150 90">
+          <line x1="20" y1="10" x2="20" y2="80" class="pov-axis"></line>
+          <line x1="20" y1="80" x2="140" y2="80" class="pov-axis"></line>
+          
+          <path d="M20 70 Q 50 20, 80 50 T 140 15" class="pov-compiler-path"></path>
+          
+          <circle cx="50" cy="38" r="3" class="pov-dot" style="animation-delay: 0.8s;"></circle>
+          <circle cx="80" cy="50" r="3" class="pov-dot" style="animation-delay: 1.4s;"></circle>
+          <circle cx="110" cy="28" r="3" class="pov-dot" style="animation-delay: 2s;"></circle>
+          <circle cx="130" cy="20" r="3" class="pov-dot" style="animation-delay: 2.6s;"></circle>
+        </svg>
+      </div>`;
+
+  } else if (stage === 'plotly') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title">📊 Interactive Dashboard Builder</div>
+        <div class="pov-desc">Building zoomable, hoverable Plotly structures and generating the final analytical results suite...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-plotly-grid">
+          <div class="pov-skeleton-card">
+            <div class="pov-skeleton-header"></div>
+            <div class="pov-skeleton-body">
+              <div class="pov-skeleton-bar"></div>
+              <div class="pov-skeleton-bar"></div>
+              <div class="pov-skeleton-bar"></div>
+            </div>
+          </div>
+          <div class="pov-skeleton-card">
+            <div class="pov-skeleton-header"></div>
+            <div class="pov-skeleton-body">
+              <div class="pov-skeleton-bar" style="animation-delay:0.2s"></div>
+              <div class="pov-skeleton-bar" style="animation-delay:0.5s"></div>
+              <div class="pov-skeleton-bar" style="animation-delay:0.8s"></div>
+            </div>
+          </div>
+          <div class="pov-skeleton-card">
+            <div class="pov-skeleton-header"></div>
+            <div class="pov-skeleton-body">
+              <div class="pov-skeleton-bar" style="animation-delay:0.4s"></div>
+              <div class="pov-skeleton-bar" style="animation-delay:0.7s"></div>
+              <div class="pov-skeleton-bar" style="animation-delay:1.0s"></div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
 function markStage(stage, status) {
   const el = document.querySelector(`.stage-item[data-stage="${stage}"]`);
   if (el) {
     el.classList.remove('active','done');
     el.classList.add(status);
+  }
+  if (status === 'active') {
+    renderStagePov(stage);
   }
 }
 
@@ -1269,6 +1432,15 @@ function startSSEStream(sessionId) {
   $$('.stage-item').forEach(el => el.classList.remove('active','done'));
   els.logOutput.innerHTML = '';
   _activeStage = null;
+
+  if (povInterval) { clearInterval(povInterval); povInterval = null; }
+  if (els.stagePovPanel) {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-initial-state">
+        <div class="pov-pulse-ring"></div>
+        <p>Awaiting analysis stream...</p>
+      </div>`;
+  }
 
   const src = new EventSource(`/api/analyze/stream?session_id=${sessionId}`);
   state.sseSource = src;
@@ -1359,16 +1531,19 @@ function renderDashboard(data, sessionId) {
 
 // ── Stats row ────────────────────────────────────────────────────────────────
 function renderStats(data) {
-  els.statsRow.innerHTML = [
-    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records' },
-    { val: data.cols_count || 0, lbl: 'Total Columns' },
-    { val: data.numeric_count || 0, lbl: 'Numeric Fields' },
-    { val: data.cat_count || 0, lbl: 'Categorical Fields' },
-    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts' },
-  ].map(s => `
-    <div class="stat-card">
+  const stats = [
+    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records', icon: '🗂️', color: 'var(--violet)' },
+    { val: data.cols_count || 0, lbl: 'Total Columns', icon: '📊', color: 'var(--cyan)' },
+    { val: data.numeric_count || 0, lbl: 'Numeric Fields', icon: '🔢', color: 'var(--emerald)' },
+    { val: data.cat_count || 0, lbl: 'Categorical Fields', icon: '🏷️', color: 'var(--amber)' },
+    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts', icon: '📈', color: 'var(--rose)' },
+  ];
+  els.statsRow.innerHTML = stats.map(s => `
+    <div class="stat-card" style="--accent:${s.color}">
+      <div class="stat-icon">${s.icon}</div>
       <div class="stat-val">${s.val}</div>
       <div class="stat-lbl">${s.lbl}</div>
+      <div class="stat-accent-bar"></div>
     </div>
   `).join('');
 }
@@ -1424,28 +1599,59 @@ function renderCleaning(text) {
 // ── Relations ─────────────────────────────────────────────────────────────────
 function renderRelations(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  if (!lines.length) {
+  if (!lines.length || (lines.length === 1 && lines[0].toLowerCase().includes('skipped'))) {
     els.relationsContent.innerHTML = '<p style="color:var(--text-muted)">No relationships found.</p>';
     return;
   }
+
+  // Extract correlation strength value if any mention like r=0.87 or (0.87)
+  function extractStrength(line) {
+    const m = line.match(/r[=:]\s*([0-9.+-]+)|\(([0-9.+-]+)\)/);
+    if (m) { const v = parseFloat(m[1] || m[2]); return isNaN(v) ? null : v; }
+    return null;
+  }
+
+  // Color the strength bar: negative=rose, low=amber, high=emerald
+  function strengthColor(r) {
+    if (r === null) return 'var(--violet-light)';
+    const abs = Math.abs(r);
+    if (abs >= 0.7) return r > 0 ? 'var(--emerald)' : 'var(--rose)';
+    if (abs >= 0.4) return 'var(--amber)';
+    return 'var(--cyan)';
+  }
+
+  // Chart type icons
+  const chartTypeIcon = { scatter: '⬥', bar: '▬', line: '∿', box: '☐', histogram: '▤', hist: '▤', heatmap: '▦' };
+
   els.relationsContent.innerHTML = lines.map(line => {
-    // Try to parse "X: colA | Y: colB | Type: scatter" format
     const xMatch    = line.match(/X:\s*([^|]+)/i);
     const yMatch    = line.match(/Y:\s*([^|]+)/i);
     const typeMatch = line.match(/Type:\s*([^|]+)/i);
+    const rVal      = extractStrength(line);
 
     if (xMatch && yMatch) {
-      const xCol = xMatch[1].trim();
-      const yCol = yMatch[1].trim();
-      const typ  = typeMatch ? typeMatch[1].trim() : 'relation';
+      const xCol  = xMatch[1].trim();
+      const yCol  = yMatch[1].trim();
+      const typ   = typeMatch ? typeMatch[1].trim() : 'relation';
+      const typLower = typ.toLowerCase();
+      const icon  = chartTypeIcon[typLower] || '↔';
+      const color = strengthColor(rVal);
+      const barPct = rVal !== null ? Math.round(Math.abs(rVal) * 100) : 60;
+
       return `
         <div class="relation-card">
-          <div class="relation-cols">
-            <span class="relation-col">${escHtml(xCol)}</span>
-            <span class="relation-arrow">↔</span>
-            <span class="relation-col">${escHtml(yCol)}</span>
+          <div class="relation-card-top">
+            <div class="relation-cols">
+              <span class="relation-col x-col">${escHtml(xCol)}</span>
+              <span class="relation-arrow" style="color:${color}">${icon}</span>
+              <span class="relation-col y-col">${escHtml(yCol)}</span>
+            </div>
+            <span class="relation-type">${escHtml(typ)}</span>
           </div>
-          <span class="relation-type">${escHtml(typ)}</span>
+          <div class="relation-strength-bar-wrap">
+            <div class="relation-strength-bar" style="width:${barPct}%;background:${color};"></div>
+          </div>
+          ${rVal !== null ? `<div class="relation-rval" style="color:${color}">r = ${rVal.toFixed(3)}</div>` : ''}
         </div>`;
     }
     return `<div class="relation-card"><div class="cleaning-text">${escHtml(line.replace(/^[-*•]\s*/, ''))}</div></div>`;
@@ -1478,27 +1684,65 @@ function formatInlineMarkdown(content) {
 
 // ── Insights ─────────────────────────────────────────────────────────────────
 function renderInsights(text) {
-  if (!text.trim()) {
+  if (!text || !text.trim() || text.toLowerCase().includes('skipped')) {
     els.insightsContent.innerHTML = '<p style="color:var(--text-muted)">No insights generated.</p>';
     return;
   }
-  // Split numbered items
-  const items = text.split(/\n\d+\.\s+/).filter(Boolean);
-  if (items.length === 1 && !text.match(/\n\d+\./)) {
-    // Try splitting by double newline
-    items.splice(0, 1, ...text.split(/\n\n+/).filter(Boolean));
+
+  // Robust parsing: handle "1. ", "**1.** ", bullet "• ", or double-newline separation
+  let items = [];
+
+  // Try numbered list first (e.g. "1. " or "**1." or "1)")
+  const numberedSplit = text.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3}\s))/);
+  if (numberedSplit.length > 1) {
+    items = numberedSplit.map(s => s.replace(/^\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3})\s*/, '').trim()).filter(Boolean);
+  } else {
+    // Fallback: split on double newlines
+    items = text.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
   }
 
+  if (!items.length) {
+    els.insightsContent.innerHTML = `<div class="insight-card"><div class="insight-section-text">${formatInlineMarkdown(text.trim())}</div></div>`;
+    return;
+  }
+
+  const LABEL_CFG = [
+    { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: '🔍', label: 'Observation' },
+    { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: '💼', label: 'Implication' },
+    { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: '🚀', label: 'Strategy' },
+    { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: '✅', label: 'Recommendation' },
+    { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: '⚠️', label: 'Risk' },
+    { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: '📊', label: 'Metric' },
+  ];
+
   els.insightsContent.innerHTML = items.map((item, i) => {
-    const parts = item.split('\n').filter(Boolean);
-    const sections = parts.map(p => {
-      const trimmed = p.trim();
-      if (/^observation:/i.test(trimmed)) return `<div class="insight-section"><div class="insight-section-label obs">Observation</div><div class="insight-section-text">${formatInlineMarkdown(trimmed.replace(/^observation:\s*/i,''))}</div></div>`;
-      if (/^(business )?implication:/i.test(trimmed)) return `<div class="insight-section"><div class="insight-section-label impl">Implication</div><div class="insight-section-text">${formatInlineMarkdown(trimmed.replace(/^(business )?implication:\s*/i,''))}</div></div>`;
-      if (/^(actionable )?strategy:/i.test(trimmed)) return `<div class="insight-section"><div class="insight-section-label strat">Strategy</div><div class="insight-section-text">${formatInlineMarkdown(trimmed.replace(/^(actionable )?strategy:\s*/i,''))}</div></div>`;
-      return `<div class="insight-section-text">${formatInlineMarkdown(trimmed)}</div>`;
+    const parts = item.split('\n').map(p => p.trim()).filter(Boolean);
+
+    const sectionHtml = parts.map(p => {
+      for (const cfg of LABEL_CFG) {
+        if (cfg.re.test(p)) {
+          const body = p.replace(cfg.re, '').trim();
+          return `<div class="insight-section">
+            <div class="insight-section-label ${cfg.cls}">${cfg.icon} ${cfg.label}</div>
+            <div class="insight-section-text">${formatInlineMarkdown(body || p)}</div>
+          </div>`;
+        }
+      }
+      // Bullet sub-item
+      if (/^[-*•]/.test(p)) {
+        return `<div class="insight-bullet">${formatInlineMarkdown(p)}</div>`;
+      }
+      // Heading within insight
+      if (/^#{1,3}\s/.test(p)) {
+        return `<div class="insight-sub-heading">${escHtml(p.replace(/^#+\s*/, ''))}</div>`;
+      }
+      return `<div class="insight-section-text">${formatInlineMarkdown(p)}</div>`;
     }).join('');
-    return `<div class="insight-card"><div class="insight-num">Insight ${i + 1}</div>${sections}</div>`;
+
+    return `<div class="insight-card">
+      <div class="insight-num-pill">${i + 1}</div>
+      <div class="insight-body">${sectionHtml}</div>
+    </div>`;
   }).join('');
 }
 
@@ -1547,19 +1791,32 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
       '<p style="color:var(--text-muted);padding:8px 0">No interactive charts available. Run with Relationship Analysis enabled.</p>';
   }
 
-  // PNG charts
+  // PNG charts — masonry-style grid with error fallback
   if (pngCharts.length) {
     els.pngChartsWrap.classList.remove('hidden');
-    els.pngCharts.innerHTML = pngCharts.map(name => `
-      <div class="chart-card">
-        <div class="chart-card-header">
-          <div class="chart-card-title">${escHtml(name.replace(/\.png$/i, '').replace(/_/g,' ').replace(/^[a-z]/, c => c.toUpperCase()))}</div>
-          <div class="chart-card-type">agent chart</div>
-        </div>
-        <div class="chart-card-body" style="padding: 12px; display: flex; justify-content: center; background: rgba(15,23,42,0.2);">
-          <img src="/api/charts/${sessionId}/${name}" alt="${name}" style="width: 100%; max-height: 480px; object-fit: contain; border-radius: 4px;" loading="lazy" />
-        </div>
-      </div>`).join('');
+    els.pngCharts.innerHTML = pngCharts.map((name, idx) => {
+      const title = name.replace(/\.png$/i, '')
+        .replace(/_/g, ' ')
+        .replace(/\brelation\b/g, '')
+        .replace(/^[a-z]/, c => c.toUpperCase())
+        .trim();
+      return `
+        <div class="chart-card png-chart-card">
+          <div class="chart-card-header">
+            <div class="chart-card-title">${escHtml(title)}</div>
+            <div class="chart-card-type">agent chart</div>
+          </div>
+          <div class="chart-card-body png-chart-body">
+            <img
+              src="/api/charts/${sessionId}/${name}"
+              alt="${escHtml(title)}"
+              class="png-chart-img"
+              loading="lazy"
+              onerror="this.parentNode.innerHTML='<div class=\'chart-img-error\'>📊 Chart not available yet — rerun analysis to generate.</div>'"
+            />
+          </div>
+        </div>`;
+    }).join('');
   } else {
     els.pngChartsWrap.classList.add('hidden');
   }
@@ -1657,8 +1914,15 @@ async function sendChat() {
   const sessionId = state.activeProject?.id || state.uploadedSession;
   if (!sessionId) { toast('No active session. Run an analysis first.', 'warning'); return; }
 
-  // Check API key before sending
-  if (!checkApiKeySet()) return;
+  // Read API key directly from localStorage (not the hidden input which may be stale)
+  const provider = els.llmProvider.value;
+  const apiKey = getSavedKey(provider);
+
+  // For non-Ollama providers, warn if no key
+  if (provider !== 'ollama' && !apiKey) {
+    toast('No API key set. Go to ⚙️ Settings to add your key.', 'warning');
+    return;
+  }
 
   els.chatInput.value = '';
   hideColumnPicker();
@@ -1668,18 +1932,31 @@ async function sendChat() {
   const fd = new FormData();
   fd.append('session_id', sessionId);
   fd.append('query',      query);
-  fd.append('provider',   els.llmProvider.value);
+  fd.append('provider',   provider);
   fd.append('model',      els.llmModel.value === '__custom__' ? '' : els.llmModel.value);
-  fd.append('api_key',    els.apiKey.value.trim());
+  fd.append('api_key',    apiKey);
 
   try {
     const res  = await fetch('/api/copilot', { method: 'POST', body: fd });
-    const data = await res.json();
     removeTypingIndicator();
-    appendChatMsg('assistant', data.text || 'No response.', data.plot_url || null);
+
+    if (!res.ok) {
+      // Surface backend HTTP errors (422, 500, etc.)
+      let errMsg = `Server error (${res.status})`;
+      try {
+        const errData = await res.json();
+        errMsg = errData.detail || errData.message || errMsg;
+      } catch (_) {}
+      appendChatMsg('assistant', `⚠️ ${errMsg}`);
+      return;
+    }
+
+    const data = await res.json();
+    const text = data.text && data.text.trim() ? data.text : 'No response returned.';
+    appendChatMsg('assistant', text, data.plot_url || null);
   } catch (e) {
     removeTypingIndicator();
-    appendChatMsg('assistant', '⚠ Error contacting copilot: ' + e.message);
+    appendChatMsg('assistant', '⚠ Network error: ' + e.message);
   }
 }
 
