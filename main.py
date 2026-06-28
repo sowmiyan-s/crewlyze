@@ -14,11 +14,20 @@ import json
 import re
 import uuid
 import asyncio
-import threading
 import shutil
 import time
 from pathlib import Path
 from typing import Optional
+
+import pandas as pd
+from tools.dataset_tools import read_csv_robust
+
+# Monkey patch crewai caching to avoid Nvidia NIM / LiteLLM validation errors
+try:
+    import crewai.llms.cache as _crewai_cache
+    _crewai_cache.mark_cache_breakpoint = lambda msg: msg
+except Exception:
+    pass
 
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
@@ -125,10 +134,28 @@ def clean_log_message(line: str, session_id: Optional[str] = None) -> Optional[s
 
     return stripped
 
-# Core analysis engines
-from crew import run_crew
-from ui.copilot import run_copilot_query
-from ui.export import export_pdf
+# Core analysis engines — imported lazily so the server boots
+# even if crewai has install issues on this Python version.
+# Actual ImportError surfaces only when analysis is triggered.
+_run_crew = None
+_apply_runtime_llm_settings = None
+_validate_llm_connection = None
+_run_copilot_query = None
+_export_pdf = None
+
+def _load_crew():
+    global _run_crew, _apply_runtime_llm_settings, _validate_llm_connection
+    global _run_copilot_query, _export_pdf
+    if _run_crew is None:
+        from crew import run_crew as _rc
+        from config.llm_config import apply_runtime_llm_settings as _arls, validate_llm_connection as _vlc
+        from ui.copilot import run_copilot_query as _rcq
+        from ui.export import export_pdf as _ep
+        _run_crew = _rc
+        _apply_runtime_llm_settings = _arls
+        _validate_llm_connection = _vlc
+        _run_copilot_query = _rcq
+        _export_pdf = _ep
 
 # Suppress warnings
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
@@ -203,6 +230,7 @@ def get_project_metadata(project_id: str) -> dict:
         "id": project_id,
         "name": f"Project {project_id}",
         "filename": filename,
+        "report_title": f"{filename.rsplit('.', 1)[0].replace('_', ' ').title()} Executive Analysis",
         "size": size,
         "created_at": created_at * 1000,
         "status": status
@@ -210,6 +238,10 @@ def get_project_metadata(project_id: str) -> dict:
     
     save_project_metadata(project_id, meta)
     return meta
+
+
+def parse_bool(value: Optional[str]) -> bool:
+    return bool(value and str(value).strip().lower() not in {"false", "0", "off", "no", ""})
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +255,10 @@ def run_crew_in_background(
     model: str,
     api_key: str,
     env_key_name: str,
-    cooldown: int
+    cooldown: int,
+    selected_tasks: list[str],
+    deep_analysis: bool,
+    report_title: str,
 ):
     """
     Orchestrates the CrewAI pipeline in a background thread, writing all
@@ -233,8 +268,19 @@ def run_crew_in_background(
     os.environ["LLM_PROVIDER"] = provider
     os.environ["LLM_MODEL"]    = model
     os.environ["API_COOLDOWN"]  = str(cooldown)
+    os.environ["DEEP_ANALYSIS"] = "true" if deep_analysis else "false"
+    os.environ["SELECTED_TASKS"] = ",".join(selected_tasks)
     if api_key:
         os.environ[env_key_name] = api_key
+
+    # Save or update the report title in project metadata
+    try:
+        meta = get_project_metadata(session_id)
+        if report_title:
+            meta["report_title"] = report_title.strip()
+            save_project_metadata(session_id, meta)
+    except Exception:
+        pass
 
     session_dir = SESSIONS_DIR / session_id
     log_path = session_dir / "stdout.log"
@@ -259,7 +305,18 @@ def run_crew_in_background(
         with contextlib.redirect_stdout(log_file):
             try:
                 print("⚙️ Initializing multi-agent workflows...")
-                result = run_crew(csv_path, session_id=session_id)
+                _load_crew()
+
+                env_tasks = os.getenv("SELECTED_TASKS", "")
+                parsed_tasks = [t.strip() for t in env_tasks.split(",") if t.strip()]
+                deep_flag = os.getenv("DEEP_ANALYSIS", "false").lower() in {"true", "1", "yes", "on"}
+
+                result = _run_crew(
+                    csv_path,
+                    session_id=session_id,
+                    selected_tasks=parsed_tasks or None,
+                    deep_analysis=deep_flag,
+                )
                 
                 # Convert results to JSON-serializable structure
                 # Re-map Plotly charts into serializable JSON dictionaries
@@ -371,6 +428,23 @@ async def upload_file(file: UploadFile = File(...)):
     }
 
 
+@app.post("/api/validate-key")
+async def validate_api_key(
+    provider: str = Form(...),
+    model: str = Form(...),
+    api_key: Optional[str] = Form(""),
+):
+    """Validate LLM provider credentials before starting analysis."""
+    try:
+        _load_crew()
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail=f"CrewAI not available: {exc}")
+    result = _validate_llm_connection(provider, model, api_key or "")
+    if not result.get("valid"):
+        raise HTTPException(status_code=400, detail=result.get("message", "Validation failed."))
+    return result
+
+
 @app.post("/api/analyze")
 async def trigger_analysis(
     background_tasks: BackgroundTasks,
@@ -378,7 +452,10 @@ async def trigger_analysis(
     provider: str = Form(...),
     model: str = Form(...),
     api_key: Optional[str] = Form(""),
-    cooldown: int = Form(5)
+    cooldown: int = Form(5),
+    selected_tasks: str = Form(""),
+    deep_analysis: str = Form("false"),
+    report_title: str = Form("")
 ):
     """Launches the CrewAI analysis process in the background."""
     session_dir = SESSIONS_DIR / session_id
@@ -395,6 +472,25 @@ async def trigger_analysis(
     else:
         env_key_name = f"{provider.upper()}_API_KEY"
 
+    selected_tasks = [
+        task.strip()
+        for task in selected_tasks.split(",")
+        if task.strip()
+    ]
+    if not selected_tasks:
+        selected_tasks = ["cleaning", "relations", "insights", "visualization"]
+
+    deep = deep_analysis.strip().lower() in {"true", "1", "yes", "on"}
+
+    # Persist report title if provided
+    try:
+        meta = get_project_metadata(session_id)
+        if report_title.strip():
+            meta["report_title"] = report_title.strip()
+            save_project_metadata(session_id, meta)
+    except Exception:
+        pass
+
     # Spawn thread-safe background execution
     background_tasks.add_task(
         run_crew_in_background,
@@ -404,7 +500,10 @@ async def trigger_analysis(
         model=model,
         api_key=api_key,
         env_key_name=env_key_name,
-        cooldown=cooldown
+        cooldown=cooldown,
+        selected_tasks=selected_tasks,
+        deep_analysis=deep,
+        report_title=report_title.strip(),
     )
 
     return {"status": "started", "session_id": session_id}
@@ -473,19 +572,14 @@ async def ask_copilot(
     api_key: Optional[str] = Form("")
 ):
     """Runs a natural language query against the dataset using the Copilot agent."""
-    # Match API key settings
     if provider == "ollama":
         env_key_name = "OLLAMA_BASE_URL"
     elif provider in ("nvidia", "minimax"):
         env_key_name = "NVIDIA_API_KEY"
     else:
         env_key_name = f"{provider.upper()}_API_KEY"
-
-    # Inject variables before execution
-    os.environ["LLM_PROVIDER"] = provider
-    os.environ["LLM_MODEL"]    = model
-    if api_key:
-        os.environ[env_key_name] = api_key
+    _load_crew()
+    _apply_runtime_llm_settings(provider, model, api_key or "", env_key_name)
 
     csv_path = SESSIONS_DIR / session_id / "cleaned.csv"
     output_dir = OUTPUTS_DIR / session_id
@@ -498,7 +592,7 @@ async def ask_copilot(
         raise HTTPException(status_code=400, detail="Dataset not uploaded.")
 
     # Call copilot model runner
-    res = run_copilot_query(query, str(csv_path), str(output_dir))
+    res = _run_copilot_query(query, str(csv_path), str(output_dir))
 
     # Re-map absolute plot path to relative HTTP endpoint URL
     plot_url = None
@@ -514,7 +608,7 @@ async def ask_copilot(
 
 
 @app.get("/api/export-pdf")
-async def get_pdf_report(session_id: str):
+async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
     """Generates and streams back the executive PDF report."""
     results_path = SESSIONS_DIR / session_id / "results.json"
     cleaned_csv = SESSIONS_DIR / session_id / "cleaned.csv"
@@ -525,8 +619,11 @@ async def get_pdf_report(session_id: str):
     with open(results_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
+    meta = get_project_metadata(session_id)
+    title = report_title.strip() if report_title else meta.get("report_title", meta.get("name", "Analysis Report"))
+
     # Format result structure for reportlab builder
-    df = pd.read_csv(cleaned_csv)
+    df = read_csv_robust(cleaned_csv)
     report_dict = {
         "dataframe":      df,
         "cleaning_steps": data["cleaning_steps"],
@@ -534,14 +631,17 @@ async def get_pdf_report(session_id: str):
         "insights":       data["insights"],
         "code":           data.get("code", ""),
         "output_dir":     str(OUTPUTS_DIR / session_id),
+        "report_title":   title,
     }
 
     try:
-        pdf_bytes = export_pdf(report_dict)
+        _load_crew()
+        pdf_bytes = _export_pdf(report_dict)
+        filename = re.sub(r"[^a-zA-Z0-9_-]", "_", title.lower())[:60] or f"report_{session_id}"
         return StreamingResponse(
             BytesIO_iterator(pdf_bytes),
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=data_report_{session_id}.pdf"}
+            headers={"Content-Disposition": f"attachment; filename={filename}.pdf"}
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
@@ -563,6 +663,27 @@ async def serve_chart(session_id: str, filename: str):
 def BytesIO_iterator(data_bytes: bytes):
     """Simple generator to stream raw bytes back to the response."""
     yield data_bytes
+
+
+# ---------------------------------------------------------------------------
+# Ollama Models Fetch
+# ---------------------------------------------------------------------------
+
+@app.get("/api/ollama-models")
+async def list_ollama_models():
+    """Fetches list of local Ollama models from the local Ollama service tags API."""
+    import requests
+    try:
+        response = requests.get("http://localhost:11434/api/tags", timeout=2.0)
+        if response.status_code == 200:
+            data = response.json()
+            models = [m["name"] for m in data.get("models", [])]
+            if models:
+                return {"models": models}
+    except Exception:
+        pass
+    # Fallback defaults if Ollama service is unreachable or empty
+    return {"models": ["ollama/llama3", "ollama/mistral", "ollama/gemma2"]}
 
 
 # ---------------------------------------------------------------------------
@@ -589,6 +710,7 @@ async def list_projects():
 @app.post("/api/projects")
 async def create_project(
     name: str = Form(...),
+    report_title: str = Form(""),
     file: UploadFile = File(...)
 ):
     """Creates a new project context and uploads the dataset CSV."""
@@ -608,6 +730,7 @@ async def create_project(
     meta = {
         "id": project_id,
         "name": name.strip(),
+        "report_title": report_title.strip() or f"{name.strip()} Executive Analysis",
         "filename": file.filename,
         "size": file_path.stat().st_size,
         "created_at": time.time() * 1000,
@@ -644,6 +767,23 @@ async def delete_project(project_id: str):
         shutil.rmtree(output_dir, ignore_errors=True)
 
     return {"status": "deleted", "id": project_id}
+
+
+@app.get("/api/projects/{project_id}/download-csv")
+async def download_project_csv(project_id: str):
+    """Downloads the cleaned dataset CSV for the specified project."""
+    session_dir = SESSIONS_DIR / project_id
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    cleaned_csv = session_dir / "cleaned.csv"
+    original_csv = session_dir / "original_upload.csv"
+    csv_path = cleaned_csv if cleaned_csv.exists() else original_csv
+
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="CSV not found.")
+
+    return FileResponse(csv_path, media_type="text/csv", filename=csv_path.name)
 
 
 # ---------------------------------------------------------------------------

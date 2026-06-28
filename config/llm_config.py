@@ -8,14 +8,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-# ========================
-# LLM PROVIDER CONFIGURATION & DETAILS
-# ========================
+# NVIDIA NIM OpenAI-compatible endpoint (required for LiteLLM / CrewAI)
+NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
 # Keys accepted by crewai.LLM constructor.
-# Extra keys (e.g. max_tokens, top_p, multimodal) are stripped before passing.
 _LLM_VALID_KEYS = {"model", "api_key", "base_url", "temperature", "max_retries", "timeout"}
+
+
+def _sync_nvidia_env(api_key: str) -> None:
+    """Keep NVIDIA env vars in sync for LiteLLM and direct HTTP clients."""
+    if api_key:
+        os.environ["NVIDIA_API_KEY"] = api_key
+        os.environ["NVIDIA_NIM_API_KEY"] = api_key
 
 
 def get_llm_config() -> dict:
@@ -24,14 +28,14 @@ def get_llm_config() -> dict:
 
     configs = {
         "nvidia": {
-            "model":   "nvidia_nim/mistralai/mistral-medium-3.5-128b",
-            "api_key": os.getenv("NVIDIA_API_KEY"),
+            "model":    "nvidia_nim/meta/llama-3.1-8b-instruct",
+            "api_key":  os.getenv("NVIDIA_API_KEY"),
+            "base_url": NVIDIA_NIM_BASE_URL,
         },
         "minimax": {
-            "model":      "minimaxai/minimax-m3",
-            "api_key":    os.getenv("NVIDIA_API_KEY"),   # served via NVIDIA NIM
-            "base_url":   "https://integrate.api.nvidia.com/v1",
-            # Extra metadata — NOT forwarded to LLM() constructor
+            "model":      "nvidia_nim/minimaxai/minimax-m3",
+            "api_key":    os.getenv("NVIDIA_API_KEY"),
+            "base_url":   NVIDIA_NIM_BASE_URL,
             "max_tokens": 8192,
             "temperature": 1.00,
             "top_p":      0.95,
@@ -65,6 +69,26 @@ def get_llm_config() -> dict:
             "model":   "gemini/gemini-pro",
             "api_key": os.getenv("GEMINI_API_KEY"),
         },
+        "cohere": {
+            "model":   "cohere/command-r-plus",
+            "api_key": os.getenv("COHERE_API_KEY"),
+        },
+        "together": {
+            "model":   "together_ai/meta-llama/Llama-3-70b-chat-hf",
+            "api_key": os.getenv("TOGETHER_API_KEY"),
+        },
+        "openrouter": {
+            "model":   "openrouter/google/gemma-2-9b-it",
+            "api_key": os.getenv("OPENROUTER_API_KEY"),
+        },
+        "deepseek": {
+            "model":   "deepseek/deepseek-chat",
+            "api_key": os.getenv("DEEPSEEK_API_KEY"),
+        },
+        "perplexity": {
+            "model":   "perplexity/llama-3-sonar-large-32k-chat",
+            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+        },
     }
 
     if provider not in configs:
@@ -75,25 +99,25 @@ def get_llm_config() -> dict:
 
     config = configs[provider]
 
-    # Validate required credentials
-    requires_key = {"groq", "openai", "anthropic", "huggingface", "mistral", "gemini", "nvidia", "minimax"}
+    requires_key = {
+        "groq", "openai", "anthropic", "huggingface", "mistral", "gemini", "nvidia", "minimax",
+        "cohere", "together", "openrouter", "deepseek", "perplexity"
+    }
     if provider in requires_key and not config.get("api_key"):
         raise ValueError(
-            f"{provider.upper()}_API_KEY environment variable is not set. "
-            "Please enter your API key in the sidebar configuration."
+            f"{provider.upper()}_API_KEY is not set. "
+            "Enter your API key in the sidebar and click Test Connection."
         )
+
+    if provider in ("nvidia", "minimax") and config.get("api_key"):
+        _sync_nvidia_env(config["api_key"])
 
     return config
 
 
 def get_llm_params() -> dict:
-    """Return a dict of keyword args safe to pass directly to crewai.LLM(**...).
-
-    Extra provider-specific keys (max_tokens, top_p, multimodal, etc.) are
-    filtered out so crewai.LLM never receives unexpected kwargs.
-    """
+    """Return keyword args safe to pass directly to crewai.LLM(**...)."""
     config = get_llm_config()
-
     model = os.getenv("LLM_MODEL") or config["model"]
 
     params: dict = {
@@ -108,36 +132,123 @@ def get_llm_params() -> dict:
     if config.get("base_url"):
         params["base_url"] = config["base_url"]
 
-    # Strip any keys that crewai.LLM does not accept
     return {k: v for k, v in params.items() if k in _LLM_VALID_KEYS}
 
 
-# ========================
-# MINIMAX-M3 DIRECT CLIENT
-# ========================
+def apply_runtime_llm_settings(
+    provider: str,
+    model: str,
+    api_key: str = "",
+    env_key_name: str = "",
+) -> None:
+    """Inject provider/model/key into os.environ before agent execution."""
+    os.environ["LLM_PROVIDER"] = provider
+    os.environ["LLM_MODEL"] = model
+
+    if not api_key:
+        return
+
+    key_name = env_key_name or f"{provider.upper()}_API_KEY"
+    if provider == "ollama":
+        os.environ["OLLAMA_BASE_URL"] = api_key
+    elif provider in ("nvidia", "minimax"):
+        _sync_nvidia_env(api_key)
+    else:
+        os.environ[key_name] = api_key
+
+
+def validate_llm_connection(provider: str, model: str, api_key: str = "") -> dict:
+    """
+    Ping the configured LLM with a minimal prompt.
+    Returns {"valid": bool, "message": str}.
+    """
+    if provider == "ollama":
+        env_key_name = "OLLAMA_BASE_URL"
+    elif provider in ("nvidia", "minimax"):
+        env_key_name = "NVIDIA_API_KEY"
+    else:
+        env_key_name = f"{provider.upper()}_API_KEY"
+
+    if provider != "ollama" and not api_key.strip():
+        return {
+            "valid": False,
+            "message": f"Please enter your {provider.upper()} API key.",
+        }
+
+    apply_runtime_llm_settings(provider, model, api_key.strip(), env_key_name)
+
+    # Fast path for NVIDIA: direct HTTP avoids spinning up full CrewAI stack
+    if provider in ("nvidia", "minimax"):
+        try:
+            response = requests.post(
+                f"{NVIDIA_NIM_BASE_URL}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key.strip()}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model.replace("nvidia_nim/", "") if model.startswith("nvidia_nim/") else model,
+                    "messages": [{"role": "user", "content": "Reply with exactly: OK"}],
+                    "max_tokens": 8,
+                    "temperature": 0.1,
+                },
+                timeout=30,
+            )
+            if response.status_code == 401:
+                return {"valid": False, "message": "Invalid NVIDIA API key (401 Unauthorized)."}
+            if response.status_code == 404:
+                return {
+                    "valid": False,
+                    "message": (
+                        f"Model not found on NVIDIA NIM: {model}. "
+                        "Try another model from the dropdown."
+                    ),
+                }
+            response.raise_for_status()
+            data = response.json()
+            preview = (
+                data.get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "OK")
+            )
+            return {
+                "valid": True,
+                "message": "NVIDIA NIM connection successful.",
+                "preview": str(preview)[:120],
+            }
+        except requests.RequestException as exc:
+            detail = str(exc)
+            if hasattr(exc, "response") and exc.response is not None:
+                try:
+                    detail = exc.response.json().get("detail", detail)
+                except Exception:
+                    detail = exc.response.text[:200] or detail
+            return {"valid": False, "message": f"NVIDIA API error: {detail}"}
+
+    try:
+        from crewai import LLM
+
+        llm = LLM(**get_llm_params())
+        result = llm.call([{"role": "user", "content": "Reply with exactly: OK"}])
+        preview = result if isinstance(result, str) else str(result)
+        return {
+            "valid": True,
+            "message": f"{provider.upper()} connection successful.",
+            "preview": preview[:120],
+        }
+    except Exception as exc:
+        return {"valid": False, "message": str(exc)}
+
 
 def call_minimax_m3(messages: list, stream: bool = False, **kwargs) -> dict:
     """
     Direct HTTP client for MiniMax-M3 via NVIDIA NIM.
-
-    MiniMax-M3 is multimodal — messages content can be a list of parts:
-        [{"type": "text", "text": "Describe this."},
-         {"type": "image_url", "image_url": {"url": "https://..."}},
-         {"type": "video_url", "video_url": {"url": "https://..."}}]
-
-    Args:
-        messages: List of {"role": ..., "content": ...} dicts.
-        stream:   If True, returns raw streaming response.
-        **kwargs: Override max_tokens, temperature, top_p, etc.
-
-    Returns:
-        Parsed JSON dict (non-stream) or requests.Response (stream).
     """
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise ValueError("NVIDIA_API_KEY environment variable is not set.")
 
-    invoke_url = "https://integrate.api.nvidia.com/v1/chat/completions"
+    invoke_url = f"{NVIDIA_NIM_BASE_URL}/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Accept": "text/event-stream" if stream else "application/json",
@@ -145,15 +256,15 @@ def call_minimax_m3(messages: list, stream: bool = False, **kwargs) -> dict:
     payload = {
         "model":       "minimaxai/minimax-m3",
         "messages":    messages,
-        "max_tokens":  kwargs.get("max_tokens",  8192),
+        "max_tokens":  kwargs.get("max_tokens", 8192),
         "temperature": kwargs.get("temperature", 1.00),
-        "top_p":       kwargs.get("top_p",       0.95),
+        "top_p":       kwargs.get("top_p", 0.95),
         "stream":      stream,
     }
 
-    response = requests.post(invoke_url, headers=headers, json=payload, stream=stream)
+    response = requests.post(invoke_url, headers=headers, json=payload, stream=stream, timeout=60)
     response.raise_for_status()
 
     if stream:
-        return response  # Caller iterates response.iter_lines()
+        return response
     return response.json()

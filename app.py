@@ -3,15 +3,16 @@
 # Licensed under the MIT License
 
 """
-Streamlit entry point for the Agentic Data Analyst application.
+Streamlit entry point — Agentic Data Analyst.
 
-Performance improvements in this version:
-- st.status() provides a live progress log as each pipeline stage completes
-- on_progress callback surfaces intermediate results without blocking the UI
-- Plotly interactive charts rendered via st.plotly_chart() in the Visual tab
-  (with agent-generated PNGs as fallback if Plotly charts are unavailable)
-- Default API cooldown reduced from 15s → 5s
-- 'ollama' added as a zero-cooldown provider option in the sidebar
+Improvements in this version:
+- Smart task-selection cards (with enforced dependency logic)
+- Data preview expander (collapsible / expandable)
+- Persistent side-panel chat (visible as soon as a file is uploaded)
+- /column slash command in chat for column-aware queries
+- Visualization Architecture code moved into the Visual tab
+- Interactive Plotly charts with titles and error guards
+- Improved PDF export with data insights (min/max/avg)
 """
 
 import contextlib
@@ -25,6 +26,7 @@ import pandas as pd
 import streamlit as st
 
 from crew import run_crew
+from tools.dataset_tools import read_csv_robust
 from ui.styles import inject_styles
 from ui.components import display_mckinsey_insights, display_cleaning_timeline, display_relations, StreamlitLogger
 from ui.export import export_pdf_cached
@@ -47,32 +49,39 @@ inject_styles()
 # ── Session initialisation ────────────────────────────────────────────────────
 
 def _init_session() -> None:
-    """Initialise per-session state on first load."""
-    if "session_id" not in st.session_state:
-        st.session_state["session_id"] = uuid.uuid4().hex[:12]
-    if "llm_provider" not in st.session_state:
-        st.session_state["llm_provider"] = os.getenv("LLM_PROVIDER", "nvidia")
-    if "llm_model" not in st.session_state:
-        st.session_state["llm_model"] = ""
-    if "api_key" not in st.session_state:
-        st.session_state["api_key"] = ""
+    defaults = {
+        "session_id":       uuid.uuid4().hex[:12],
+        "llm_provider":     os.getenv("LLM_PROVIDER", "nvidia"),
+        "llm_model":        "",
+        "api_key":          "",
+        "preview_expanded": True,
+        "copilot_messages": [],
+        "col_insert":       "",
+    }
+    for k, v in defaults.items():
+        if k not in st.session_state:
+            st.session_state[k] = v
 
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 
 def _render_sidebar() -> dict:
-    """Render the sidebar and return the current LLM config dict."""
     with st.sidebar:
-        st.markdown("## Configuration")
+        st.markdown("## ⚙️ Configuration")
         st.markdown("### LLM Settings")
 
         model_options = {
-            "nvidia":      ["nvidia_nim/mistralai/mistral-medium-3.5-128b", "nvidia_nim/mistralai/mistral-large-2407"],
+            "nvidia":      [
+                "nvidia_nim/meta/llama-3.1-8b-instruct",
+                "nvidia_nim/meta/llama-3.1-70b-instruct",
+                "nvidia_nim/nvidia/mistral-nemo-minitron-8b-8k-instruct",
+                "nvidia_nim/mistralai/mistral-large-2407",
+            ],
             "minimax":     ["minimaxai/minimax-m3"],
             "groq":        ["groq/llama-3.1-8b-instant", "groq/llama-3.3-70b-versatile", "groq/mixtral-8x7b-32768", "groq/gemma2-9b-it"],
             "openai":      ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"],
             "anthropic":   ["claude-3-5-sonnet-20241022", "claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"],
-            "huggingface": ["huggingface/HuggingFaceH4/zephyr-7b-beta", "huggingface/meta-llama/Llama-2-7b-chat-hf", "huggingface/tiiuae/falcon-7b-instruct"],
+            "huggingface": ["huggingface/HuggingFaceH4/zephyr-7b-beta", "huggingface/meta-llama/Llama-2-7b-chat-hf"],
             "mistral":     ["mistral/mistral-tiny", "mistral/mistral-small", "mistral/mistral-medium", "mistral/mistral-large-latest"],
             "gemini":      ["gemini/gemini-pro", "gemini/gemini-1.5-pro", "gemini/gemini-1.5-flash"],
             "ollama":      ["ollama/llama3", "ollama/mistral", "ollama/gemma2"],
@@ -87,18 +96,16 @@ def _render_sidebar() -> dict:
         )
         st.session_state["llm_provider"] = provider
 
-        override_model = st.checkbox("Custom Model Name", value=False, help="Check to manually type a model identifier (e.g. gpt-4o-mini, ollama/my-model)")
+        override_model = st.checkbox("Custom Model Name", value=False)
         if override_model:
-            selected_model = st.text_input("Enter Model Identifier", value=st.session_state.get("llm_model") or model_options.get(provider, [""])[0])
-        else:
-            selected_model = st.selectbox(
-                "Select Model",
-                model_options.get(provider, []),
-                index=0,
+            selected_model = st.text_input(
+                "Model Identifier",
+                value=st.session_state.get("llm_model") or model_options.get(provider, [""])[0],
             )
+        else:
+            selected_model = st.selectbox("Select Model", model_options.get(provider, []), index=0)
         st.session_state["llm_model"] = selected_model
 
-        # Pre-fill key from env (initial load only) — stored in session_state
         if provider == "ollama":
             env_key_name = "OLLAMA_BASE_URL"
             default_key  = st.session_state.get("api_key") or os.getenv(env_key_name, "http://localhost:11434")
@@ -113,23 +120,11 @@ def _render_sidebar() -> dict:
             f"{provider.upper()} API Key" if provider != "ollama" else "Ollama Base URL",
             value=default_key,
             type="password" if provider != "ollama" else "default",
-            help=f"Enter your {provider} API key" if provider != "ollama"
-                 else "URL of your local Ollama server",
         )
         st.session_state["api_key"] = api_key
 
-        # Cooldown: default 5s (was 15s); Ollama users typically set to 0
         default_cooldown = 0 if provider == "ollama" else int(os.getenv("API_COOLDOWN", "5"))
-        cooldown = st.slider(
-            "API Cooldown (seconds)",
-            min_value=0,
-            max_value=60,
-            value=default_cooldown,
-            help=(
-                "Seconds to sleep between agent tasks to prevent rate limiting. "
-                "Set to 0 for self-hosted models (Ollama) with no rate limits."
-            ),
-        )
+        cooldown = st.slider("API Cooldown (s)", 0, 60, default_cooldown)
         st.session_state["api_cooldown"] = cooldown
 
         st.markdown("---")
@@ -139,24 +134,12 @@ def _render_sidebar() -> dict:
             <div style="background-color:#171717;padding:15px;border-radius:8px;border:1px solid #262626;">
                 <p style="margin:0;font-size:0.9em;color:#a3a3a3;">
                     <b>Agentic Data Analyst</b><br>
-                    An intelligent system powered by CrewAI that automates data cleaning,
-                    analysis, and visualization.
+                    Powered by CrewAI · automates data cleaning, analysis &amp; visualization.
                 </p>
                 <hr style="border-color:#262626;margin:10px 0;">
                 <p style="margin:0;font-size:0.8em;color:#737373;">
-                    Developed by:<br>
-                    • Prithiv.A.K<br>• Sebin.S<br>• Sowmiyan.S
+                    Developed by:<br>• Prithiv.A.K<br>• Sebin.S<br>• Sowmiyan.S
                 </p>
-                <div style="margin-top:15px;">
-                    <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI"
-                       target="_blank" style="text-decoration:none;">
-                        <button style="width:100%;background-color:#262626;color:#e0e0e0;
-                            border:1px solid #404040;padding:8px;border-radius:6px;
-                            cursor:pointer;font-size:0.8em;transition:all 0.3s;">
-                            ⭐ Star on GitHub
-                        </button>
-                    </a>
-                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -171,10 +154,7 @@ def _render_sidebar() -> dict:
     }
 
 
-# ── Apply LLM config to os.environ (only when running analysis) ───────────────
-
 def _apply_env(cfg: dict) -> None:
-    """Write LLM settings to os.environ immediately before run_crew()."""
     if cfg["api_key"]:
         os.environ[cfg["env_key_name"]] = cfg["api_key"]
     os.environ["LLM_PROVIDER"] = cfg["provider"]
@@ -182,10 +162,135 @@ def _apply_env(cfg: dict) -> None:
     os.environ["API_COOLDOWN"] = str(cfg["cooldown"])
 
 
+# ── Smart Task Selection UI ───────────────────────────────────────────────────
+
+def _render_task_selector() -> tuple[list[str], bool]:
+    """
+    Render smart task-selection cards with enforced dependency logic.
+    Returns (selected_tasks, deep_analysis).
+    """
+    st.markdown("### 🎛️ Analysis Configuration")
+    st.caption("Select which stages to run. Dependency rules are enforced automatically.")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        do_clean = st.checkbox(
+            "🧹 Data Cleaning",
+            value=True,
+            help="Detect and fix data quality issues (missing values, type errors, duplicates).",
+        )
+
+    with col2:
+        do_relations = st.checkbox(
+            "🔗 Relationship Analysis",
+            value=do_clean,
+            disabled=not do_clean,
+            help="Identify significant correlations and patterns between columns.\n⚠️ Requires Cleaning.",
+        )
+
+    with col3:
+        do_insights = st.checkbox(
+            "💡 Business Insights",
+            value=do_clean,
+            disabled=not do_clean,
+            help="Generate executive-level strategic recommendations.\n⚠️ Requires Cleaning.",
+        )
+
+    with col4:
+        do_viz = st.checkbox(
+            "📈 Visualization",
+            value=do_relations,
+            disabled=not do_relations,
+            help="Create interactive Plotly charts and static PNG plots.\n⚠️ Requires Relationship Analysis.",
+        )
+
+    # Quality radio (replaces the deep-analysis checkbox)
+    st.markdown("")
+    quality = st.radio(
+        "🔬 Analysis Depth",
+        options=["⚡ Standard — faster, concise output", "🔭 Deep — richer reasoning & detail"],
+        index=0,
+        horizontal=True,
+    )
+    deep_analysis = "Deep" in quality
+
+    selected_tasks = []
+    if do_clean:     selected_tasks.append("cleaning")
+    if do_relations: selected_tasks.append("relations")
+    if do_insights:  selected_tasks.append("insights")
+    if do_viz:       selected_tasks.append("visualization")
+
+    return selected_tasks, deep_analysis
+
+
+# ── Chat panel ────────────────────────────────────────────────────────────────
+
+def _render_chat_panel(csv_path: str, output_dir: str, columns: list[str]) -> None:
+    """
+    Render the AI Data Copilot chat panel.
+    Supports /column slash command for column-aware queries.
+    """
+    st.markdown("### 💬 AI Data Copilot")
+    st.caption("Ask questions about your dataset in plain English. Use `/` to insert a column name.")
+
+    # ── /column picker ────────────────────────────────────────────────────────
+    if columns:
+        col_pick, _ = st.columns([1, 3])
+        with col_pick:
+            chosen_col = st.selectbox(
+                "📌 Insert column →",
+                ["(none)"] + columns,
+                key="col_picker_select",
+                label_visibility="collapsed",
+            )
+        if chosen_col != "(none)":
+            # Append column name to pending query text
+            current = st.session_state.get("pending_query", "")
+            st.session_state["pending_query"] = (current + f" `{chosen_col}`").lstrip()
+            # Reset picker
+            st.session_state["col_picker_select"] = "(none)"
+
+    # ── Display history ───────────────────────────────────────────────────────
+    chat_container = st.container()
+    with chat_container:
+        for msg in st.session_state["copilot_messages"]:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg.get("plot_path") and Path(msg["plot_path"]).exists():
+                    st.image(msg["plot_path"], use_container_width=True)
+
+    # ── Input ─────────────────────────────────────────────────────────────────
+    prefill = st.session_state.pop("pending_query", "")
+    prompt  = st.chat_input(
+        "Query your dataset (e.g. 'Show average Sales by Region', 'Plot Age vs Income')",
+        key="copilot_input",
+    ) or prefill
+
+    if prompt:
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        st.session_state["copilot_messages"].append({"role": "user", "content": prompt})
+
+        with st.chat_message("assistant"):
+            with st.spinner("Analysing…"):
+                from ui.copilot import run_copilot_query
+                res = run_copilot_query(prompt, csv_path, output_dir)
+
+            st.markdown(res["text"])
+            if res.get("plot_path") and Path(res["plot_path"]).exists():
+                st.image(res["plot_path"], use_container_width=True)
+
+            st.session_state["copilot_messages"].append({
+                "role":      "assistant",
+                "content":   res["text"],
+                "plot_path": res.get("plot_path"),
+            })
+
+
 # ── Results display ───────────────────────────────────────────────────────────
 
-def _render_results(result: dict) -> None:
-    """Render the full analysis results UI."""
+def _render_results(result: dict, filename: str = "") -> None:
     st.success("### ✅ Analysis Complete!")
     st.markdown("## 📊 Executive Dashboard")
 
@@ -223,9 +328,22 @@ def _render_results(result: dict) -> None:
         "📈 Visual Intelligence",
     ])
 
+    # ── Data Preview (collapsible) ────────────────────────────────────────────
     with tab_preview:
-        st.markdown("### 🔍 Dataset Explorer")
-        st.dataframe(result["dataframe"].head(100), use_container_width=True)
+        n_rows, n_cols = df.shape
+        expanded_key   = "preview_tab_expanded"
+        if expanded_key not in st.session_state:
+            st.session_state[expanded_key] = True
+
+        toggle_label = "🔽 Minimize Preview" if st.session_state[expanded_key] else "🔼 Expand Preview"
+        if st.button(toggle_label, key="preview_toggle_btn"):
+            st.session_state[expanded_key] = not st.session_state[expanded_key]
+
+        if st.session_state[expanded_key]:
+            st.caption(f"Showing up to 100 rows · {n_rows:,} total rows · {n_cols} columns")
+            st.dataframe(df.head(100), use_container_width=True)
+        else:
+            st.info(f"Preview minimized — {n_rows:,} rows × {n_cols} columns. Click 'Expand Preview' to show.")
 
     with tab_cleaning:
         st.markdown("### 🧹 Data Cleaning Operations")
@@ -239,34 +357,40 @@ def _render_results(result: dict) -> None:
         st.markdown("### 💡 Business Intelligence Insights")
         display_mckinsey_insights(result["insights"])
 
+    # ── Visual Intelligence tab ───────────────────────────────────────────────
     with tab_plots:
         st.markdown("### 📈 Visual Intelligence")
 
-        # ── Interactive Plotly charts (generated from relation output, no LLM) ──
+        # Interactive Plotly charts
         plotly_charts = result.get("plotly_charts", [])
         if plotly_charts:
             st.markdown("#### 🎯 Interactive Charts")
-            st.caption("Zoom, pan, and hover for details on any chart.")
+            st.caption("Zoom, pan, hover for details. Charts generated from identified relationships.")
             for chart in plotly_charts:
-                st.plotly_chart(chart["fig"], use_container_width=True)
+                try:
+                    fig   = chart.get("fig")
+                    title = chart.get("title", "Chart")
+                    if fig is None:
+                        st.warning(f"Chart '{title}' has no figure object.")
+                        continue
+                    st.markdown(f"**{title}**")
+                    st.plotly_chart(fig, use_container_width=True, key=f"plotly_{title}_{id(fig)}")
+                except Exception as exc:
+                    st.error(f"Could not render chart '{chart.get('title', '?')}': {exc}")
             st.markdown("---")
+        else:
+            st.info("No interactive charts available. Make sure 'Relationship Analysis' was selected.")
 
-        # ── Agent-generated static PNGs (supplementary / fallback) ──────────────
+        # Agent-generated static PNGs
         output_dir = Path(result.get("output_dir", "outputs"))
         png_files  = sorted(output_dir.glob("*.png"))
         if png_files:
             st.markdown("#### 🖼️ Agent-Generated Visualizations")
             for png_file in png_files:
                 st.image(str(png_file), caption=png_file.stem, use_container_width=True)
-        elif not plotly_charts:
-            st.info("No visualizations generated by the agent.")
 
-    # Generated code block
-    st.markdown("---")
-    st.markdown("### ⚙️ Visualization Architecture")
-    st.code(result.get("code", "Automatic visualization generation"), language="python")
 
-    # Export options
+    # ── Export options ────────────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("### 📥 Export Options")
     c1, c2 = st.columns(2)
@@ -278,6 +402,7 @@ def _render_results(result: dict) -> None:
             ).hexdigest()
             pdf_bytes = export_pdf_cached(
                 cache_key        = cache_key,
+                filename         = filename,
                 result_cleaning  = result["cleaning_steps"],
                 result_relations = result["relations"],
                 result_insights  = result["insights"],
@@ -305,50 +430,6 @@ def _render_results(result: dict) -> None:
             use_container_width=True,
         )
 
-    # ── Interactive AI Data Copilot Chat ──────────────────────────────────────
-    st.markdown("---")
-    st.markdown("### 💬 Interactive AI Data Copilot")
-    st.caption("Ask questions, query columns, or generate new visualizations in real-time.")
-
-    # Initialize chat history
-    if "copilot_messages" not in st.session_state:
-        st.session_state["copilot_messages"] = []
-
-    # Display chat messages
-    for msg in st.session_state["copilot_messages"]:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg.get("plot_path"):
-                st.image(msg["plot_path"])
-
-    # User input
-    if chat_prompt := st.chat_input("Query your cleaned dataset (e.g. 'Show average values by category', 'Plot X vs Y')"):
-        # Display user message
-        with st.chat_message("user"):
-            st.markdown(chat_prompt)
-        st.session_state["copilot_messages"].append({"role": "user", "content": chat_prompt})
-
-        # Generate copilot response
-        with st.chat_message("assistant"):
-            with st.spinner("Analyzing data..."):
-                from ui.copilot import run_copilot_query
-                csv_path = f"data/sessions/{st.session_state['session_id']}/cleaned.csv"
-                output_dir = result.get("output_dir", "outputs")
-                
-                res = run_copilot_query(chat_prompt, csv_path, output_dir)
-                
-                # Show text response
-                st.markdown(res["text"])
-                # Show plot if any
-                if res.get("plot_path"):
-                    st.image(res["plot_path"])
-                    
-                st.session_state["copilot_messages"].append({
-                    "role": "assistant",
-                    "content": res["text"],
-                    "plot_path": res.get("plot_path")
-                })
-
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -368,7 +449,7 @@ def main() -> None:
     if uploaded_file is None:
         return
 
-    # ── Save file ─────────────────────────────────────────────────────────────
+    # ── Save uploaded file ────────────────────────────────────────────────────
     data_dir  = Path("data")
     data_dir.mkdir(exist_ok=True)
     file_path = data_dir / uploaded_file.name
@@ -376,76 +457,112 @@ def main() -> None:
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
 
-    # ── Cache key: MD5 of file CONTENT (not just filename) ───────────────────
+    # Cache key: MD5 of file content
     file_hash  = hashlib.md5(uploaded_file.getvalue()).hexdigest()
     cache_key  = f"result_{file_hash}"
     session_id = st.session_state["session_id"]
 
-    # ── Preview ───────────────────────────────────────────────────────────────
-    df = pd.read_csv(file_path, nrows=200)
+    # CSV path used by agents and copilot
+    session_csv = f"data/sessions/{session_id}/cleaned.csv"
+
+    # Use original upload path as fallback if session copy doesn't exist yet
+    copilot_csv = session_csv if Path(session_csv).exists() else str(file_path)
+
+    # Load preview data
+    df_preview = read_csv_robust(file_path, nrows=200)
+    columns    = list(df_preview.columns)
+
     st.success(f"✅ File uploaded: **{uploaded_file.name}** ({uploaded_file.size:,} bytes)")
-    with st.expander("📊 Preview Dataset", expanded=cache_key not in st.session_state):
-        st.dataframe(df.head())
+
+    # ── Collapsible Data Preview ──────────────────────────────────────────────
+    preview_key = f"preview_expanded_{file_hash}"
+    if preview_key not in st.session_state:
+        st.session_state[preview_key] = cache_key not in st.session_state  # start expanded on new file
+
+    toggle = "🔽 Minimize Preview" if st.session_state[preview_key] else "🔼 Show Data Preview"
+    if st.button(toggle, key=f"preview_toggle_{file_hash}"):
+        st.session_state[preview_key] = not st.session_state[preview_key]
+
+    if st.session_state[preview_key]:
+        with st.container():
+            st.caption(f"{len(df_preview):,} rows (preview) · {len(columns)} columns")
+            st.dataframe(df_preview.head(), use_container_width=True)
 
     st.markdown("---")
 
-    # ── Show results if already cached ───────────────────────────────────────
-    if cache_key in st.session_state:
-        _render_results(st.session_state[cache_key])
-        if st.button("🔄 Re-run Analysis", use_container_width=True):
-            del st.session_state[cache_key]
-            st.rerun()
-        return
+    # ── Split layout: analysis (left 2/3) + chat (right 1/3) ─────────────────
+    main_col, chat_col = st.columns([2, 1])
 
-    # ── Explicit run button ───────────────────────────────────────────────────
-    st.markdown("### 🤖 Ready to Analyse")
-    if not st.button("▶️ Run Analysis", use_container_width=True, type="primary"):
-        st.info("Configure the LLM provider in the sidebar, then click **Run Analysis**.")
-        return
+    with chat_col:
+        output_dir_for_chat = (
+            result["output_dir"]
+            if (cache_key in st.session_state and isinstance(st.session_state[cache_key], dict))
+            else f"outputs/{session_id}"
+        )
+        _render_chat_panel(copilot_csv, output_dir_for_chat, columns)
 
-    # Apply config to os.environ only at invocation time
-    _apply_env(cfg)
-
-    log_container = st.empty()
-    logs: list[str] = []
-
-    # ── Progressive status display ────────────────────────────────────────────
-    _STAGE_LABELS = {
-        "profiling":     "📊 Dataset profiled (eliminated tool-call round-trips)",
-        "cleaning":      "🧹 Data cleaning complete",
-        "relations":     "🔗 Relationships identified",
-        "insights":      "💡 Business insights generated",
-        "visualization": "🖼️ Agent visualizations complete",
-        "plotly":        "🎯 Interactive charts built",
-    }
-
-    with contextlib.redirect_stdout(StreamlitLogger(log_container, logs)):
-        try:
-            with st.status("🤖 Agents are analysing your data...", expanded=True) as status:
-                status.write("⚙️ Starting pipeline...")
-
-                def on_progress(stage: str, data=None) -> None:
-                    label = _STAGE_LABELS.get(stage, f"✅ {stage} complete")
-                    status.write(label)
-
-                result = run_crew(
-                    str(file_path),
-                    session_id=session_id,
-                    on_progress=on_progress,
-                )
-                status.update(
-                    label="✅ Analysis complete!",
-                    state="complete",
-                    expanded=False,
-                )
-
-            if result:
-                st.session_state[cache_key] = result
+    with main_col:
+        # ── Show cached results ───────────────────────────────────────────────
+        if cache_key in st.session_state:
+            result = st.session_state[cache_key]
+            _render_results(result, filename=uploaded_file.name)
+            if st.button("🔄 Re-run Analysis", use_container_width=True):
+                del st.session_state[cache_key]
                 st.rerun()
+            return
 
-        except Exception as e:
-            st.error(f"❌ An error occurred: {e}")
-            st.exception(e)
+        # ── Task selection + Run ──────────────────────────────────────────────
+        selected_tasks, deep_analysis = _render_task_selector()
+
+        st.markdown("---")
+        st.markdown("### 🤖 Ready to Analyse")
+        if not st.button("▶️ Run Analysis", use_container_width=True, type="primary"):
+            st.info("Configure the LLM provider in the sidebar, select stages above, then click **Run Analysis**.")
+            return
+
+        _apply_env(cfg)
+
+        log_container = st.empty()
+        logs: list[str] = []
+
+        _STAGE_LABELS = {
+            "profiling":     "📊 Dataset profiled",
+            "cleaning":      "🧹 Data cleaning complete",
+            "relations":     "🔗 Relationships identified",
+            "insights":      "💡 Business insights generated",
+            "visualization": "🖼️ Agent visualizations complete",
+            "plotly":        "🎯 Interactive charts built",
+        }
+
+        with contextlib.redirect_stdout(StreamlitLogger(log_container, logs)):
+            try:
+                with st.status("🤖 Agents are analysing your data…", expanded=True) as status:
+                    status.write("⚙️ Starting pipeline…")
+
+                    def on_progress(stage: str, data=None) -> None:
+                        label = _STAGE_LABELS.get(stage, f"✅ {stage} complete")
+                        status.write(label)
+
+                    result = run_crew(
+                        str(file_path),
+                        session_id=session_id,
+                        on_progress=on_progress,
+                        selected_tasks=selected_tasks,
+                        deep_analysis=deep_analysis,
+                    )
+                    status.update(
+                        label="✅ Analysis complete!",
+                        state="complete",
+                        expanded=False,
+                    )
+
+                if result:
+                    st.session_state[cache_key] = result
+                    st.rerun()
+
+            except Exception as e:
+                st.error(f"❌ An error occurred: {e}")
+                st.exception(e)
 
 
 if __name__ == "__main__":

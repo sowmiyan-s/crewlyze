@@ -21,6 +21,7 @@ Quality improvements:
 
 import os
 import time
+from typing import Optional
 
 from crewai import Task
 
@@ -72,7 +73,7 @@ def make_cooldown_callback(min_sleep: int = 5):
 # Pipeline factory
 # ---------------------------------------------------------------------------
 
-def make_pipeline(session_id: str, profile: str = "") -> tuple[list, list]:
+def make_pipeline(session_id: str, profile: str = "", selected_tasks: Optional[list[str]] = None, deep_analysis: bool = False) -> tuple[list, list]:
     """
     Build and return (agents, tasks) for a single analysis run.
 
@@ -96,6 +97,10 @@ def make_pipeline(session_id: str, profile: str = "") -> tuple[list, list]:
     cooldown = int(os.getenv("API_COOLDOWN", "5"))
     cb = make_cooldown_callback(min_sleep=cooldown)
 
+    selected_tasks = [task.strip().lower() for task in (selected_tasks or []) if task.strip()]
+    if not selected_tasks:
+        selected_tasks = ["cleaning", "relations", "insights", "visualization"]
+
     profile_block = (
         f"\n\n--- DATASET PROFILE (use this — do NOT call read_dataset_head or "
         f"get_dataset_info first) ---\n{profile}\n---"
@@ -108,15 +113,18 @@ def make_pipeline(session_id: str, profile: str = "") -> tuple[list, list]:
     insights_agent   = make_insights_agent()
     visualizer_agent = make_visualizer_agent()
 
+    deep_prompt = "\n\nIf deep analysis mode is enabled, provide richer reasoning, deeper causal exploration, and more detailed business implications for each recommendation." if deep_analysis else ""
+    cleaning_prompt = (
+        f"The dataset working copy is at '{csv_path}'. "
+        "Identify data quality issues from the profile below, then write and run "
+        "Python cleaning code using 'Clean Dataset with Python Code' to fix them. "
+        "Explain the business rationale of each cleaning step in the final report."
+        f"{deep_prompt}{profile_block}"
+    )
+
     clean_task = Task(
         agent=cleaner_agent,
-        description=(
-            f"The dataset working copy is at '{csv_path}'. "
-            "Identify data quality issues from the profile below, then write and run "
-            "Python cleaning code using 'Clean Dataset with Python Code' to fix them. "
-            "Explain the business rationale of each cleaning step in the final report."
-            f"{profile_block}"
-        ),
+        description=cleaning_prompt,
         expected_output=(
             "A plain-text bulleted list of cleaning steps explaining the business purpose. Example:\n"
             "- Imputed missing revenue values with median to prevent statistical skew in sales reports\n"
@@ -178,4 +186,15 @@ def make_pipeline(session_id: str, profile: str = "") -> tuple[list, list]:
 
     agents = [cleaner_agent, relation_agent, insights_agent, visualizer_agent]
     tasks  = [clean_task, relation_task, insight_task, visualize_task]
+
+    # If a stage is disabled, return placeholder tasks for safe indexing.
+    if "cleaning" not in selected_tasks:
+        tasks[0] = clean_task
+    if "relations" not in selected_tasks:
+        tasks[1] = relation_task
+    if "insights" not in selected_tasks:
+        tasks[2] = insight_task
+    if "visualization" not in selected_tasks:
+        tasks[3] = visualize_task
+
     return agents, tasks

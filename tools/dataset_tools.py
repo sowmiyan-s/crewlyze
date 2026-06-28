@@ -35,6 +35,41 @@ import pandas as pd
 from crewai.tools import tool
 
 
+
+# ---------------------------------------------------------------------------
+# Robust CSV Reader Helper
+# ---------------------------------------------------------------------------
+
+def read_csv_robust(file_path: str, **kwargs) -> pd.DataFrame:
+    """Read a CSV file robustly, handling encoding and tokenization (bad lines) errors.
+    
+    If standard parsing fails, it falls back to skipping bad lines and prints
+    a warning to stdout so it appears in the user-facing logs.
+    """
+    encodings = ['utf-8', 'latin1', 'utf-8-sig', 'cp1252']
+    
+    # Try normal reading first with different encodings
+    for encoding in encodings:
+        try:
+            return pd.read_csv(file_path, encoding=encoding, **kwargs)
+        except Exception as e:
+            if isinstance(e, FileNotFoundError):
+                raise e
+            continue
+            
+    # If standard reading fails, try skipping bad lines
+    print(f"[Warning] Encountered formatting issues reading {file_path}. Attempting to parse by skipping malformed lines...", file=sys.stdout)
+    sys.stdout.flush()
+    for encoding in encodings:
+        try:
+            return pd.read_csv(file_path, encoding=encoding, on_bad_lines='skip', **kwargs)
+        except Exception:
+            continue
+            
+    # If all fails, run one final time to let the error bubble up
+    return pd.read_csv(file_path, **kwargs)
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -45,6 +80,59 @@ def _strip_markdown_fences(code: str) -> str:
     code = re.sub(r"^```(?:python)?\s*\n?", "", code)
     code = re.sub(r"\n?```\s*$", "", code)
     return code.strip()
+
+
+def _df_to_markdown(df: "pd.DataFrame", index: bool = True) -> str:
+    """Convert a pandas DataFrame to a compact GitHub-style markdown table.
+
+    Pure Python fallback — avoids the optional ``tabulate`` dependency.
+    Numeric cells are right-aligned; all others are left-aligned.
+
+    Args:
+        df    : DataFrame to render.
+        index : If True, include the DataFrame index as the first column.
+
+    Returns:
+        A multi-line markdown string.
+    """
+    import pandas as pd
+
+    if df is None or df.empty:
+        return "*(empty)*"
+
+    df_display = df.reset_index() if index else df.copy()
+
+    headers = [str(h) for h in list(df_display.columns)]
+    rows = []
+    for row in df_display.values.tolist():
+        formatted_row = []
+        for cell in row:
+            if cell is None or pd.isna(cell):
+                formatted_row.append("")
+            else:
+                formatted_row.append(str(cell))
+        rows.append(formatted_row)
+
+    # Column widths — at least as wide as the header
+    col_widths = [len(h) for h in headers]
+    for row in rows:
+        for i, cell in enumerate(row):
+            col_widths[i] = max(col_widths[i], len(cell))
+
+    def _row_str(cells: list, widths: list) -> str:
+        parts = []
+        for cell, w in zip(cells, widths):
+            parts.append(cell.ljust(w))
+        return "| " + " | ".join(parts) + " |"
+
+    sep_parts = ["-" * w for w in col_widths]
+    separator = "|" + "|".join(f"-{s}-" for s in sep_parts) + "|"
+
+    lines = [_row_str(headers, col_widths), separator]
+    for row in rows:
+        lines.append(_row_str(row, col_widths))
+
+    return "\n".join(lines)
 
 
 def _run_in_subprocess(script: str, timeout: int = 120) -> tuple[bool, str]:
@@ -123,7 +211,7 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
         A markdown-formatted string safe for embedding in task descriptions.
     """
     try:
-        df = pd.read_csv(csv_path, nrows=max_rows)
+        df = read_csv_robust(csv_path, nrows=max_rows)
     except Exception as exc:
         return f"[Profile unavailable: {exc}]"
 
@@ -172,7 +260,7 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
 
     # Sample rows
     lines.append("**Sample rows (first 5)**:")
-    lines.append(df.head(5).to_markdown(index=False))
+    lines.append(_df_to_markdown(df.head(5), index=False))
 
     return "\n".join(lines)
 
@@ -198,7 +286,7 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
         return []
 
     try:
-        df = pd.read_csv(csv_path, nrows=max_rows)
+        df = read_csv_robust(csv_path, nrows=max_rows)
     except Exception:
         return []
 
@@ -234,11 +322,15 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
             parts = [p.strip() for p in line.lstrip("- ").split("|")]
             x_col = parts[0].split(":", 1)[1].strip()
             y_col = parts[1].split(":", 1)[1].strip()
-            ptype = parts[2].split(":", 1)[1].strip().lower()
+            ptype = parts[2].split(":", 1)[1].strip().lower() if len(parts) > 2 else "scatter"
         except (IndexError, ValueError):
             continue
 
         if x_col not in df.columns or y_col not in df.columns:
+            continue
+
+        # Guard: skip trivial same-column pairs
+        if x_col == y_col:
             continue
 
         title = f"{x_col} vs {y_col}"
@@ -247,26 +339,34 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
         try:
             sample = df[[x_col, y_col]].dropna().head(2000)
 
-            if "scatter" in ptype:
+            if sample.empty:
+                continue
+
+            if "scatter" in ptype or "plot" in ptype:
                 fig = px.scatter(
                     sample, x=x_col, y=y_col, title=title,
-                    color_discrete_sequence=[color],
-                    opacity=0.75,
+                    color_discrete_sequence=[color], opacity=0.75,
                 )
+                fig.update_traces(marker=dict(size=6, line=dict(width=0.5, color="rgba(255,255,255,0.3)")))
             elif "bar" in ptype:
-                agg = sample.groupby(x_col)[y_col].mean().reset_index()
+                if pd.api.types.is_numeric_dtype(df[x_col]):
+                    # numeric x → bin it, then aggregate
+                    agg = sample.groupby(x_col)[y_col].mean().reset_index()
+                else:
+                    agg = sample.groupby(x_col)[y_col].mean().reset_index()
                 fig = px.bar(
-                    agg.head(20), x=x_col, y=y_col, title=title,
+                    agg.head(25), x=x_col, y=y_col, title=title,
                     color_discrete_sequence=[color],
                 )
             elif "line" in ptype:
                 fig = px.line(
-                    sample, x=x_col, y=y_col, title=title,
+                    sample.sort_values(x_col), x=x_col, y=y_col, title=title,
                     color_discrete_sequence=[color],
                 )
             elif "box" in ptype:
                 fig = px.box(
-                    sample, x=x_col, y=y_col, title=title,
+                    sample, x=x_col if not pd.api.types.is_numeric_dtype(df[x_col]) else None,
+                    y=y_col, title=title,
                     color_discrete_sequence=[color],
                 )
             elif "hist" in ptype:
@@ -279,15 +379,60 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
                 # Default: scatter
                 fig = px.scatter(
                     sample, x=x_col, y=y_col, title=title,
-                    color_discrete_sequence=[color],
-                    opacity=0.75,
+                    color_discrete_sequence=[color], opacity=0.75,
                 )
 
             fig.update_layout(**_dark)
-            figures.append({"title": title, "fig": fig})
+            figures.append({"title": title, "fig": fig, "x": x_col, "y": y_col, "type": ptype})
 
-        except Exception:
-            continue  # skip un-plottable pairs silently
+        except Exception as _chart_err:  # log but continue
+            print(f"[Plotly] Skipping {title!r}: {_chart_err}")
+            continue
+
+    # Fallback: if no relation lines were parseable, auto-generate charts
+    # from the first few numeric column pairs in the dataset.
+    if not figures:
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        cat_cols     = df.select_dtypes(include=["object", "category"]).columns.tolist()
+
+        pair_count = 0
+        for i, col in enumerate(numeric_cols[:3]):
+            color = _colors[i % len(_colors)]
+            # Histogram for each numeric col
+            try:
+                fig = px.histogram(df[[col]].dropna().head(3000), x=col,
+                                   nbins=30, title=f"Distribution of {col}",
+                                   color_discrete_sequence=[color])
+                fig.update_layout(**_dark)
+                figures.append({"title": f"Distribution of {col}", "fig": fig, "x": col, "y": col, "type": "histogram"})
+                pair_count += 1
+            except Exception:
+                continue
+
+        # Scatter for first 2 numeric pairs
+        for i in range(min(len(numeric_cols) - 1, 2)):
+            xc, yc = numeric_cols[i], numeric_cols[i + 1]
+            color = _colors[(pair_count + i) % len(_colors)]
+            try:
+                sample = df[[xc, yc]].dropna().head(2000)
+                fig = px.scatter(sample, x=xc, y=yc, title=f"{xc} vs {yc}",
+                                 color_discrete_sequence=[color], opacity=0.75)
+                fig.update_layout(**_dark)
+                figures.append({"title": f"{xc} vs {yc}", "fig": fig, "x": xc, "y": yc, "type": "scatter"})
+            except Exception:
+                continue
+
+        # Bar for first categorical × numeric
+        if cat_cols and numeric_cols:
+            cc, nc = cat_cols[0], numeric_cols[0]
+            try:
+                agg = df[[cc, nc]].dropna().groupby(cc)[nc].mean().reset_index()
+                fig = px.bar(agg.head(20), x=cc, y=nc, title=f"{nc} by {cc}",
+                             color_discrete_sequence=[_colors[0]])
+                fig.update_layout(**_dark)
+                figures.append({"title": f"{nc} by {cc}", "fig": fig, "x": cc, "y": nc, "type": "bar"})
+            except Exception:
+                pass
 
     return figures
 
@@ -304,8 +449,8 @@ class DatasetTools:
         Uses nrows=10 so the entire file is never loaded into memory.
         """
         try:
-            df = pd.read_csv(file_path, nrows=10)
-            return df.to_markdown(index=False)
+            df = read_csv_robust(file_path, nrows=10)
+            return _df_to_markdown(df, index=False)
         except Exception as e:
             return f"Error reading file: {e}"
 
@@ -315,7 +460,7 @@ class DatasetTools:
         and missing-value counts.
         """
         try:
-            df = pd.read_csv(file_path)
+            df = read_csv_robust(file_path)
             lines = [f"Shape: {df.shape}", "\nColumns and Types:"]
             for col, dtype in df.dtypes.items():
                 missing = df[col].isnull().sum()
@@ -332,7 +477,7 @@ class DatasetTools:
         limits for wide datasets. Only the most informative pairs are returned.
         """
         try:
-            df = pd.read_csv(file_path)
+            df = read_csv_robust(file_path)
             numeric_df = df.select_dtypes(include=["number"])
             if numeric_df.empty:
                 return "No numeric columns found."
@@ -351,7 +496,7 @@ class DatasetTools:
                 .drop(columns=["AbsCorr"])
                 .reset_index(drop=True)
             )
-            return top.to_markdown(index=False)
+            return _df_to_markdown(top, index=False)
         except Exception as e:
             return f"Error calculating correlation: {e}"
 

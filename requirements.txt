@@ -1,15 +1,33 @@
-crewai
+# Multi-Agent Data Analysis System
+# Web Platform — FastAPI + Pure Web UI (no Streamlit)
+# Install: pip install -r requirements.txt
+
+# ── Core framework ────────────────────────────────────────────────────────────
+crewai>=0.5.0
+litellm>=1.0.0
+
+# ── Web server ────────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+python-multipart
+
+# ── Data / ML ────────────────────────────────────────────────────────────────
 pandas>=1.5
 matplotlib>=3.6
 seaborn>=0.12
+plotly>=5.0
+
+# ── Utilities ────────────────────────────────────────────────────────────────
 requests
 huggingface_hub
-streamlit
 python-dotenv
 Pillow
 reportlab
-plotly>=5.0
-fastapi
-uvicorn
-python-multipart
 
+# ── Pinned for Windows compatibility ─────────────────────────────────────────
+# regex 2023.12.25 has pre-built Windows wheels (no Rust required)
+regex==2023.12.25
+
+# NOTE: streamlit has been removed — the app now runs on FastAPI + vanilla web UI
+# NOTE: tiktoken removed — requires Rust; not needed
+# NOTE: grpcio NOT listed — install only if needed: pip install grpcio --only-binary=:all:
