@@ -24,6 +24,7 @@ import os
 import shutil
 import sys
 import time
+import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Optional
@@ -41,13 +42,20 @@ logging.getLogger("opentelemetry").setLevel(logging.ERROR)
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
 os.environ["OTEL_SDK_DISABLED"]        = "true"
 
+# Monkey patch crewai caching to avoid Nvidia NIM / LiteLLM validation errors
+try:
+    import crewai.llms.cache as _crewai_cache
+    _crewai_cache.mark_cache_breakpoint = lambda msg: msg
+except Exception:
+    pass
+
 try:
     from crewai import Crew
 except ImportError as exc:
     print(f"ERROR: {exc}\nRun: pip install crewai")
     sys.exit(1)
 
-from tools.dataset_tools import build_dataset_profile, generate_plotly_charts
+from tools.dataset_tools import build_dataset_profile, generate_plotly_charts, read_csv_robust
 from workflows.pipeline import make_pipeline
 
 
@@ -67,7 +75,7 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path) -> str:
     import seaborn as sns
 
     try:
-        df = pd.read_csv(csv_path)
+        df = read_csv_robust(csv_path)
         output_dir.mkdir(parents=True, exist_ok=True)
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
@@ -229,10 +237,29 @@ def _run_single_task(agent, task, max_rpm: int = 8) -> object:
 # ---------------------------------------------------------------------------
 
 def _safe_output(task) -> str:
-    """Safely extract raw string output from a completed CrewAI task."""
-    if task is None or task.output is None:
+    """Safely extract raw string output and error diagnostics from a completed CrewAI task."""
+    if task is None:
         return ""
-    return str(task.output.raw if hasattr(task.output, "raw") else task.output)
+
+    output_parts = []
+    if hasattr(task, "output") and task.output is not None:
+        output_parts.append(str(task.output.raw if hasattr(task.output, "raw") else task.output))
+
+    for attr_name in ("error", "exception", "traceback", "trace"):  # best-effort diagnostics
+        if hasattr(task, attr_name):
+            attr_value = getattr(task, attr_name)
+            if attr_value:
+                output_parts.append(f"[{attr_name}] {attr_value}")
+
+    if not output_parts and hasattr(task, "__dict__"):
+        # Fallback: include any candidate diagnostic attributes from the task object
+        for key in ("status", "state", "result", "message"):
+            if hasattr(task, key):
+                value = getattr(task, key)
+                if value:
+                    output_parts.append(f"[{key}] {value}")
+
+    return "\n\n".join(output_parts).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -243,6 +270,8 @@ def run_crew(
     csv_path:    str,
     session_id:  str = "default",
     on_progress: Optional[Callable[[str, object], None]] = None,
+    selected_tasks: Optional[list[str]] = None,
+    deep_analysis: bool = False,
 ) -> dict:
     """
     Run the full multi-agent analysis pipeline on *csv_path*.
@@ -291,7 +320,7 @@ def run_crew(
 
     # ── Load original dataset ─────────────────────────────────────────────────
     try:
-        df = pd.read_csv(csv_path)
+        df = read_csv_robust(csv_path)
     except FileNotFoundError:
         raise FileNotFoundError(f"Upload not found at: {csv_path}")
 
@@ -322,130 +351,173 @@ def run_crew(
     _progress("profiling", profile)
     print("Profile ready.\n")
 
+    # Determine requested task stages and deep analysis mode
+    if selected_tasks is None:
+        env_raw = os.getenv("SELECTED_TASKS", "")
+        selected_tasks = [t.strip() for t in env_raw.split(",") if t.strip()]
+
+    if not deep_analysis:
+        deep_analysis = os.getenv("DEEP_ANALYSIS", "false").lower() in {"true", "1", "yes", "on"}
+
+    env_tasks = selected_tasks or []
+    if not env_tasks:
+        env_tasks = ["cleaning", "relations", "insights", "visualization"]
+    do_cleaning = "cleaning" in env_tasks
+    do_relations = "relations" in env_tasks
+    do_insights = "insights" in env_tasks
+    do_visualization = "visualization" in env_tasks
+
     # ── Build fresh agents + tasks ────────────────────────────────────────────
-    agents, tasks = make_pipeline(session_id, profile=profile)
+    agents, tasks = make_pipeline(
+        session_id,
+        profile=profile,
+        selected_tasks=env_tasks,
+        deep_analysis=deep_analysis,
+    )
     # tasks = [clean_task, relation_task, insight_task, visualize_task]
 
     # ════════════════════════════════════════════════════════════════════════
     # STAGE 1 — Clean (sequential, must run before anything else)
     # ════════════════════════════════════════════════════════════════════════
-    print("\n[Stage 1/3] Running Data Cleaner ...")
-    clean_crew = Crew(
-        agents=[agents[0]],
-        tasks=[tasks[0]],
-        max_rpm=15,
-        cache=True,
-        verbose=True,
-    )
-    try:
-        clean_crew.kickoff()
-    except Exception as exc:
-        print(f"Cleaning error: {exc}")
-        raise
+    clean_output = "Data cleaning was skipped by user selection."
 
-    clean_output = _safe_output(tasks[0])
-    _progress("cleaning", clean_output)
-    print("[Stage 1/3] ✅ Cleaning complete.\n")
+    if do_cleaning:
+        print("\n[Stage 1/4] Running Data Cleaner ...")
+        clean_crew = Crew(
+            agents=[agents[0]],
+            tasks=[tasks[0]],
+            max_rpm=15,
+            cache=True,
+            verbose=True,
+        )
+        try:
+            clean_crew.kickoff()
+        except Exception as exc:
+            print(f"Cleaning error: {exc}")
+            traceback.print_exc()
+            raise
+
+        clean_output = _safe_output(tasks[0])
+        _progress("cleaning", clean_output)
+        print("[Stage 1/4] ✅ Cleaning complete.\n")
+    else:
+        print("\n[Stage 1/4] Skipping Data Cleaner (user selection).\n")
+        _progress("cleaning", clean_output)
 
     # ════════════════════════════════════════════════════════════════════════
     # STAGE 2 — Relations + Insights (PARALLEL)
     # ════════════════════════════════════════════════════════════════════════
-    print("[Stage 2/3] Running Relation Analyst + BI Analyst in parallel ...")
-    relation_output = ""
-    insights_output = ""
+    relation_output = "Relationship mapping was skipped by user selection."
+    insights_output = "Business insights generation was skipped by user selection."
 
-    try:
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="crew") as executor:
-            rel_future = executor.submit(
-                _run_single_task, agents[1], tasks[1], 8
-            )
-            ins_future = executor.submit(
-                _run_single_task, agents[2], tasks[2], 8
-            )
-            # Collect results — callbacks execute in main thread after futures complete
-            tasks[1] = rel_future.result()
-            tasks[2] = ins_future.result()
-
-        relation_output = _safe_output(tasks[1])
-        insights_output = _safe_output(tasks[2])
-
-    except Exception as exc:
-        # Parallel execution failed — fall back to sequential
-        print(f"Parallel execution error ({exc}). Falling back to sequential ...")
+    if do_relations or do_insights:
+        print("[Stage 2/4] Running Relation Analyst + BI Analyst ...")
         try:
-            rel_crew = Crew(agents=[agents[1]], tasks=[tasks[1]],
-                            max_rpm=15, cache=True, verbose=True)
-            rel_crew.kickoff()
-            relation_output = _safe_output(tasks[1])
+            if do_relations and do_insights:
+                with ThreadPoolExecutor(max_workers=2, thread_name_prefix="crew") as executor:
+                    rel_future = executor.submit(
+                        _run_single_task, agents[1], tasks[1], 8
+                    )
+                    ins_future = executor.submit(
+                        _run_single_task, agents[2], tasks[2], 8
+                    )
+                    tasks[1] = rel_future.result()
+                    tasks[2] = ins_future.result()
+            elif do_relations:
+                rel_crew = Crew(agents=[agents[1]], tasks=[tasks[1]], max_rpm=15, cache=True, verbose=True)
+                rel_crew.kickoff()
+            elif do_insights:
+                ins_crew = Crew(agents=[agents[2]], tasks=[tasks[2]], max_rpm=15, cache=True, verbose=True)
+                ins_crew.kickoff()
 
-            ins_crew = Crew(agents=[agents[2]], tasks=[tasks[2]],
-                            max_rpm=15, cache=True, verbose=True)
-            ins_crew.kickoff()
-            insights_output = _safe_output(tasks[2])
-        except Exception as exc2:
-            print(f"Sequential fallback also failed: {exc2}")
-            raise exc2
+            if do_relations:
+                relation_output = _safe_output(tasks[1])
+            if do_insights:
+                insights_output = _safe_output(tasks[2])
+
+        except Exception as exc:
+            # Parallel execution failed — fall back to sequential
+            print(f"Relation/Insight execution error: {exc}. Falling back to sequential ...")
+            traceback.print_exc()
+            try:
+                if do_relations:
+                    rel_crew = Crew(agents=[agents[1]], tasks=[tasks[1]], max_rpm=15, cache=True, verbose=True)
+                    rel_crew.kickoff()
+                    relation_output = _safe_output(tasks[1])
+                if do_insights:
+                    ins_crew = Crew(agents=[agents[2]], tasks=[tasks[2]], max_rpm=15, cache=True, verbose=True)
+                    ins_crew.kickoff()
+                    insights_output = _safe_output(tasks[2])
+            except Exception as exc2:
+                print(f"Sequential fallback also failed: {exc2}")
+                traceback.print_exc()
+                raise
 
     _progress("relations", relation_output)
     _progress("insights", insights_output)
-    print("[Stage 2/3] ✅ Relations + Insights complete.\n")
+    print("[Stage 2/4] ✅ Relations + Insights complete.\n")
 
     # ════════════════════════════════════════════════════════════════════════
     # STAGE 3 — Visualize (sequential, receives actual outputs as context)
     # ════════════════════════════════════════════════════════════════════════
-    print("[Stage 3/3] Running Data Visualizer ...")
+    visualize_output = "Visualization was skipped by user selection."
 
-    # Inject relation + insight outputs directly into the task description
-    # so the visualizer has full context without relying on CrewAI's
-    # cross-crew context= mechanism.
-    viz_task = tasks[3]
-    viz_task.description += (
-        f"\n\nRELATIONSHIPS TO VISUALIZE:\n{relation_output}"
-        f"\n\nKEY INSIGHTS FOR CONTEXT:\n{insights_output}"
-    )
+    if do_visualization:
+        print("[Stage 3/4] Running Data Visualizer ...")
 
-    viz_crew = Crew(
-        agents=[agents[3]],
-        tasks=[viz_task],
-        max_rpm=15,
-        cache=True,
-        verbose=True,
-    )
-    
-    visualize_output = ""
-    try:
-        viz_crew.kickoff()
-        visualize_output = _safe_output(viz_task)
-    except Exception as exc:
-        print(f"Visualization Agent error: {exc}. Activating auto-healing visualizer fallback...")
-        visualize_output = f"Visualization Agent encountered error: {exc}"
+        # Inject relation + insight outputs directly into the task description
+        # so the visualizer has full context without relying on CrewAI's
+        # cross-crew context= mechanism.
+        viz_task = tasks[3]
+        viz_task.description += (
+            f"\n\nRELATIONSHIPS TO VISUALIZE:\n{relation_output}"
+            f"\n\nKEY INSIGHTS FOR CONTEXT:\n{insights_output}"
+        )
 
-    # Auto-healing fallback check: if no PNG charts were successfully saved
-    png_files = list(session_output_dir.glob("*.png"))
-    if not png_files:
-        print("No PNG charts generated by agent. Running automatic visualizer fallback...")
-        fallback_msg = _run_auto_visualizer_fallback(cleaned_path, session_output_dir)
-        visualize_output = f"{visualize_output}\n\n[Auto-Healing Fallback Status]: {fallback_msg}"
-        print(fallback_msg)
+        viz_crew = Crew(
+            agents=[agents[3]],
+            tasks=[viz_task],
+            max_rpm=15,
+            cache=True,
+            verbose=True,
+        )
+        
+        try:
+            viz_crew.kickoff()
+            visualize_output = _safe_output(viz_task)
+        except Exception as exc:
+            print(f"Visualization Agent error: {exc}. Activating auto-healing visualizer fallback...")
+            traceback.print_exc()
+            visualize_output = f"Visualization Agent encountered error: {exc}"
+
+        # Auto-healing fallback check: if no PNG charts were successfully saved
+        png_files = list(session_output_dir.glob("*.png"))
+        if not png_files:
+            print("No PNG charts generated by agent. Running automatic visualizer fallback...")
+            fallback_msg = _run_auto_visualizer_fallback(cleaned_path, session_output_dir)
+            visualize_output = f"{visualize_output}\n\n[Auto-Healing Fallback Status]: {fallback_msg}"
+            print(fallback_msg)
+    else:
+        print("[Stage 3/4] Skipping Data Visualizer (user selection).\n")
 
     _progress("visualization", visualize_output)
-    print("[Stage 3/3] ✅ Visualization complete.\n")
-
-    # ── Reload cleaned dataframe ──────────────────────────────────────────────
-    try:
-        cleaned_df = pd.read_csv(cleaned_path)
-    except Exception:
-        print("WARNING: Could not load cleaned CSV. Falling back to original data.")
-        cleaned_df = df
+    print("[Stage 3/4] ✅ Visualization complete.\n")
 
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
-    print("Building interactive Plotly charts ...")
+    print("[Stage 4/4] Building interactive Plotly charts ...")
     plotly_charts = generate_plotly_charts(
         csv_path=str(cleaned_path),
         relations_text=relation_output,
     )
     _progress("plotly", plotly_charts)
     print(f"Generated {len(plotly_charts)} interactive chart(s).\n")
+
+    # ── Reload cleaned dataframe ──────────────────────────────────────────────
+    try:
+        cleaned_df = read_csv_robust(cleaned_path)
+    except Exception:
+        print("WARNING: Could not load cleaned CSV. Falling back to original data.")
+        cleaned_df = df
 
     return {
         "dataframe":      cleaned_df,

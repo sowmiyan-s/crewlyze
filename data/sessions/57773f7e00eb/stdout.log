@@ -1,0 +1,19 @@
+⚙️ Initializing multi-agent workflows...
+==================================================
+Multi Agent Data Analysis with Crew AI
+==================================================
+Loaded 32 rows, 12 columns
+Columns: model, mpg, cyl, disp, hp, drat, wt, qsec, vs, am...
+Original backed up → data\sessions\57773f7e00eb\original.csv
+Working copy created → data\sessions\57773f7e00eb\cleaned.csv
+
+Building dataset profile ...
+Traceback (most recent call last):
+  File "C:\Users\VSB-AIDSPC80\Downloads\Multi-Agent-Data-Analysis-System-with-CrewAI-main\main.py", line 281, in run_crew_in_background
+    result = run_crew(csv_path, session_id=session_id)
+  File "C:\Users\VSB-AIDSPC80\Downloads\Multi-Agent-Data-Analysis-System-with-CrewAI-main\crew.py", line 323, in run_crew
+    profile = build_dataset_profile(str(cleaned_path), max_rows=profile_max_rows)
+  File "C:\Users\VSB-AIDSPC80\Downloads\Multi-Agent-Data-Analysis-System-with-CrewAI-main\tools\dataset_tools.py", line 175, in build_dataset_profile
+    lines.append(_df_to_markdown(df.head(5), index=False))
+                 ^^^^^^^^^^^^^^^
+NameError: name '_df_to_markdown' is not defined
