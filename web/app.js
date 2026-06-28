@@ -7,6 +7,10 @@
 let sessionId = null;
 let uploadSize = 0;
 let results = null;
+let projects = [];
+let activeProjectId = null;
+let selectedProjectFile = null;
+let logEventSource = null;
 
 const modelOptions = {
     nvidia:      ["nvidia_nim/mistralai/mistral-medium-3.5-128b", "nvidia_nim/mistralai/mistral-large-2407"],
@@ -24,10 +28,12 @@ const modelOptions = {
 
 document.addEventListener("DOMContentLoaded", () => {
     initElements();
+    loadConfig();
     setupDropdowns();
-    setupDropzone();
     setupTabs();
     setupChat();
+    setupProjectWorkspace();
+    fetchProjects();
 });
 
 
@@ -46,12 +52,7 @@ function initElements() {
         cooldown: document.getElementById("cooldown"),
         cooldownVal: document.getElementById("cooldown-val"),
         
-        dropzone: document.getElementById("dropzone"),
-        fileInput: document.getElementById("file-input"),
-        fileInfo: document.getElementById("file-info"),
-        fileName: document.getElementById("file-name"),
-        fileSize: document.getElementById("file-size"),
-        removeFileBtn: document.getElementById("remove-file-btn"),
+        projectFoldersGrid: document.getElementById("project-folders-grid"),
         runBtn: document.getElementById("run-btn"),
         
         terminalSection: document.getElementById("terminal-section"),
@@ -84,10 +85,45 @@ function initElements() {
 }
 
 
-// ── Settings configurations ───────────────────────────────────────────────
+// ── Settings configurations (localStorage Persistence) ───────────────────
+
+function saveConfig() {
+    const config = {
+        provider: elements.provider.value,
+        model: elements.modelSelect.value,
+        override: elements.overrideCheckbox.checked,
+        customModel: elements.modelInput.value,
+        apiKey: elements.apiKey.value,
+        cooldown: elements.cooldown.value
+    };
+    localStorage.setItem("analyst_ai_config", JSON.stringify(config));
+}
+
+function loadConfig() {
+    try {
+        const saved = localStorage.getItem("analyst_ai_config");
+        if (saved) {
+            const config = JSON.parse(saved);
+            if (config.provider) elements.provider.value = config.provider;
+            
+            elements.overrideCheckbox.checked = !!config.override;
+            if (config.customModel) elements.modelInput.value = config.customModel;
+            if (config.apiKey) elements.apiKey.value = config.apiKey;
+            if (config.cooldown) {
+                elements.cooldown.value = config.cooldown;
+                elements.cooldownVal.textContent = config.cooldown;
+            }
+            
+            if (config.model) {
+                elements.savedModelSelect = config.model;
+            }
+        }
+    } catch (e) {
+        console.error("Error loading config from localStorage", e);
+    }
+}
 
 function setupDropdowns() {
-    // Populate model options based on selected provider
     const updateModels = () => {
         const prov = elements.provider.value;
         const options = modelOptions[prov] || [];
@@ -99,25 +135,28 @@ function setupDropdowns() {
             elements.modelSelect.appendChild(el);
         });
 
+        // Restore saved selection
+        if (elements.savedModelSelect) {
+            elements.modelSelect.value = elements.savedModelSelect;
+            elements.savedModelSelect = null;
+        }
+
         // Update key input labels
         if (prov === "ollama") {
             elements.keyLabel.textContent = "Ollama Base URL";
             elements.apiKey.placeholder = "http://localhost:11434";
-            elements.apiKey.value = "http://localhost:11434";
             elements.apiKey.type = "text";
-            elements.cooldown.value = 0;
-            elements.cooldownVal.textContent = 0;
         } else {
             elements.keyLabel.textContent = `${prov.toUpperCase()} API Key`;
             elements.apiKey.placeholder = "Enter key...";
-            elements.apiKey.value = "";
             elements.apiKey.type = "password";
-            elements.cooldown.value = 5;
-            elements.cooldownVal.textContent = 5;
         }
     };
 
-    elements.provider.addEventListener("change", updateModels);
+    elements.provider.addEventListener("change", () => {
+        updateModels();
+        saveConfig();
+    });
     updateModels(); // Initial run
 
     // Toggle custom model input override
@@ -125,74 +164,190 @@ function setupDropdowns() {
         if (elements.overrideCheckbox.checked) {
             elements.modelSelectGroup.style.display = "none";
             elements.modelTextGroup.style.display = "block";
-            // Pre-fill input value
             elements.modelInput.value = elements.modelSelect.value;
         } else {
             elements.modelSelectGroup.style.display = "block";
             elements.modelTextGroup.style.display = "none";
         }
+        saveConfig();
     });
+
+    elements.modelSelect.addEventListener("change", saveConfig);
+    elements.modelInput.addEventListener("input", saveConfig);
+    elements.apiKey.addEventListener("input", saveConfig);
 
     // Sync slider value text
     elements.cooldown.addEventListener("input", () => {
         elements.cooldownVal.textContent = elements.cooldown.value;
+        saveConfig();
     });
 }
 
 
-// ── File upload & dropzone ────────────────────────────────────────────────
+// ── Project Workspace logic ──────────────────────────────────────────────
 
-function setupDropzone() {
-    const dropzone = elements.dropzone;
-    const fileInput = elements.fileInput;
-
-    dropzone.addEventListener("click", () => fileInput.click());
-
-    // Drag-over styling overrides
-    dropzone.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        dropzone.classList.add("dragover");
-    });
-
-    dropzone.addEventListener("dragleave", () => {
-        dropzone.classList.remove("dragover");
-    });
-
-    dropzone.addEventListener("drop", (e) => {
-        e.preventDefault();
-        dropzone.classList.remove("dragover");
-        if (e.dataTransfer.files.length > 0) {
-            handleFileSelection(e.dataTransfer.files[0]);
-        }
-    });
-
-    fileInput.addEventListener("change", () => {
-        if (fileInput.files.length > 0) {
-            handleFileSelection(fileInput.files[0]);
-        }
-    });
-
-    elements.removeFileBtn.addEventListener("click", () => {
-        sessionId = null;
-        elements.fileInput.value = "";
-        elements.fileInfo.style.display = "none";
-        elements.dropzone.style.display = "block";
-        elements.dashboardSection.style.display = "none";
-    });
-
-    elements.runBtn.addEventListener("click", () => {
-        if (sessionId) {
-            startAnalysis();
-        }
-    });
-}
-
-async function handleFileSelection(file) {
-    elements.dropzone.style.display = "none";
-    elements.fileInfo.style.display = "block";
-    elements.fileName.textContent = file.name;
+function setupProjectWorkspace() {
+    const noProjectCreateBtn = document.getElementById("no-project-create-btn");
+    const cancelProjectBtn = document.getElementById("cancel-project-btn");
+    const saveProjectBtn = document.getElementById("save-project-btn");
+    const renameProjectBtn = document.getElementById("rename-project-btn");
+    const goHomeBtn = document.getElementById("go-home-btn");
     
-    // Format human-readable byte sizes
+    // Navigation to New Project Pane
+    const showNewProjectForm = () => {
+        document.getElementById("no-project-pane").style.display = "none";
+        document.getElementById("active-project-pane").style.display = "none";
+        elements.dashboardSection.style.display = "none";
+        elements.terminalSection.style.display = "none";
+        
+        document.getElementById("new-project-pane").style.display = "block";
+        document.getElementById("new-project-name").value = "Analysis - " + new Date().toLocaleDateString();
+        
+        // Reset file upload
+        selectedProjectFile = null;
+        document.getElementById("project-file-info").style.display = "none";
+        document.getElementById("project-dropzone").style.display = "block";
+    };
+
+    if (noProjectCreateBtn) noProjectCreateBtn.addEventListener("click", showNewProjectForm);
+
+    if (cancelProjectBtn) {
+        cancelProjectBtn.addEventListener("click", () => {
+            document.getElementById("new-project-pane").style.display = "none";
+            updateActiveProjectView();
+        });
+    }
+
+    if (goHomeBtn) {
+        goHomeBtn.addEventListener("click", () => {
+            activeProjectId = null;
+            sessionId = null;
+            results = null;
+            updateActiveProjectView();
+        });
+    }
+
+    // Rename project
+    if (renameProjectBtn) {
+        renameProjectBtn.addEventListener("click", async () => {
+            if (!activeProjectId) return;
+            const currentName = document.getElementById("active-project-title").textContent;
+            const newName = prompt("Rename Project:", currentName);
+            if (newName && newName.trim() && newName.trim() !== currentName) {
+                try {
+                    const formData = new FormData();
+                    formData.append("name", newName.trim());
+                    const res = await fetch(`/api/projects/${activeProjectId}/rename`, {
+                        method: "POST",
+                        body: formData
+                    });
+                    if (res.ok) {
+                        fetchProjects();
+                        document.getElementById("active-project-title").textContent = newName.trim();
+                    } else {
+                        alert("Failed to rename project.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Error renaming project.");
+                }
+            }
+        });
+    }
+
+    // Wire up project creation file dropzone
+    const dropzone = document.getElementById("project-dropzone");
+    const fileInput = document.getElementById("project-file-input");
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("dragover");
+        });
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+            if (e.dataTransfer.files.length > 0) {
+                handleProjectFileSelection(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length > 0) {
+                handleProjectFileSelection(fileInput.files[0]);
+            }
+        });
+    }
+
+    const removeFileBtn = document.getElementById("project-remove-file-btn");
+    if (removeFileBtn) {
+        removeFileBtn.addEventListener("click", () => {
+            selectedProjectFile = null;
+            document.getElementById("project-file-info").style.display = "none";
+            document.getElementById("project-dropzone").style.display = "block";
+        });
+    }
+
+    // Save project action
+    if (saveProjectBtn) {
+        saveProjectBtn.addEventListener("click", async () => {
+            const name = document.getElementById("new-project-name").value.trim();
+            if (!name) {
+                alert("Please enter a project name.");
+                return;
+            }
+            if (!selectedProjectFile) {
+                alert("Please select or drop a CSV dataset.");
+                return;
+            }
+
+            saveProjectBtn.disabled = true;
+            saveProjectBtn.textContent = "Creating...";
+
+            const formData = new FormData();
+            formData.append("name", name);
+            formData.append("file", selectedProjectFile);
+
+            try {
+                const res = await fetch("/api/projects", {
+                    method: "POST",
+                    body: formData
+                });
+                if (!res.ok) throw new Error("Failed to create project");
+                const data = await res.json();
+                
+                activeProjectId = data.id;
+                sessionId = data.id;
+                
+                document.getElementById("new-project-pane").style.display = "none";
+                saveProjectBtn.disabled = false;
+                saveProjectBtn.textContent = "Create & Upload";
+                
+                await fetchProjects();
+                selectProject(data.id);
+            } catch (err) {
+                alert("Error creating project: " + err.message);
+                saveProjectBtn.disabled = false;
+                saveProjectBtn.textContent = "Create & Upload";
+                console.error(err);
+            }
+        });
+    }
+}
+
+function handleProjectFileSelection(file) {
+    if (file.type !== "text/csv" && !file.name.endsWith(".csv")) {
+        alert("Please upload a CSV file only.");
+        return;
+    }
+    selectedProjectFile = file;
+    document.getElementById("project-dropzone").style.display = "none";
+    document.getElementById("project-file-info").style.display = "block";
+    document.getElementById("project-file-name").textContent = file.name;
+
     let size = file.size;
     let units = ["B", "KB", "MB"];
     let unitIdx = 0;
@@ -200,44 +355,267 @@ async function handleFileSelection(file) {
         size /= 1024;
         unitIdx++;
     }
-    elements.fileSize.textContent = `(${size.toFixed(1)} ${units[unitIdx]})`;
-    
-    // Perform AJx Upload immediately to obtain session token
-    const formData = new FormData();
-    formData.append("file", file);
+    document.getElementById("project-file-size").textContent = `(${size.toFixed(1)} ${units[unitIdx]})`;
+}
 
-    elements.runBtn.disabled = true;
-    elements.runBtn.textContent = "Uploading...";
-
+async function fetchProjects() {
     try {
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!res.ok) throw new Error("Upload failed");
-        const data = await res.json();
-        sessionId = data.session_id;
-        uploadSize = data.size;
-        
-        elements.runBtn.disabled = false;
-        elements.runBtn.textContent = "▶️ Run Analysis";
+        const res = await fetch("/api/projects");
+        if (!res.ok) throw new Error("Failed to load projects list");
+        projects = await res.json();
+        renderProjectList();
     } catch (err) {
-        alert("Failed to upload file to backend. Check console logs.");
-        elements.fileInfo.style.display = "none";
-        elements.dropzone.style.display = "block";
-        console.error(err);
+        console.error("Error fetching projects:", err);
     }
 }
 
+function renderProjectList() {
+    const listContainer = elements.projectFoldersGrid;
+    if (!listContainer) return;
+    
+    listContainer.innerHTML = "";
+    
+    // Render the "+ New Project" card first
+    const newCard = document.createElement("div");
+    newCard.className = "new-project-folder-card";
+    newCard.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>New Project</span>
+    `;
+    newCard.addEventListener("click", () => {
+        const noProjectCreateBtn = document.getElementById("no-project-create-btn");
+        if (noProjectCreateBtn) {
+            noProjectCreateBtn.click();
+        }
+    });
+    listContainer.appendChild(newCard);
+    
+    if (projects.length === 0) {
+        return;
+    }
 
-// ── Run Analysis & Listen to SSE Logs ─────────────────────────────────────
+    projects.forEach(proj => {
+        const card = document.createElement("div");
+        card.className = "folder-card";
+        card.setAttribute("data-id", proj.id);
+        
+        let sizeText = "0 B";
+        if (proj.size) {
+            let size = proj.size;
+            let units = ["B", "KB", "MB"];
+            let unitIdx = 0;
+            while (size > 1024 && unitIdx < units.length - 1) {
+                size /= 1024;
+                unitIdx++;
+            }
+            sizeText = `${size.toFixed(1)} ${units[unitIdx]}`;
+        }
+        
+        card.innerHTML = `
+            <div class="folder-icon-wrapper">
+                <svg class="folder-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <button class="folder-delete-btn" data-id="${proj.id}" title="Delete Project">✕</button>
+            </div>
+            <div class="folder-details">
+                <span class="folder-name">${escapeHtml(proj.name)}</span>
+                <span class="folder-meta">${escapeHtml(proj.filename)} (${sizeText})</span>
+                <div class="folder-badge-row">
+                    <span class="status-badge status-${proj.status}">${proj.status}</span>
+                </div>
+            </div>
+        `;
+        
+        card.addEventListener("click", (e) => {
+            if (e.target.classList.contains("folder-delete-btn") || e.target.closest(".folder-delete-btn")) {
+                e.stopPropagation();
+                deleteProjectFlow(proj.id);
+            } else {
+                selectProject(proj.id);
+            }
+        });
+        
+        listContainer.appendChild(card);
+    });
+}
+
+async function deleteProjectFlow(id) {
+    if (confirm("Are you sure you want to delete this project? This will erase all its dataset files, analysis, and outputs permanently.")) {
+        try {
+            const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+            if (res.ok) {
+                if (activeProjectId === id) {
+                    activeProjectId = null;
+                    sessionId = null;
+                    results = null;
+                }
+                await fetchProjects();
+                updateActiveProjectView();
+            } else {
+                alert("Failed to delete project.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error deleting project.");
+        }
+    }
+}
+
+function selectProject(id) {
+    activeProjectId = id;
+    sessionId = id;
+    results = null;
+    
+    updateActiveProjectView();
+}
+
+async function updateActiveProjectView() {
+    document.getElementById("new-project-pane").style.display = "none";
+    const sideNav = document.getElementById("sidebar-navigation");
+    const sideNavDivider = document.getElementById("sidebar-nav-divider");
+
+    if (!activeProjectId) {
+        document.getElementById("no-project-pane").style.display = "block";
+        document.getElementById("active-project-pane").style.display = "none";
+        elements.dashboardSection.style.display = "none";
+        elements.terminalSection.style.display = "none";
+        
+        if (sideNav) sideNav.style.display = "none";
+        if (sideNavDivider) sideNavDivider.style.display = "none";
+        
+        fetchProjects();
+        return;
+    }
+
+    if (sideNav) sideNav.style.display = "block";
+    if (sideNavDivider) sideNavDivider.style.display = "block";
+
+    const proj = projects.find(p => p.id === activeProjectId);
+    if (!proj) return;
+
+    document.getElementById("no-project-pane").style.display = "none";
+    document.getElementById("active-project-pane").style.display = "block";
+    
+    document.getElementById("active-project-title").textContent = proj.name;
+    document.getElementById("active-project-filename").textContent = proj.filename;
+    
+    let sizeText = "0 bytes";
+    if (proj.size) {
+        let size = proj.size;
+        let units = ["B", "KB", "MB"];
+        let unitIdx = 0;
+        while (size > 1024 && unitIdx < units.length - 1) {
+            size /= 1024;
+            unitIdx++;
+        }
+        sizeText = `${size.toFixed(1)} ${units[unitIdx]}`;
+    }
+    document.getElementById("active-project-filesize").textContent = ` (${sizeText})`;
+
+    const badge = document.getElementById("active-project-status-badge");
+    badge.className = `status-badge status-${proj.status}`;
+    badge.textContent = proj.status;
+
+    if (proj.status === "completed") {
+        document.getElementById("project-run-controls").style.display = "block";
+        elements.runBtn.textContent = "Rerun Analysis";
+        elements.runBtn.disabled = false;
+        
+        await fetchResults();
+        elements.terminalSection.style.display = "none";
+    } else if (proj.status === "running") {
+        document.getElementById("project-run-controls").style.display = "none";
+        elements.runBtn.disabled = true;
+        elements.runBtn.textContent = "Analyzing...";
+        
+        elements.dashboardSection.style.display = "none";
+        elements.terminalSection.style.display = "block";
+        
+        connectToLogStream();
+    } else if (proj.status === "failed") {
+        document.getElementById("project-run-controls").style.display = "block";
+        elements.runBtn.textContent = "Rerun Analysis";
+        elements.runBtn.disabled = false;
+        
+        elements.dashboardSection.style.display = "none";
+        elements.terminalSection.style.display = "block";
+        elements.terminalStatus.textContent = "FAILED";
+        elements.terminalStatus.className = "terminal-status error";
+        
+        loadStaticLogs();
+    } else { // idle
+        document.getElementById("project-run-controls").style.display = "block";
+        elements.runBtn.textContent = "Run Analysis";
+        elements.runBtn.disabled = false;
+        
+        elements.dashboardSection.style.display = "none";
+        elements.terminalSection.style.display = "none";
+    }
+}
+
+function connectToLogStream() {
+    if (logEventSource) {
+        logEventSource.close();
+    }
+    
+    elements.terminalLog.textContent = "$ connecting_to_agentic_pipeline_logs...\n";
+    elements.terminalStatus.textContent = "RUNNING";
+    elements.terminalStatus.className = "terminal-status";
+
+    logEventSource = new EventSource(`/api/analyze/stream?session_id=${sessionId}`);
+    
+    logEventSource.onmessage = (event) => {
+        if (event.data === "[EOF]") {
+            logEventSource.close();
+            logEventSource = null;
+            
+            fetchProjects().then(() => {
+                selectProject(activeProjectId);
+            });
+        } else {
+            elements.terminalLog.textContent += event.data + "\n";
+            elements.terminalLog.scrollTop = elements.terminalLog.scrollHeight;
+        }
+    };
+
+    logEventSource.onerror = (err) => {
+        console.error("SSE log stream error:", err);
+        logEventSource.close();
+        logEventSource = null;
+        elements.terminalStatus.textContent = "DISCONNECTED";
+    };
+}
+
+async function loadStaticLogs() {
+    elements.terminalLog.textContent = "$ loading_previous_logs...\n";
+    connectToLogStream();
+}
+
+
+// ── Start CrewAI Pipeline kickoff ────────────────────────────────────────
 
 async function startAnalysis() {
+    if (!activeProjectId) return;
+    
     elements.runBtn.disabled = true;
     elements.runBtn.textContent = "Analyzing...";
+    
+    const proj = projects.find(p => p.id === activeProjectId);
+    if (proj) {
+        proj.status = "running";
+        renderProjectList();
+    }
+    
+    document.getElementById("project-run-controls").style.display = "none";
     elements.terminalSection.style.display = "block";
     elements.terminalLog.textContent = "$ initializing_pipeline_engine...\n";
     elements.terminalStatus.textContent = "RUNNING";
     elements.terminalStatus.className = "terminal-status";
     
-    // 1. Trigger the analysis call
     const modelName = elements.overrideCheckbox.checked ? elements.modelInput.value : elements.modelSelect.value;
     
     const formData = new FormData();
@@ -251,37 +629,12 @@ async function startAnalysis() {
         const startRes = await fetch("/api/analyze", { method: "POST", body: formData });
         if (!startRes.ok) throw new Error("Could not start analysis");
         
-        // 2. Open Server-Sent Events (SSE) stream listener
-        const eventSource = new EventSource(`/api/analyze/stream?session_id=${sessionId}`);
-        
-        eventSource.onmessage = (event) => {
-            if (event.data === "[EOF]") {
-                eventSource.close();
-                elements.terminalStatus.textContent = "COMPLETE";
-                elements.terminalStatus.className = "terminal-status complete";
-                elements.runBtn.disabled = false;
-                elements.runBtn.textContent = "▶️ Run Analysis";
-                
-                // Fetch final cached results
-                fetchResults();
-            } else {
-                // Append log lines
-                elements.terminalLog.textContent += event.data + "\n";
-                // Auto scroll
-                elements.terminalLog.scrollTop = elements.terminalLog.scrollHeight;
-            }
-        };
-
-        eventSource.onerror = (err) => {
-            console.error("SSE stream error: ", err);
-            eventSource.close();
-            elements.terminalStatus.textContent = "ERROR";
-            elements.runBtn.disabled = false;
-        };
-
+        connectToLogStream();
     } catch (err) {
         alert("Failed to trigger data analysis: " + err.message);
         elements.runBtn.disabled = false;
+        elements.runBtn.textContent = "▶️ Run Analysis";
+        document.getElementById("project-run-controls").style.display = "block";
         console.error(err);
     }
 }
@@ -639,11 +992,24 @@ function appendBubble(role, content, isLoading = false, plotUrl = null) {
     const messageDiv = document.createElement("div");
     messageDiv.className = `message ${role}`;
     
+    // Add Avatar element
+    const avatar = document.createElement("div");
+    avatar.className = "avatar";
+    avatar.textContent = role === "user" ? "👤" : "⚡";
+    messageDiv.appendChild(avatar);
+    
+    // Add Content Wrapper
+    const messageContent = document.createElement("div");
+    messageContent.className = "message-content";
+    
     const bubble = document.createElement("div");
     bubble.className = "bubble";
-    bubble.textContent = content;
-    
-    messageDiv.appendChild(bubble);
+    if (isLoading) {
+        bubble.textContent = content;
+    } else {
+        bubble.innerHTML = formatMessageText(content);
+    }
+    messageContent.appendChild(bubble);
 
     if (plotUrl) {
         const img = document.createElement("img");
@@ -652,17 +1018,33 @@ function appendBubble(role, content, isLoading = false, plotUrl = null) {
         img.onload = () => {
             elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
         };
-        messageDiv.appendChild(img);
+        messageContent.appendChild(img);
     }
 
+    messageDiv.appendChild(messageContent);
     elements.chatHistory.appendChild(messageDiv);
     elements.chatHistory.scrollTop = elements.chatHistory.scrollHeight;
     
-    return bubble;
+    return messageDiv;
 }
 
 
 // ── Utilities ─────────────────────────────────────────────────────────────
+
+function formatMessageText(text) {
+    if (!text) return "";
+    let html = escapeHtml(text);
+    
+    // Convert ```python or ```code blocks
+    html = html.replace(/```(?:[a-zA-Z0-9]+)?\n([\s\S]+?)\n```/g, '<pre class="chat-code-block"><code>$1</code></pre>');
+    // Convert regular ``` blocks
+    html = html.replace(/```([\s\S]+?)```/g, '<pre class="chat-code-block"><code>$1</code></pre>');
+    // Convert `inline code`
+    html = html.replace(/`([^`\n]+)`/g, '<code class="chat-inline-code">$1</code>');
+    // Convert newlines to <br>
+    html = html.replace(/\n/g, '<br>');
+    return html;
+}
 
 function escapeHtml(str) {
     return str
@@ -672,3 +1054,5 @@ function escapeHtml(str) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+

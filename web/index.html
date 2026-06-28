@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agentic Data Analyst — Autonomous Business Intelligence Platform</title>
+    <title>Analyst.AI — Autonomous Business Intelligence Platform</title>
     <!-- Outfit & JetBrains Mono Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,16 +13,38 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <!-- Top SaaS Navigation Bar -->
+    <header class="navbar" id="navbar">
+        <div class="nav-logo">
+            <span class="logo-text">ANALYST<span class="logo-dot">.AI</span></span>
+        </div>
+        <div class="nav-actions">
+            <div class="status-indicator">
+                <span class="status-dot green"></span>
+                <span class="status-label">API Services: Operational</span>
+            </div>
+            <span class="version-tag">Enterprise Edition v3.1.0</span>
+        </div>
+    </header>
+
     <div class="app-container">
         
         <!-- ── Left Sidebar Settings Panel ────────────────────────────────── -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>📊 Configuration</h2>
+                <h2>Workspace</h2>
             </div>
             
+            <!-- Navigation Back Section (visible when a project is selected) -->
+            <div class="sidebar-section" id="sidebar-navigation" style="display: none;">
+                <button class="btn btn-secondary btn-full" id="go-home-btn" style="width: 100%; border-radius: 6px; font-weight: 500;">Back to Projects</button>
+            </div>
+
+            <hr class="sidebar-divider" id="sidebar-nav-divider" style="display: none; border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+
             <div class="sidebar-section">
-                <h3>LLM Provider Settings</h3>
+                <h3>LLM Configuration</h3>
                 
                 <div class="form-group">
                     <label for="provider">Select Provider</label>
@@ -81,27 +103,80 @@
 
         <!-- ── Right Main Panels ─────────────────────────────────────────── -->
         <main class="main-content">
-            <header class="main-header">
-                <h1 class="main-title">Agentic Data Analyst</h1>
-                <p class="main-subtitle">Autonomous Multi-Agent Business Intelligence and Data Engineering System</p>
-            </header>
-
-            <!-- Upload Dropzone -->
-            <section class="glass-card upload-section">
-                <div class="dropzone" id="dropzone">
-                    <span class="upload-icon">📥</span>
-                    <h3>Drag & Drop CSV dataset here</h3>
-                    <p>or click to browse local files</p>
-                    <input type="file" id="file-input" accept=".csv" style="display: none;">
-                </div>
-                <div id="file-info" style="display: none;">
-                    <div class="file-info-badge">
-                        <span class="file-icon">📄</span>
-                        <span id="file-name">dataset.csv</span>
-                        <span id="file-size">(0 bytes)</span>
-                        <button id="remove-file-btn">✕</button>
+            <!-- Home Projects Grid View -->
+            <section class="placeholder-section" id="no-project-pane">
+                <div class="home-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <div>
+                        <h1 style="font-size: 2.25rem; font-weight: 800; margin: 0; color: #ffffff;">Projects</h1>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.9rem; color: var(--text-secondary);">Manage and execute your multi-agent datasets</p>
                     </div>
-                    <button class="btn btn-primary" id="run-btn">▶️ Run Analysis</button>
+                    <button class="btn btn-primary" id="no-project-create-btn">Create Project</button>
+                </div>
+
+                <div class="folders-grid" id="project-folders-grid">
+                    <!-- Project Folders rendered dynamically via app.js -->
+                </div>
+            </section>
+
+            <!-- New Project Setup Form Pane -->
+            <section class="glass-card new-project-section" id="new-project-pane" style="display: none;">
+                <div class="pane-header" style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                    <h2>Create New Analysis Project</h2>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new-project-name">Project Name</label>
+                    <input type="text" id="new-project-name" placeholder="e.g. Sales Report Q4">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 2rem;">
+                    <label>Select CSV Dataset</label>
+                    <div class="dropzone" id="project-dropzone">
+                        <span class="upload-icon" style="font-size: 3rem; display: block; margin-bottom: 1rem;">Upload</span>
+                        <h3>Drag & Drop CSV dataset here</h3>
+                        <p>or click to browse local files</p>
+                        <input type="file" id="project-file-input" accept=".csv" style="display: none;">
+                    </div>
+                    <div id="project-file-info" style="display: none; margin-top: 1rem;">
+                        <div class="file-info-badge">
+                            <span class="file-icon">File:</span>
+                            <span id="project-file-name" style="font-weight: 600; flex-grow: 1;">dataset.csv</span>
+                            <span id="project-file-size" style="color: var(--text-secondary); font-size: 0.85em; margin-right: 1rem;">(0 bytes)</span>
+                            <button id="project-remove-file-btn" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" id="save-project-btn">Create & Upload</button>
+                    <button class="btn btn-secondary" id="cancel-project-btn">Cancel</button>
+                </div>
+            </section>
+
+            <!-- Active Project Execution Panel -->
+            <section class="glass-card active-project-section" id="active-project-pane" style="display: none;">
+                <div class="project-banner" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h2 id="active-project-title" style="margin: 0; font-size: 1.6rem; color: #ffffff;">Project Title</h2>
+                            <button id="rename-project-btn" class="text-btn" style="background: none; border: none; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); text-decoration: underline;" title="Rename Project">Rename</button>
+                        </div>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">
+                            Dataset: <span id="active-project-filename" style="font-family: var(--font-mono); color: var(--accent-cyan);">dataset.csv</span>
+                            <span id="active-project-filesize" style="color: var(--text-muted);"> (0 bytes)</span>
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="active-project-status-badge" class="status-badge status-idle">IDLE</span>
+                    </div>
+                </div>
+
+                <!-- Setup & Run Card -->
+                <div id="project-run-controls" style="display: block;">
+                    <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5;">
+                        Configure the LLM settings in the sidebar panel, then initiate the autonomous multi-agent analysis workflows below. The agents will clean the dataset, profile column correlations, write visual analytics scripts, and build a PDF summary.
+                    </p>
+                    <button class="btn btn-primary" id="run-btn">Run Analysis</button>
                 </div>
             </section>
 
@@ -114,15 +189,14 @@
                     <span class="terminal-title">agentic_terminal_output</span>
                     <span class="terminal-status" id="terminal-status">RUNNING</span>
                 </div>
-                <pre class="terminal-body" id="terminal-log">$ initializing_pipeline_engine...
-</pre>
+                <pre class="terminal-body" id="terminal-log">$ initializing_pipeline_engine...</pre>
             </section>
 
             <!-- Analysis Dashboard -->
             <section id="dashboard-section" style="display: none;">
                 
                 <div class="dashboard-banner">
-                    <h2>📊 Executive Dashboard</h2>
+                    <h2>Executive Dashboard</h2>
                 </div>
 
                 <!-- Visual Scorecard stats grid -->
@@ -148,15 +222,15 @@
                 <!-- Tabbed Results Explorer -->
                 <div class="glass-card results-container">
                     <div class="tab-header">
-                        <button class="tab-btn active" data-tab="preview">🔍 Data Preview</button>
-                        <button class="tab-btn" data-tab="cleaning">🧹 Clean Report</button>
-                        <button class="tab-btn" data-tab="relations">🔗 Relations Map</button>
-                        <button class="tab-btn" data-tab="insights">💡 Key Insights</button>
-                        <button class="tab-btn" data-tab="visual">📈 Visual Intelligence</button>
+                        <button class="tab-btn active" data-tab="preview">Data Preview</button>
+                        <button class="tab-btn" data-tab="cleaning">Clean Report</button>
+                        <button class="tab-btn" data-tab="relations">Relations Map</button>
+                        <button class="tab-btn" data-tab="insights">Key Insights</button>
+                        <button class="tab-btn" data-tab="visual">Visual Intelligence</button>
                     </div>
 
                     <div class="tab-content active" id="tab-preview">
-                        <h3>🔍 Dataset Explorer</h3>
+                        <h3>Dataset Explorer</h3>
                         <div class="table-wrapper">
                             <table id="preview-table">
                                 <!-- Populated dynamically -->
@@ -165,31 +239,31 @@
                     </div>
 
                     <div class="tab-content" id="tab-cleaning">
-                        <h3>🧹 Data Cleaning Operations</h3>
+                        <h3>Data Cleaning Operations</h3>
                         <div id="cleaning-timeline" class="timeline-container">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
 
                     <div class="tab-content" id="tab-relations">
-                        <h3>🔗 Column Relationships</h3>
+                        <h3>Column Relationships</h3>
                         <div id="relations-grid" class="relations-grid">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
 
                     <div class="tab-content" id="tab-insights">
-                        <h3>💡 Business Intelligence Insights</h3>
+                        <h3>Business Intelligence Insights</h3>
                         <div id="insights-container">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
 
                     <div class="tab-content" id="tab-visual">
-                        <h3>📈 Visual Intelligence</h3>
+                        <h3>Visual Intelligence</h3>
                         
                         <div id="plotly-charts-section">
-                            <h4>🎯 Interactive Charts</h4>
+                            <h4>Interactive Charts</h4>
                             <p class="caption">Zoom, pan, and hover for details on any chart.</p>
                             <div id="plotly-gallery" class="plotly-gallery">
                                 <!-- Dynamic JS charts -->
@@ -198,7 +272,7 @@
                         </div>
 
                         <div id="static-charts-section" style="display: none;">
-                            <h4>🖼️ Agent-Generated Visualizations</h4>
+                            <h4>Agent-Generated Visualizations</h4>
                             <div id="static-gallery" class="static-gallery">
                                 <!-- PNG Fallbacks -->
                             </div>
@@ -209,24 +283,24 @@
                 <!-- Code Expander -->
                 <div class="glass-card expander-card">
                     <details>
-                        <summary>⚙️ Visualization Architecture Code</summary>
+                        <summary>Visualization Architecture Code</summary>
                         <pre class="code-block"><code id="code-content"></code></pre>
                     </details>
                 </div>
 
                 <!-- Export options -->
                 <div class="glass-card export-card">
-                    <h3>📥 Export Options</h3>
+                    <h3>Export Options</h3>
                     <div class="export-grid">
-                        <button class="btn btn-primary" id="download-pdf-btn">📄 Export Full Report as PDF</button>
-                        <button class="btn btn-secondary" id="download-csv-btn">📥 Download Cleaned Dataset (CSV)</button>
+                        <button class="btn btn-primary" id="download-pdf-btn">Export Full Report as PDF</button>
+                        <button class="btn btn-secondary" id="download-csv-btn">Download Cleaned Dataset (CSV)</button>
                     </div>
                 </div>
 
                 <!-- AI Copilot Chat Box -->
                 <div class="glass-card copilot-card">
                     <div class="copilot-header">
-                        <h3>💬 Interactive AI Data Copilot</h3>
+                        <h3>Interactive AI Data Copilot</h3>
                         <p>Ask questions, query columns, or generate new visualizations in real-time.</p>
                     </div>
                     <div class="chat-history" id="chat-history">
@@ -236,7 +310,7 @@
                         </div>
                     </div>
                     <div class="chat-input-wrapper">
-                        <input type="text" id="chat-input" placeholder="e.g. 'Show average sensor vibration by defect type' or 'Plot column A vs B'...">
+                        <input type="text" id="chat-input" placeholder="Query your dataset (e.g. average values, correlation, charts)...">
                         <button id="chat-send-btn">Send</button>
                     </div>
                 </div>
