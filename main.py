@@ -11,10 +11,12 @@ for streaming real-time analysis logs.
 import os
 import sys
 import json
+import re
 import uuid
 import asyncio
 import threading
 import shutil
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +24,106 @@ from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPExcept
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+
+# regex to find ANSI terminal escape patterns
+ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+# To keep track of log states (e.g. ignoring prompt blocks) per session
+log_stream_states = {}
+
+def clean_log_message(line: str, session_id: Optional[str] = None) -> Optional[str]:
+    """Strip ANSI color codes, ignore noisy messages, and format thoughts/actions nicely."""
+    # Strip ANSI colors/escapes
+    line = ANSI_ESCAPE.sub('', line)
+    
+    # Check if empty
+    stripped = line.strip()
+    if not stripped:
+        return None
+
+    line_lower = stripped.lower()
+    
+    # System logs noise keywords to ignore
+    noise_keywords = [
+        "scriptruncontext",
+        "telemetry_opt_out",
+        "otel_sdk_disabled",
+        "opentelemetry",
+        "urllib3",
+        "connectionpool",
+        "http/1.1",
+        "httpx",
+        "backoff",
+        "requests.packages",
+        "missing scriptruncontext",
+        "openai-api-keyword",
+        "http request",
+        "cooldown",
+        "rate limit",
+        "max_tokens",
+    ]
+    if any(kw in line_lower for kw in noise_keywords):
+        return None
+
+    # Handle stateful prompt block ignoring
+    if session_id:
+        if session_id not in log_stream_states:
+            log_stream_states[session_id] = {"in_prompt": False}
+        state = log_stream_states[session_id]
+        
+        # Start ignoring if prompt starts
+        if "prompt after formatting:" in line_lower or "use the following format:" in line_lower:
+            state["in_prompt"] = True
+            return None
+            
+        # Stop ignoring if agent thoughts/actions/results start
+        if state["in_prompt"]:
+            stop_triggers = ["thought:", "action:", "action input:", "response:", "observation:", "entering new", "finished chain"]
+            if any(trig in line_lower for trig in stop_triggers):
+                state["in_prompt"] = False
+            else:
+                return None  # Still ignoring prompt contents
+
+    # Ignore raw debug logs from crewai/langchain
+    if stripped.startswith("[DEBUG]:") or stripped.startswith("[INFO]:"):
+        if "working agent" in line_lower:
+            agent_name = stripped.split(":", 2)[-1].strip()
+            return f"🤖 {agent_name} is active..."
+        return None
+
+    # Format specific Langchain output structures for a premium look
+    if "entering new crewagentexecutor chain" in line_lower:
+        return "⚡ Starting agent execution task..."
+    if "finished chain" in line_lower:
+        return "✨ Execution task completed."
+    
+    # Format Thoughts, Actions, inputs, and outputs nicely
+    if stripped.startswith("Thought:"):
+        thought_text = stripped[8:].strip()
+        return f"💭 Thought: {thought_text}"
+        
+    if stripped.startswith("Action:"):
+        action_text = stripped[7:].strip()
+        return f"🛠️ Calling Tool: {action_text}"
+        
+    if stripped.startswith("Action Input:"):
+        input_text = stripped[13:].strip()
+        if len(input_text) > 150:
+            input_text = input_text[:150] + "..."
+        return f"📥 Input: {input_text}"
+        
+    if stripped.startswith("Response:") or stripped.startswith("Observation:"):
+        resp_text = stripped.split(":", 1)[1].strip()
+        if len(resp_text) > 150:
+            resp_text = resp_text[:150] + "..."
+        return f"📤 Tool Response: {resp_text}"
+
+    if "warning" in line_lower or "error" in line_lower:
+        if "error" in line_lower:
+            return f"❌ {stripped}"
+        return f"⚠️ {stripped}"
+
+    return stripped
 
 # Core analysis engines
 from crew import run_crew
@@ -58,6 +160,57 @@ OUTPUTS_DIR = Path("outputs")
 for path in (DATA_DIR, SESSIONS_DIR, OUTPUTS_DIR):
     path.mkdir(exist_ok=True)
 
+def save_project_metadata(project_id: str, meta: dict):
+    session_dir = SESSIONS_DIR / project_id
+    if not session_dir.exists():
+        session_dir.mkdir(parents=True, exist_ok=True)
+    metadata_path = session_dir / "metadata.json"
+    with open(metadata_path, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+
+def get_project_metadata(project_id: str) -> dict:
+    session_dir = SESSIONS_DIR / project_id
+    metadata_path = session_dir / "metadata.json"
+    
+    if not session_dir.exists():
+        return {}
+        
+    if metadata_path.exists():
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+            
+    # Default metadata if not present (compatibility check)
+    upload_file = session_dir / "original_upload.csv"
+    filename = "dataset.csv"
+    size = 0
+    if upload_file.exists():
+        filename = "dataset.csv"
+        size = upload_file.stat().st_size
+    
+    results_path = session_dir / "results.json"
+    status = "idle"
+    if results_path.exists():
+        status = "completed"
+    elif (session_dir / "done.txt").exists():
+        status = "completed"
+        
+    created_at = session_dir.stat().st_ctime
+    
+    meta = {
+        "id": project_id,
+        "name": f"Project {project_id}",
+        "filename": filename,
+        "size": size,
+        "created_at": created_at * 1000,
+        "status": status
+    }
+    
+    save_project_metadata(project_id, meta)
+    return meta
+
 
 # ---------------------------------------------------------------------------
 # Background Task Pipeline
@@ -91,6 +244,14 @@ def run_crew_in_background(
     # Clean up previous state
     done_path.unlink(missing_ok=True)
     results_path.unlink(missing_ok=True)
+
+    # Update metadata status to running
+    try:
+        meta = get_project_metadata(session_id)
+        meta["status"] = "running"
+        save_project_metadata(session_id, meta)
+    except Exception:
+        pass
 
     # 2. Redirect stdout and kickoff
     with open(log_path, "w", encoding="utf-8", errors="replace") as log_file:
@@ -138,6 +299,14 @@ def run_crew_in_background(
                 
                 print("\n✅ Analysis complete! Ready to render dashboard.")
 
+                # Update metadata status to completed
+                try:
+                    meta = get_project_metadata(session_id)
+                    meta["status"] = "completed"
+                    save_project_metadata(session_id, meta)
+                except Exception:
+                    pass
+
             except Exception as e:
                 import traceback
                 print(f"\n❌ Pipeline failed: {e}", file=sys.stderr)
@@ -146,6 +315,14 @@ def run_crew_in_background(
                 error_result = {"error": str(e)}
                 with open(results_path, "w", encoding="utf-8") as f:
                     json.dump(error_result, f, indent=2)
+
+                # Update metadata status to failed
+                try:
+                    meta = get_project_metadata(session_id)
+                    meta["status"] = "failed"
+                    save_project_metadata(session_id, meta)
+                except Exception:
+                    pass
             finally:
                 # Write done sentinel to stop EventSource streams
                 with open(done_path, "w") as f:
@@ -171,6 +348,21 @@ async def upload_file(file: UploadFile = File(...)):
     log_path = session_dir / "stdout.log"
     with open(log_path, "w") as f:
         f.write("Dataset uploaded successfully.\n")
+
+    # Save default project metadata
+    try:
+        proj_name = file.filename.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ').title()
+        meta = {
+            "id": session_id,
+            "name": proj_name,
+            "filename": file.filename,
+            "size": file_path.stat().st_size,
+            "created_at": time.time() * 1000,
+            "status": "idle"
+        }
+        save_project_metadata(session_id, meta)
+    except Exception:
+        pass
 
     return {
         "session_id": session_id,
@@ -224,6 +416,10 @@ async def stream_analysis_logs(session_id: str):
     session_dir = SESSIONS_DIR / session_id
     log_path = session_dir / "stdout.log"
 
+    # Reset streaming state
+    if session_id in log_stream_states:
+        log_stream_states[session_id] = {"in_prompt": False}
+
     async def log_generator():
         # Wait for stdout.log file to populate
         for _ in range(50):
@@ -238,16 +434,18 @@ async def stream_analysis_logs(session_id: str):
             while True:
                 line = f.readline()
                 if line:
-                    clean_line = line.replace("\n", "").replace("\r", "")
-                    yield f"data: {clean_line}\n\n"
+                    cleaned = clean_log_message(line, session_id=session_id)
+                    if cleaned is not None:
+                        yield f"data: {cleaned}\n\n"
                 else:
                     # Look for done flag
                     done_path = session_dir / "done.txt"
                     if done_path.exists():
                         # Read final trailing lines
                         for trail_line in f.readlines():
-                            clean_trail = trail_line.replace("\n", "").replace("\r", "")
-                            yield f"data: {clean_trail}\n\n"
+                            cleaned_trail = clean_log_message(trail_line, session_id=session_id)
+                            if cleaned_trail is not None:
+                                yield f"data: {cleaned_trail}\n\n"
                         yield "data: [EOF]\n\n"
                         break
                     await asyncio.sleep(0.1)
@@ -365,6 +563,87 @@ async def serve_chart(session_id: str, filename: str):
 def BytesIO_iterator(data_bytes: bytes):
     """Simple generator to stream raw bytes back to the response."""
     yield data_bytes
+
+
+# ---------------------------------------------------------------------------
+# Project Management APIs
+# ---------------------------------------------------------------------------
+
+@app.get("/api/projects")
+async def list_projects():
+    """Lists all available data analysis projects/sessions."""
+    projects = []
+    if SESSIONS_DIR.exists():
+        for p in SESSIONS_DIR.iterdir():
+            if p.is_dir():
+                try:
+                    meta = get_project_metadata(p.name)
+                    if meta:
+                        projects.append(meta)
+                except Exception:
+                    pass
+    # Sort projects: newest first
+    projects.sort(key=lambda x: x.get("created_at", 0), reverse=True)
+    return projects
+
+@app.post("/api/projects")
+async def create_project(
+    name: str = Form(...),
+    file: UploadFile = File(...)
+):
+    """Creates a new project context and uploads the dataset CSV."""
+    project_id = uuid.uuid4().hex[:12]
+    session_dir = SESSIONS_DIR / project_id
+    session_dir.mkdir(parents=True, exist_ok=True)
+
+    file_path = session_dir / "original_upload.csv"
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Pre-configure fresh log files
+    log_path = session_dir / "stdout.log"
+    with open(log_path, "w") as f:
+        f.write("Project created. Dataset uploaded successfully.\n")
+
+    meta = {
+        "id": project_id,
+        "name": name.strip(),
+        "filename": file.filename,
+        "size": file_path.stat().st_size,
+        "created_at": time.time() * 1000,
+        "status": "idle"
+    }
+    save_project_metadata(project_id, meta)
+
+    return meta
+
+@app.post("/api/projects/{project_id}/rename")
+async def rename_project(project_id: str, name: str = Form(...)):
+    """Renames an existing project context."""
+    session_dir = SESSIONS_DIR / project_id
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    meta = get_project_metadata(project_id)
+    meta["name"] = name.strip()
+    save_project_metadata(project_id, meta)
+
+    return meta
+
+@app.delete("/api/projects/{project_id}")
+async def delete_project(project_id: str):
+    """Deletes all session files, artifacts, and outputs of a project."""
+    session_dir = SESSIONS_DIR / project_id
+    output_dir = OUTPUTS_DIR / project_id
+
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    shutil.rmtree(session_dir, ignore_errors=True)
+    if output_dir.exists():
+        shutil.rmtree(output_dir, ignore_errors=True)
+
+    return {"status": "deleted", "id": project_id}
 
 
 # ---------------------------------------------------------------------------
