@@ -1,21 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850">
   <defs>
-    <!-- Vibrant Gradients -->
-    <linearGradient id="streamGrad" x1="0%" y1="50%" x2="100%" y2="50%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.8" />
-      <stop offset="15%" style="stop-color:#22d3ee;stop-opacity:1" /> <!-- Cyan -->
-      <stop offset="35%" style="stop-color:#3b82f6;stop-opacity:1" /> <!-- Blue -->
-      <stop offset="55%" style="stop-color:#a855f7;stop-opacity:1" /> <!-- Purple -->
-      <stop offset="75%" style="stop-color:#ec4899;stop-opacity:1" /> <!-- Pink -->
-      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" /> <!-- Orange -->
+    <!-- Sleek Gradients -->
+    <linearGradient id="streamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" /> <!-- Violet -->
+      <stop offset="50%" style="stop-color:#22d3ee;stop-opacity:1" /> <!-- Cyan -->
+      <stop offset="100%" style="stop-color:#f43f5e;stop-opacity:1" /> <!-- Rose -->
     </linearGradient>
 
     <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:0.9" />
-      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:0.95" />
+      <stop offset="0%" style="stop-color:rgba(30, 41, 59, 0.85)" />
+      <stop offset="100%" style="stop-color:rgba(15, 23, 42, 0.95)" />
+    </linearGradient>
+
+    <linearGradient id="chatGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:rgba(124, 58, 237, 0.15)" />
+      <stop offset="100%" style="stop-color:rgba(34, 211, 238, 0.05)" />
+    </linearGradient>
+
+    <linearGradient id="agenticGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:rgba(28, 28, 33, 0.8)" />
+      <stop offset="100%" style="stop-color:rgba(9, 9, 11, 0.95)" />
     </linearGradient>
 
     <!-- Glow Filters -->
+    <filter id="violetGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
     <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
       <feMerge>
@@ -23,162 +38,179 @@
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
-
-    <filter id="textGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="2" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    
-    <!-- Tech Stack Badge Gradient -->
-    <linearGradient id="techGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#334155;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
-    </linearGradient>
   </defs>
 
-  <!-- Deep Space Background -->
-  <rect width="1200" height="800" fill="#020617"/>
-  
-  <!-- Subtle Grid -->
-  <g stroke="#1e293b" stroke-width="1" opacity="0.3">
-    <path d="M0 100 H1200 M0 200 H1200 M0 300 H1200 M0 400 H1200 M0 500 H1200 M0 600 H1200 M0 700 H1200"/>
-    <path d="M100 0 V800 M200 0 V800 M300 0 V800 M400 0 V800 M500 0 V800 M600 0 V800 M700 0 V800 M800 0 V800 M900 0 V800 M1000 0 V800 M1100 0 V800"/>
+  <!-- Deep space background -->
+  <rect width="1200" height="850" fill="#09090b" />
+
+  <!-- Subtle grid lines -->
+  <g stroke="rgba(255,255,255,0.02)" stroke-width="1">
+    <path d="M0 100 H1200 M0 200 H1200 M0 300 H1200 M0 400 H1200 M0 500 H1200 M0 600 H1200 M0 700 H1200 M0 800 H1200"/>
+    <path d="M100 0 V850 M200 0 V850 M300 0 V850 M400 0 V850 M500 0 V850 M600 0 V850 M700 0 V850 M800 0 V850 M900 0 V850 M1000 0 V850 M1100 0 V850"/>
   </g>
 
-  <!-- Main Title -->
+  <!-- Header Section -->
   <g transform="translate(600, 60)">
-    <text x="0" y="0" fill="#f8fafc" font-family="'Segoe UI', sans-serif" font-size="32" font-weight="800" text-anchor="middle" filter="url(#textGlow)">
-      Multi Agent Data Analysis with Crew AI
+    <text x="0" y="0" fill="#ffffff" font-family="'Inter', sans-serif" font-size="34" font-weight="800" text-anchor="middle" filter="url(#violetGlow)">
+      Agentic Data Analysis System Workflow
     </text>
-    <text x="0" y="30" fill="#94a3b8" font-family="'Segoe UI', sans-serif" font-size="16" font-weight="400" text-anchor="middle" letter-spacing="2">
-      INTELLIGENT MULTI-AGENT PIPELINE
+    <text x="0" y="32" fill="#a1a1aa" font-family="'Inter', sans-serif" font-size="14" font-weight="600" text-anchor="middle" letter-spacing="3">
+      DUAL-ENGINE ARCHITECTURE &amp; MULTI-AGENT ORCHESTRATION
     </text>
   </g>
 
-  <!-- The "Stream" Path (Bezier Curve) -->
-  <path id="mainStream" d="M -50 400 C 150 400, 200 250, 350 250 C 500 250, 550 550, 700 550 C 850 550, 900 300, 1050 300 C 1150 300, 1200 400, 1250 400" 
-        fill="none" stroke="url(#streamGrad)" stroke-width="8" stroke-linecap="round" filter="url(#neonGlow)"/>
-  
-  <!-- Animated Data Particles on Stream -->
-  <circle r="4" fill="#fff">
-    <animateMotion dur="3s" repeatCount="indefinite" path="M -50 400 C 150 400, 200 250, 350 250 C 500 250, 550 550, 700 550 C 850 550, 900 300, 1050 300 C 1150 300, 1200 400, 1250 400" />
-  </circle>
-  <circle r="3" fill="#fff" opacity="0.6">
-    <animateMotion dur="3s" begin="0.5s" repeatCount="indefinite" path="M -50 400 C 150 400, 200 250, 350 250 C 500 250, 550 550, 700 550 C 850 550, 900 300, 1050 300 C 1150 300, 1200 400, 1250 400" />
-  </circle>
-  <circle r="5" fill="#fff" opacity="0.8">
-    <animateMotion dur="3s" begin="1.5s" repeatCount="indefinite" path="M -50 400 C 150 400, 200 250, 350 250 C 500 250, 550 550, 700 550 C 850 550, 900 300, 1050 300 C 1150 300, 1200 400, 1250 400" />
-  </circle>
+  <!-- Central Split Flow Lines -->
+  <!-- Main entry arrow to Split -->
+  <path d="M 125 400 L 195 400" stroke="#a78bfa" stroke-width="2" fill="none" stroke-dasharray="4" />
+  <!-- Split into Track A (Top) & Track B (Bottom) -->
+  <path d="M 230 360 L 230 220 L 290 220" stroke="#a78bfa" stroke-width="2" fill="none" />
+  <path d="M 230 440 L 230 580 L 290 580" stroke="#22d3ee" stroke-width="2" fill="none" />
 
-  <!-- AGENT NODES -->
-  
-  <!-- 1. Cleaner Agent -->
-  <g transform="translate(280, 250)">
-    <!-- Connection Line -->
-    <line x1="0" y1="0" x2="0" y2="-60" stroke="#22d3ee" stroke-width="1" opacity="0.5"/>
-    <!-- Node -->
-    <circle r="30" fill="#0f172a" stroke="#22d3ee" stroke-width="3" filter="url(#neonGlow)"/>
-    <text x="0" y="5" text-anchor="middle" font-size="20">🧹</text>
-    <!-- Label -->
-    <g transform="translate(0, -80)">
-      <rect x="-60" y="-20" width="120" height="40" rx="20" fill="url(#cardGrad)" stroke="#22d3ee" stroke-width="1"/>
-      <text x="0" y="5" fill="#22d3ee" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" text-anchor="middle">CLEANER</text>
-    </g>
-    <!-- Tech Badge -->
-    <g transform="translate(-50, 50)">
-      <rect x="0" y="0" width="60" height="20" rx="4" fill="#334155"/>
-      <text x="30" y="14" fill="#fff" font-size="10" text-anchor="middle" font-family="monospace">Pandas</text>
-    </g>
+  <!-- 1. CSV INPUT NODE -->
+  <g transform="translate(70, 400)">
+    <circle r="40" fill="rgba(124, 58, 237, 0.15)" stroke="#a78bfa" stroke-width="2" filter="url(#violetGlow)" />
+    <text x="0" y="-12" fill="#ffffff" font-family="sans-serif" font-size="18" font-weight="bold" text-anchor="middle">CSV</text>
+    <text x="0" y="10" fill="#a78bfa" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">DATASET</text>
+    <text x="0" y="24" fill="#a1a1aa" font-family="sans-serif" font-size="9" text-anchor="middle">UPLOAD</text>
   </g>
 
-  <!-- 2. Validator Agent -->
-  <g transform="translate(450, 350)">
-    <line x1="0" y1="0" x2="0" y2="60" stroke="#3b82f6" stroke-width="1" opacity="0.5"/>
-    <circle r="30" fill="#0f172a" stroke="#3b82f6" stroke-width="3" filter="url(#neonGlow)"/>
-    <text x="0" y="5" text-anchor="middle" font-size="20">🛡️</text>
-    <g transform="translate(0, 80)">
-      <rect x="-60" y="-20" width="120" height="40" rx="20" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1"/>
-      <text x="0" y="5" fill="#3b82f6" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" text-anchor="middle">VALIDATOR</text>
-    </g>
+  <!-- 2. PROJECT METADATA REFINE -->
+  <g transform="translate(160, 400)">
+    <rect x="-45" y="-35" width="90" height="70" rx="8" fill="url(#cardGrad)" stroke="#e2e8f0" stroke-width="1.5" />
+    <text x="0" y="-10" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Metadata</text>
+    <text x="0" y="6" fill="#22d3ee" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">Title &amp; Goal</text>
+    <text x="0" y="20" fill="#a1a1aa" font-family="sans-serif" font-size="9" text-anchor="middle">LLM Optimized</text>
   </g>
 
-  <!-- 3. Relation Agent -->
-  <g transform="translate(620, 550)">
-    <line x1="0" y1="0" x2="0" y2="-60" stroke="#a855f7" stroke-width="1" opacity="0.5"/>
-    <circle r="35" fill="#0f172a" stroke="#a855f7" stroke-width="3" filter="url(#neonGlow)"/>
-    <text x="0" y="5" text-anchor="middle" font-size="20">🔗</text>
-    <g transform="translate(0, -80)">
-      <rect x="-60" y="-20" width="120" height="40" rx="20" fill="url(#cardGrad)" stroke="#a855f7" stroke-width="1"/>
-      <text x="0" y="5" fill="#a855f7" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" text-anchor="middle">RELATION</text>
-    </g>
+  <!-- ──────────────── TRACK A: AI CHAT (TOP ENGINE) ──────────────── -->
+  <!-- Outer container for Track A -->
+  <rect x="290" y="120" width="810" height="200" rx="16" fill="url(#chatGrad)" stroke="rgba(124, 58, 237, 0.25)" stroke-width="1.5" />
+  <text x="310" y="148" fill="#a78bfa" font-family="sans-serif" font-size="15" font-weight="bold">TRACK A: AI DATA COPILOT CHAT (Interactive Exploration)</text>
+
+  <!-- Copilot Node -->
+  <g transform="translate(370, 220)">
+    <rect x="-60" y="-30" width="120" height="60" rx="10" fill="#0d0d0f" stroke="#a78bfa" stroke-width="2" />
+    <text x="0" y="-8" fill="#fff" font-family="sans-serif" font-size="13" font-weight="bold" text-anchor="middle">🤖 Copilot Agent</text>
+    <text x="0" y="12" fill="#a78bfa" font-family="sans-serif" font-size="10" text-anchor="middle">Natural Language</text>
+  </g>
+  <path d="M 430 220 L 480 220" stroke="#a78bfa" stroke-width="2" fill="none" />
+
+  <!-- Code Generator -->
+  <g transform="translate(560, 220)">
+    <rect x="-80" y="-30" width="160" height="60" rx="10" fill="#0d0d0f" stroke="#a78bfa" stroke-width="1.5" />
+    <text x="0" y="-8" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">📝 Python Code Gen</text>
+    <text x="0" y="12" fill="#a1a1aa" font-family="sans-serif" font-size="10" text-anchor="middle">Formulates pandas scripts</text>
+  </g>
+  <path d="M 640 220 L 690 220" stroke="#a78bfa" stroke-width="2" fill="none" />
+
+  <!-- Sandboxed Execution -->
+  <g transform="translate(775, 220)">
+    <rect x="-85" y="-30" width="170" height="60" rx="10" fill="#0d0d0f" stroke="#22d3ee" stroke-width="2" filter="url(#cyanGlow)" />
+    <text x="0" y="-8" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">🔒 Sandboxed Python</text>
+    <text x="0" y="12" fill="#22d3ee" font-family="sans-serif" font-size="10" text-anchor="middle">Isolated Subprocess Exec</text>
+  </g>
+  <path d="M 860 220 L 910 220" stroke="#22d3ee" stroke-width="2" fill="none" />
+
+  <!-- Interactive Outputs -->
+  <g transform="translate(990, 220)">
+    <rect x="-70" y="-40" width="140" height="80" rx="10" fill="url(#cardGrad)" stroke="#f43f5e" stroke-width="1.5" />
+    <text x="0" y="-18" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">Chat Results</text>
+    <text x="0" y="0" fill="#a1a1aa" font-family="sans-serif" font-size="10" text-anchor="middle">📈 On-the-fly charts</text>
+    <text x="0" y="16" fill="#e2e8f0" font-family="sans-serif" font-size="9" text-anchor="middle">In-place CSV edits</text>
+    <text x="0" y="28" fill="#10b981" font-family="sans-serif" font-size="9" text-anchor="middle">(Rename/Delete Cols)</text>
   </g>
 
-  <!-- 4. Code Gen Agent -->
-  <g transform="translate(850, 450)">
-    <line x1="0" y1="0" x2="0" y2="60" stroke="#ec4899" stroke-width="1" opacity="0.5"/>
-    <circle r="35" fill="#0f172a" stroke="#ec4899" stroke-width="3" filter="url(#neonGlow)"/>
-    <text x="0" y="5" text-anchor="middle" font-size="20">💻</text>
-    <g transform="translate(0, 80)">
-      <rect x="-65" y="-20" width="130" height="40" rx="20" fill="url(#cardGrad)" stroke="#ec4899" stroke-width="1"/>
-      <text x="0" y="5" fill="#ec4899" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" text-anchor="middle">CODE GEN</text>
-    </g>
-    <!-- Tech Badges -->
-    <g transform="translate(50, -40)">
-      <rect x="0" y="0" width="70" height="20" rx="4" fill="#334155"/>
-      <text x="35" y="14" fill="#fff" font-size="10" text-anchor="middle" font-family="monospace">Matplotlib</text>
-    </g>
-    <g transform="translate(50, -15)">
-      <rect x="0" y="0" width="70" height="20" rx="4" fill="#334155"/>
-      <text x="35" y="14" fill="#fff" font-size="10" text-anchor="middle" font-family="monospace">Seaborn</text>
-    </g>
+
+  <!-- ──────────────── TRACK B: AGENTIC PIPELINE (BOTTOM ENGINE) ──────────────── -->
+  <!-- Outer container for Track B -->
+  <rect x="290" y="360" width="810" height="420" rx="16" fill="url(#agenticGrad)" stroke="rgba(34, 211, 238, 0.25)" stroke-width="1.5" />
+  <text x="310" y="388" fill="#22d3ee" font-family="sans-serif" font-size="15" font-weight="bold">TRACK B: AUTOMATED AGENTIC ANALYSIS (CrewAI Pipeline Orchestration)</text>
+
+  <!-- Pre-computed profile card -->
+  <g transform="translate(370, 440)">
+    <rect x="-60" y="-25" width="120" height="50" rx="6" fill="#1e293b" stroke="#94a3b8" stroke-width="1" />
+    <text x="0" y="-4" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">📊 Dataset Profile</text>
+    <text x="0" y="10" fill="#a1a1aa" font-family="sans-serif" font-size="9" text-anchor="middle">Embedded in task context</text>
+  </g>
+  <path d="M 430 440 L 460 440 L 460 560 L 490 560" stroke="#22d3ee" stroke-width="1.5" fill="none" />
+
+  <!-- CrewAI Logo & Orchestrator -->
+  <g transform="translate(370, 560)">
+    <polygon points="0,-35 30,-15 30,15 0,35 -30,15 -30,-15" fill="rgba(34, 211, 238, 0.12)" stroke="#22d3ee" stroke-width="2" filter="url(#cyanGlow)" />
+    <text x="0" y="-6" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">CrewAI</text>
+    <text x="0" y="8" fill="#22d3ee" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">Orchestrator</text>
+    <text x="0" y="18" fill="#a1a1aa" font-family="sans-serif" font-size="8" text-anchor="middle">Adaptive Cooldown</text>
+  </g>
+  <!-- Connector arrows from orchestrator to the 4 pipeline agents -->
+  <path d="M 400 560 L 510 560" stroke="#22d3ee" stroke-width="2" fill="none" />
+  <path d="M 450 560 L 450 470 L 510 470" stroke="#22d3ee" stroke-width="1.5" fill="none" />
+  <path d="M 450 560 L 450 650 L 510 650" stroke="#22d3ee" stroke-width="1.5" fill="none" />
+  <path d="M 450 560 L 450 720 L 510 720" stroke="#22d3ee" stroke-width="1.5" fill="none" />
+
+  <!-- PIPELINE AGENTS -->
+
+  <!-- Agent 1: Data Cleaner -->
+  <g transform="translate(580, 470)">
+    <rect x="-70" y="-25" width="140" height="50" rx="8" fill="#0d0d0f" stroke="#10b981" stroke-width="2" />
+    <text x="0" y="-4" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">🧹 Data Cleaner</text>
+    <text x="0" y="12" fill="#10b981" font-family="sans-serif" font-size="9" text-anchor="middle">Performs robust cleaning</text>
+  </g>
+  <path d="M 650 470 L 890 470 M 890 470 L 890 530" stroke="#10b981" stroke-width="1.5" fill="none" />
+
+  <!-- Agent 2: Relation Mapper -->
+  <g transform="translate(580, 560)">
+    <rect x="-70" y="-25" width="140" height="50" rx="8" fill="#0d0d0f" stroke="#a78bfa" stroke-width="2" />
+    <text x="0" y="-4" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">🔗 Relation Mapper</text>
+    <text x="0" y="12" fill="#a78bfa" font-family="sans-serif" font-size="9" text-anchor="middle">Aggregates schema matrix</text>
+  </g>
+  <path d="M 650 560 L 910 560" stroke="#a78bfa" stroke-width="1.5" fill="none" />
+
+  <!-- Agent 3: Business Insights -->
+  <g transform="translate(580, 650)">
+    <rect x="-70" y="-25" width="140" height="50" rx="8" fill="#0d0d0f" stroke="#f59e0b" stroke-width="2" />
+    <text x="0" y="-4" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">💡 Business Insights</text>
+    <text x="0" y="12" fill="#f59e0b" font-family="sans-serif" font-size="9" text-anchor="middle">BCG/McKinsey framework</text>
+  </g>
+  <path d="M 650 650 L 910 650" stroke="#f59e0b" stroke-width="1.5" fill="none" />
+
+  <!-- Agent 4: Visualizer -->
+  <g transform="translate(580, 720)">
+    <rect x="-70" y="-25" width="140" height="50" rx="8" fill="#0d0d0f" stroke="#ec4899" stroke-width="2" />
+    <text x="0" y="-4" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">📈 Visualizer Agent</text>
+    <text x="0" y="12" fill="#ec4899" font-family="sans-serif" font-size="9" text-anchor="middle">Matplotlib styled charts</text>
+  </g>
+  <path d="M 650 720 L 890 720 M 890 720 L 890 680" stroke="#ec4899" stroke-width="1.5" fill="none" />
+
+  <!-- Results Aggregator -->
+  <g transform="translate(980, 605)">
+    <rect x="-75" y="-75" width="150" height="150" rx="12" fill="url(#cardGrad)" stroke="#22d3ee" stroke-width="2" filter="url(#cyanGlow)" />
+    <text x="0" y="-46" fill="#fff" font-family="sans-serif" font-size="12" font-weight="bold" text-anchor="middle">Structured Outputs</text>
+    <text x="-60" y="-22" fill="#a1a1aa" font-family="sans-serif" font-size="9">📋 Clean Audit Trail</text>
+    <text x="-60" y="-4" fill="#a1a1aa" font-family="sans-serif" font-size="9">🌐 Interactive Plotly</text>
+    <text x="-60" y="14" fill="#a1a1aa" font-family="sans-serif" font-size="9">💡 McKinsey Cards</text>
+    <text x="-60" y="32" fill="#a1a1aa" font-family="sans-serif" font-size="9">⚠️ Risk &amp; Alert Box</text>
+    <text x="-60" y="50" fill="#a1a1aa" font-family="sans-serif" font-size="9">📂 Cleaned CSV file</text>
   </g>
 
-  <!-- 5. Insights Agent -->
-  <g transform="translate(1050, 300)">
-    <line x1="0" y1="0" x2="0" y2="-60" stroke="#f97316" stroke-width="1" opacity="0.5"/>
-    <circle r="40" fill="#0f172a" stroke="#f97316" stroke-width="3" filter="url(#neonGlow)"/>
-    <text x="0" y="5" text-anchor="middle" font-size="24">💡</text>
-    <g transform="translate(0, -80)">
-      <rect x="-60" y="-20" width="120" height="40" rx="20" fill="url(#cardGrad)" stroke="#f97316" stroke-width="1"/>
-      <text x="0" y="5" fill="#f97316" font-family="'Segoe UI', sans-serif" font-size="14" font-weight="700" text-anchor="middle">INSIGHTS</text>
-    </g>
-    <!-- Tech Badge -->
-    <g transform="translate(-40, 60)">
-      <rect x="0" y="0" width="80" height="24" rx="12" fill="#f97316" fill-opacity="0.2" stroke="#f97316" stroke-width="1"/>
-      <text x="40" y="16" fill="#f97316" font-size="11" text-anchor="middle" font-weight="bold">GROQ API</text>
-    </g>
+  <!-- Multi-Provider Gateway (Floating Badge) -->
+  <g transform="translate(170, 715)">
+    <rect x="-70" y="-35" width="140" height="70" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1" />
+    <text x="0" y="-14" fill="#38bdf8" font-family="sans-serif" font-size="10" font-weight="bold" text-anchor="middle">LLM PROVIDER GATEWAY</text>
+    <text x="0" y="2" fill="#fff" font-family="sans-serif" font-size="9" text-anchor="middle">Ollama, NVIDIA NIM, OpenAI,</text>
+    <text x="0" y="15" fill="#fff" font-family="sans-serif" font-size="9" text-anchor="middle">Gemini, Anthropic, DeepSeek</text>
   </g>
 
-  <!-- Input Node (Start) -->
-  <g transform="translate(50, 400)">
-    <circle r="25" fill="#1e293b" stroke="#fff" stroke-width="2"/>
-    <text x="0" y="5" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">CSV</text>
-    <text x="0" y="45" text-anchor="middle" font-size="12" fill="#94a3b8">INPUT</text>
-  </g>
+  <!-- ──────────────── OUTPUT EXPORTS & EXTRAS ──────────────── -->
+  <!-- Connectors from splits to final exports -->
+  <path d="M 1060 220 L 1090 220 L 1090 400 L 1115 400" stroke="#f43f5e" stroke-width="1.5" fill="none" />
+  <path d="M 1055 605 L 1090 605 L 1090 440 L 1115 440" stroke="#22d3ee" stroke-width="1.5" fill="none" />
 
-  <!-- Output Node (End) -->
-  <g transform="translate(1150, 400)">
-    <circle r="25" fill="#1e293b" stroke="#fff" stroke-width="2"/>
-    <text x="0" y="5" text-anchor="middle" font-size="12" fill="#fff" font-weight="bold">RPT</text>
-    <text x="0" y="45" text-anchor="middle" font-size="12" fill="#94a3b8">OUTPUT</text>
+  <!-- 4. FINAL EXPORTS -->
+  <g transform="translate(1150, 420)">
+    <circle r="30" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+    <text x="0" y="-6" fill="#fff" font-family="sans-serif" font-size="11" font-weight="bold" text-anchor="middle">EXPORT</text>
+    <text x="0" y="8" fill="#a1a1aa" font-family="sans-serif" font-size="9" text-anchor="middle">PDF/ZIP</text>
+    <text x="0" y="18" fill="#a1a1aa" font-family="sans-serif" font-size="9" text-anchor="middle">CSV</text>
   </g>
-
-  <!-- Floating Tech Stack (CrewAI Logo Representation) -->
-  <g transform="translate(100, 100)" opacity="0.8">
-    <path d="M0 20 L10 0 L30 0 L40 20 L30 40 L10 40 Z" fill="none" stroke="#fff" stroke-width="2"/>
-    <text x="50" y="25" fill="#fff" font-family="'Segoe UI', sans-serif" font-size="20" font-weight="bold">CrewAI</text>
-    <text x="50" y="45" fill="#94a3b8" font-size="12">Orchestration</text>
-  </g>
-
-  <!-- Decorative Elements -->
-  <circle cx="200" cy="600" r="2" fill="#fff" opacity="0.5">
-    <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="900" cy="100" r="2" fill="#fff" opacity="0.5">
-    <animate attributeName="opacity" values="0;1;0" dur="5s" repeatCount="indefinite"/>
-  </circle>
-  <circle cx="500" cy="700" r="3" fill="#3b82f6" opacity="0.3">
-    <animate attributeName="r" values="3;6;3" dur="3s" repeatCount="indefinite"/>
-  </circle>
 
 </svg>

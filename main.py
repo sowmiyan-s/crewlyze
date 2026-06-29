@@ -10,12 +10,21 @@ for streaming real-time analysis logs.
 
 import os
 import sys
+
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 import json
 import re
 import uuid
 import asyncio
 import shutil
 import time
+import zipfile
+from io import BytesIO
 from pathlib import Path
 from typing import Optional
 
@@ -230,9 +239,13 @@ def get_project_metadata(project_id: str) -> dict:
     output_dir = OUTPUTS_DIR / project_id
     thumbnail = None
     if output_dir.exists() and output_dir.is_dir():
-        png_charts = sorted([f.name for f in output_dir.glob("*.png")])
+        png_charts = sorted(
+            [f for f in output_dir.glob("*.png")],
+            key=lambda x: x.stat().st_mtime,
+            reverse=True
+        )
         if png_charts:
-            thumbnail = f"/api/charts/{project_id}/{png_charts[0]}"
+            thumbnail = f"/api/charts/{project_id}/{png_charts[0].name}"
 
     meta = {
         "id": project_id,
@@ -251,6 +264,32 @@ def get_project_metadata(project_id: str) -> dict:
 
 def parse_bool(value: Optional[str]) -> bool:
     return bool(value and str(value).strip().lower() not in {"false", "0", "off", "no", ""})
+
+
+def optimize_goal_grammar(goal: str, provider: str, model: str, api_key: str, env_key_name: str) -> str:
+    """Uses the runtime-configured LLM to optimize the grammar of the project goal."""
+    if not goal.strip():
+        return ""
+    try:
+        from config.llm_config import apply_runtime_llm_settings, get_llm_params
+        from crewai import LLM
+        
+        apply_runtime_llm_settings(provider, model, api_key or "", env_key_name)
+        params = get_llm_params()
+        llm = LLM(**params)
+        
+        prompt = (
+            "You are a professional editor. Improve the grammar, phrasing, and professional tone "
+            "of the following data analysis goal. Keep it concise (1-2 sentences). "
+            "Return ONLY the corrected goal text, without any introductory text, quotes, or metadata.\n\n"
+            f"Goal: {goal.strip()}"
+        )
+        response = llm.call([{"role": "user", "content": prompt}])
+        result = response if isinstance(response, str) else str(response)
+        return result.strip().strip('"').strip("'")
+    except Exception as e:
+        print(f"Grammar optimization failed: {e}")
+        return goal.strip()
 
 
 # ---------------------------------------------------------------------------
@@ -284,14 +323,24 @@ def run_crew_in_background(
     if api_key:
         os.environ[env_key_name] = api_key
 
-    # Save or update the report title in project metadata
+    # Save or update the report title and goal in project metadata
     try:
         meta = get_project_metadata(session_id)
         if report_title:
             meta["report_title"] = report_title.strip()
-            save_project_metadata(session_id, meta)
-    except Exception:
-        pass
+        
+        user_goal = meta.get("goal", "")
+        if user_goal.strip():
+            print("📝 Optimizing goal grammar...")
+            opt_goal = optimize_goal_grammar(user_goal, provider, model, api_key, env_key_name)
+            meta["optimized_goal"] = opt_goal
+            print(f"✨ Optimized goal: {opt_goal}")
+        else:
+            meta["optimized_goal"] = ""
+            
+        save_project_metadata(session_id, meta)
+    except Exception as e:
+        print(f"Error handling metadata goal/title: {e}")
 
     session_dir = SESSIONS_DIR / session_id
     log_path = session_dir / "stdout.log"
@@ -371,6 +420,8 @@ def run_crew_in_background(
                 try:
                     meta = get_project_metadata(session_id)
                     meta["status"] = "completed"
+                    if png_charts_list:
+                        meta["thumbnail"] = f"/api/charts/{session_id}/{png_charts_list[0]}"
                     save_project_metadata(session_id, meta)
                 except Exception:
                     pass
@@ -568,10 +619,14 @@ async def get_results(session_id: str):
     """Retrieves cached JSON results containing stats, insights, and charts."""
     results_path = SESSIONS_DIR / session_id / "results.json"
     if not results_path.exists():
-        raise HTTPException(status_code=404, detail="Results not ready or not found.")
+        return {"ready": False, "status": "pending"}
 
     with open(results_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+        if "error" in data:
+            return data
+        data["ready"] = True
+        return data
 
 
 @app.post("/api/copilot")
@@ -632,6 +687,7 @@ async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
 
     meta = get_project_metadata(session_id)
     title = report_title.strip() if report_title else meta.get("report_title", meta.get("name", "Analysis Report"))
+    goal = meta.get("optimized_goal") or meta.get("goal") or ""
 
     # Format result structure for reportlab builder
     df = read_csv_robust(cleaned_csv)
@@ -643,6 +699,7 @@ async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
         "code":           data.get("code", ""),
         "output_dir":     str(OUTPUTS_DIR / session_id),
         "report_title":   title,
+        "goal":           goal,
     }
 
     try:
@@ -722,6 +779,7 @@ async def list_projects():
 async def create_project(
     name: str = Form(...),
     report_title: str = Form(""),
+    goal: str = Form(""),
     file: UploadFile = File(...)
 ):
     """Creates a new project context and uploads the dataset CSV."""
@@ -742,6 +800,8 @@ async def create_project(
         "id": project_id,
         "name": name.strip(),
         "report_title": report_title.strip() or f"{name.strip()} Executive Analysis",
+        "goal": goal.strip(),
+        "optimized_goal": "",
         "filename": file.filename,
         "size": file_path.stat().st_size,
         "created_at": time.time() * 1000,
@@ -764,6 +824,32 @@ async def rename_project(project_id: str, name: str = Form(...)):
 
     return meta
 
+
+@app.post("/api/projects/{project_id}/tweak-relations")
+async def tweak_relations(project_id: str, relations_text: str = Form(...)):
+    """Saves tweaked relationships back to the results cache."""
+    session_dir = SESSIONS_DIR / project_id
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    results_path = session_dir / "results.json"
+    
+    # Ensure results.json structure is present even if not analysed yet
+    res_data = {}
+    if results_path.exists():
+        try:
+            with open(results_path, "r", encoding="utf-8") as f:
+                res_data = json.load(f)
+        except Exception:
+            pass
+            
+    res_data["relations"] = relations_text.strip()
+    
+    with open(results_path, "w", encoding="utf-8") as f:
+        json.dump(res_data, f, indent=2)
+        
+    return {"status": "success", "relations": res_data["relations"]}
+
 @app.delete("/api/projects/{project_id}")
 async def delete_project(project_id: str):
     """Deletes all session files, artifacts, and outputs of a project."""
@@ -778,6 +864,163 @@ async def delete_project(project_id: str):
         shutil.rmtree(output_dir, ignore_errors=True)
 
     return {"status": "deleted", "id": project_id}
+
+
+@app.get("/api/projects/{project_id}/export-zip")
+async def export_project_zip(project_id: str):
+    """Exports the entire project (metadata, data files, results, and generated charts) as a ZIP file."""
+    session_dir = SESSIONS_DIR / project_id
+    output_dir = OUTPUTS_DIR / project_id
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        # Zip session files
+        for root, dirs, files in os.walk(session_dir):
+            for file in files:
+                file_path = Path(root) / file
+                arcname = Path("session") / file_path.relative_to(session_dir)
+                zip_file.write(file_path, arcname=arcname)
+        # Zip output files (charts)
+        if output_dir.exists():
+            for root, dirs, files in os.walk(output_dir):
+                for file in files:
+                    file_path = Path(root) / file
+                    arcname = Path("outputs") / file_path.relative_to(output_dir)
+                    zip_file.write(file_path, arcname=arcname)
+
+    zip_buffer.seek(0)
+    meta = get_project_metadata(project_id)
+    safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", meta.get("name", "project").lower())
+    filename = f"{safe_name}_{project_id}.zip"
+    return StreamingResponse(
+        BytesIO_iterator(zip_buffer.getvalue()),
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@app.post("/api/projects/import-zip")
+async def import_project_zip(file: UploadFile = File(...)):
+    """Imports a project from a ZIP file and registers it in the system."""
+    zip_contents = await file.read()
+    zip_buffer = BytesIO(zip_contents)
+    
+    project_id = uuid.uuid4().hex[:12]
+    temp_dir = DATA_DIR / "temp_import" / project_id
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    
+    target_project_id = project_id
+    session_dir = None
+    output_dir = None
+    try:
+        with zipfile.ZipFile(zip_buffer, "r") as zip_file:
+            zip_file.extractall(temp_dir)
+            
+        # Verify metadata.json exists
+        meta_file = temp_dir / "session" / "metadata.json"
+        if not meta_file.exists():
+            raise HTTPException(status_code=400, detail="Invalid zip format: missing metadata.json")
+            
+        with open(meta_file, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+            
+        orig_project_id = meta.get("id")
+        if orig_project_id:
+            target_project_id = orig_project_id
+            
+        # Check if project conflicts. If so, generate new ID
+        session_dir = SESSIONS_DIR / target_project_id
+        if session_dir.exists():
+            target_project_id = uuid.uuid4().hex[:12]
+            session_dir = SESSIONS_DIR / target_project_id
+            meta["id"] = target_project_id
+            meta["name"] = f"{meta.get('name', 'Imported')} (Copy)"
+            
+        output_dir = OUTPUTS_DIR / target_project_id
+        session_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy session files
+        for item in (temp_dir / "session").iterdir():
+            if item.is_file():
+                shutil.copy2(item, session_dir / item.name)
+                
+        # Copy outputs
+        if (temp_dir / "outputs").exists():
+            output_dir.mkdir(parents=True, exist_ok=True)
+            for item in (temp_dir / "outputs").iterdir():
+                if item.is_file():
+                    shutil.copy2(item, output_dir / item.name)
+                    
+        # Update metadata.json
+        meta["id"] = target_project_id
+        if meta.get("thumbnail"):
+            # Update thumbnail link with new project ID
+            thumb_parts = meta["thumbnail"].split("/")
+            if len(thumb_parts) >= 5:
+                thumb_parts[3] = target_project_id
+                meta["thumbnail"] = "/".join(thumb_parts)
+                
+        with open(session_dir / "metadata.json", "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
+            
+        return meta
+    except Exception as e:
+        if session_dir and session_dir.exists():
+            shutil.rmtree(session_dir, ignore_errors=True)
+        if output_dir and output_dir.exists():
+            shutil.rmtree(output_dir, ignore_errors=True)
+        raise HTTPException(status_code=400, detail=f"Import failed: {str(e)}")
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+
+@app.get("/api/projects/{project_id}/preview")
+async def get_dynamic_preview(project_id: str):
+    """Dynamically reads the latest state of the CSV and returns a 100-row preview, column names, shapes, and types."""
+    session_dir = SESSIONS_DIR / project_id
+    if not session_dir.exists():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    cleaned_csv = session_dir / "cleaned.csv"
+    original_csv = session_dir / "original_upload.csv"
+    csv_path = cleaned_csv if cleaned_csv.exists() else original_csv
+
+    if not csv_path.exists():
+        raise HTTPException(status_code=404, detail="CSV not found.")
+
+    try:
+        df = read_csv_robust(str(csv_path))
+        rows_count, cols_count = df.shape
+        preview = df.head(100).fillna("").to_dict(orient="records")
+        col_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
+        columns = list(df.columns)
+
+        # Update cache in results.json if it exists
+        results_path = session_dir / "results.json"
+        if results_path.exists():
+            try:
+                with open(results_path, "r", encoding="utf-8") as f:
+                    res_data = json.load(f)
+                res_data["preview"] = preview
+                res_data["rows_count"] = rows_count
+                res_data["cols_count"] = cols_count
+                with open(results_path, "w", encoding="utf-8") as f:
+                    json.dump(res_data, f, indent=2)
+            except Exception:
+                pass
+
+        return {
+            "columns": columns,
+            "col_types": col_types,
+            "rows_count": rows_count,
+            "cols_count": cols_count,
+            "preview": preview
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load preview: {str(e)}")
 
 
 @app.get("/api/projects/{project_id}/download-csv")
