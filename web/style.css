@@ -576,29 +576,30 @@ html, body {
   display: flex;
   align-items: center;
   gap: 0;
-  background: rgba(30, 30, 35, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--r-xl);
-  padding: 20px 24px;
-  overflow-x: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: none;
+  border-radius: 0;
+  padding: 16px 0;
+  overflow: hidden;
+  box-shadow: none;
 }
 .stage-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex: 1;
   position: relative;
+  min-width: 90px;
 }
 .stage-item:not(:last-child)::after {
   content: '';
   position: absolute;
-  top: 9px;
-  left: calc(50% + 15px);
-  right: calc(-50% + 15px);
+  top: 11px;
+  left: calc(50% + 18px);
+  right: calc(-50% + 18px);
   height: 3px;
   background: rgba(255, 255, 255, 0.05);
   z-index: 0;
@@ -613,8 +614,8 @@ html, body {
   background: linear-gradient(90deg, var(--violet-light) 0%, rgba(255, 255, 255, 0.05) 100%);
 }
 .stage-dot {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--bg-surface);
   border: 2.5px solid var(--border-mid);
@@ -633,11 +634,12 @@ html, body {
   animation: stageDotActivePulse 1.4s infinite alternate;
 }
 .stage-label {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   font-weight: 600;
   letter-spacing: 0.02em;
   transition: all 0.3s;
+  white-space: nowrap;
 }
 .stage-item.done .stage-label {
   color: var(--emerald);
@@ -652,15 +654,15 @@ html, body {
   background: rgba(22, 22, 25, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--r-lg);
-  padding: 20px;
+  padding: 24px;
   margin: 16px 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: all 0.3s ease;
-  min-height: 180px;
+  min-height: 250px;
 }
 
 .pov-initial-state {
@@ -668,14 +670,14 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 140px;
+  height: 180px;
   color: var(--text-muted);
   gap: 12px;
 }
 
 .pov-pulse-ring {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   border: 2px solid var(--violet-light);
   border-top-color: transparent;
@@ -685,10 +687,10 @@ html, body {
 .pov-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 .pov-title {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #ffffff;
   display: flex;
@@ -696,16 +698,16 @@ html, body {
   gap: 8px;
 }
 .pov-desc {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--text-secondary);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .pov-content {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 110px;
+  height: 180px;
   border-radius: var(--r-md);
   background: rgba(13, 13, 15, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.03);
@@ -719,10 +721,10 @@ html, body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 12px 18px;
-  gap: 8px;
+  padding: 18px 24px;
+  gap: 10px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: #10b981;
   position: relative;
 }
@@ -747,8 +749,8 @@ html, body {
 
 /* Correlation Chord Simulator */
 .pov-chords-svg {
-  width: 160px;
-  height: 100px;
+  width: 240px;
+  height: 150px;
   overflow: visible;
 }
 .pov-chords-rotate {
@@ -788,24 +790,24 @@ html, body {
 .pov-insight-bulb {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 0 20px;
+  gap: 24px;
+  padding: 0 32px;
   width: 100%;
   height: 100%;
 }
 .pov-bulb-icon {
-  width: 50px;
-  height: 50px;
+  width: 64px;
+  height: 64px;
   color: #f59e0b;
-  filter: drop-shadow(0 0 10px rgba(245,158,11,0.4));
+  filter: drop-shadow(0 0 12px rgba(245,158,11,0.5));
   animation: bounceSlow 2s ease-in-out infinite;
 }
 .pov-insight-bullets {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   color: var(--text-primary);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 .pov-bullet-text {
@@ -819,8 +821,8 @@ html, body {
 
 /* Visual compiler coordinates */
 .pov-compiler-svg {
-  width: 150px;
-  height: 90px;
+  width: 250px;
+  height: 150px;
   overflow: visible;
 }
 .pov-axis {
@@ -852,9 +854,9 @@ html, body {
 .pov-skeleton-card {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: 6px;
-  height: 80px;
-  padding: 10px;
+  border-radius: 8px;
+  height: 140px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -876,13 +878,13 @@ html, body {
   width: 60%;
 }
 .pov-skeleton-body {
-  height: 35px;
+  height: 80px;
   border-radius: 4px;
   border: 1.5px dashed rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  padding: 4px;
+  padding: 6px;
 }
 .pov-skeleton-bar {
   width: 6px;
@@ -2169,6 +2171,113 @@ html, body {
   font-size: 0.88rem;
   line-height: 1.5;
   color: var(--text-secondary);
+}
+
+/* ── ChatGPT Interface Layout Overrides ── */
+#resultsScreen.ai-chat-mode {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  padding-bottom: 12px !important;
+  gap: 12px !important;
+}
+
+#resultsScreen.ai-chat-mode #statsRow {
+  display: none !important;
+}
+
+#resultsScreen.ai-chat-mode .export-bar {
+  display: none !important;
+}
+
+#resultsScreen.ai-chat-mode #datasetExplorerCard {
+  display: none !important;
+}
+
+#resultsScreen.ai-chat-mode #areaChat {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+#resultsScreen.ai-chat-mode #areaChat > div {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+}
+
+#resultsScreen.ai-chat-mode #chatContainerCard {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin-bottom: 0 !important;
+}
+
+#resultsScreen.ai-chat-mode #chatMessages {
+  flex: 1 !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow-y: auto !important;
+}
+
+/* ── Sidebar Action Buttons styling ── */
+.sidebar-action-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-action-btn.btn-secondary {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  color: var(--text-primary);
+}
+
+.sidebar-action-btn.btn-secondary:hover {
+  background: var(--bg-hover);
+  border-color: var(--violet-light);
+  transform: translateY(-1px);
+}
+
+.sidebar-action-btn.btn-primary {
+  background: var(--violet);
+  border: 1px solid var(--violet);
+  color: #fff;
+}
+
+.sidebar-action-btn.btn-primary:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+  transform: translateY(-1px);
+}
+
+.sidebar-action-btn.btn-ghost {
+  background: transparent;
+  border: 1px dashed var(--border-mid);
+  color: var(--text-secondary);
+}
+
+.sidebar-action-btn.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--violet-light);
+  color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 

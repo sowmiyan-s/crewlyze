@@ -204,6 +204,13 @@ const els = {
   downloadCsvBtn:    $('downloadCsvBtn'),
   reRunBtn:          $('reRunBtn'),
 
+  // Sidebar Export
+  sidebarProjectActions: $('sidebarProjectActions'),
+  sidebarExportPdfBtn:   $('sidebarExportPdfBtn'),
+  sidebarExportZipBtn:   $('sidebarExportZipBtn'),
+  sidebarDownloadCsvBtn: $('sidebarDownloadCsvBtn'),
+  sidebarReRunBtn:       $('sidebarReRunBtn'),
+
   toastContainer:    $('toastContainer'),
 
   // API Warning Modal
@@ -256,6 +263,11 @@ function showScreen(name) {
     const el = $(id);
     el.classList.toggle('active', id === name + 'Screen');
   });
+  if (name !== 'results') {
+    if (els.sidebarProjectActions) els.sidebarProjectActions.classList.add('hidden');
+  } else {
+    updateSidebarProjectActionsVisibility();
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -903,7 +915,20 @@ async function refreshPreviewData(sessionId) {
   }
 }
 
+function updateSidebarProjectActionsVisibility(sec) {
+  const activeSec = sec || (els.areaAgentic.classList.contains('hidden') ? 'chat' : 'agentic');
+  const isAgenticCompleted = state.activeProject && state.activeProject.status === 'completed' && activeSec === 'agentic';
+  if (els.sidebarProjectActions) {
+    if (isAgenticCompleted) {
+      els.sidebarProjectActions.classList.remove('hidden');
+    } else {
+      els.sidebarProjectActions.classList.add('hidden');
+    }
+  }
+}
+
 function switchSection(sec) {
+  const resultsScreen = document.getElementById('resultsScreen');
   if (sec === 'chat') {
     els.btnSectionChat.classList.add('active');
     els.btnSectionAgentic.classList.remove('active');
@@ -914,6 +939,8 @@ function switchSection(sec) {
     els.btnSectionChat.style.color = '#fff';
     els.btnSectionAgentic.style.background = 'transparent';
     els.btnSectionAgentic.style.color = 'var(--text-secondary)';
+
+    if (resultsScreen) resultsScreen.classList.add('ai-chat-mode');
   } else {
     els.btnSectionChat.classList.remove('active');
     els.btnSectionAgentic.classList.add('active');
@@ -924,11 +951,14 @@ function switchSection(sec) {
     els.btnSectionAgentic.style.color = '#fff';
     els.btnSectionChat.style.background = 'transparent';
     els.btnSectionChat.style.color = 'var(--text-secondary)';
+
+    if (resultsScreen) resultsScreen.classList.remove('ai-chat-mode');
   }
   // Resize Plotly charts when switching to agentic area
   if (sec === 'agentic') {
     setTimeout(() => Plotly.Plots?.resize?.(), 100);
   }
+  updateSidebarProjectActionsVisibility(sec);
 }
 
 async function switchToProject(p) {
@@ -936,6 +966,7 @@ async function switchToProject(p) {
   renderProjectsList();
   setBreadcrumb(p.name);
   setStatus('● Loading…', 'running');
+  updateSidebarProjectActionsVisibility();
 
   if (p.status === 'completed') {
     if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
@@ -2183,7 +2214,7 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
           </div>
           <div class="chart-card-body png-chart-body">
             <img
-              src="/api/charts/${sessionId}/${name}"
+              src="/api/charts/${sessionId}/${encodeURIComponent(name)}"
               alt="${escHtml(title)}"
               class="png-chart-img"
               loading="lazy"
@@ -2207,22 +2238,32 @@ function renderVizCode(code) {
 
 // ── Export ────────────────────────────────────────────────────────────────────
 function setupExport(sessionId) {
-  els.exportPdfBtn.onclick = () => {
+  const exportPdf = () => {
     window.location = `/api/export-pdf?session_id=${sessionId}`;
   };
-  if (els.exportZipBtn) {
-    els.exportZipBtn.onclick = () => {
-      window.location = `/api/projects/${sessionId}/export-zip`;
-    };
-  }
-  els.downloadCsvBtn.onclick = () => {
+  const exportZip = () => {
+    window.location = `/api/projects/${sessionId}/export-zip`;
+  };
+  const downloadCsv = () => {
     window.location = `/api/projects/${sessionId}/download-csv`;
   };
-  els.reRunBtn.onclick = () => {
+  const reRun = () => {
     state.uploadedSession = sessionId;
     state.uploadedFile = { name: state.activeProject?.filename || 'dataset.csv' };
     openConfigModal();
   };
+
+  els.exportPdfBtn.onclick = exportPdf;
+  if (els.sidebarExportPdfBtn) els.sidebarExportPdfBtn.onclick = exportPdf;
+
+  if (els.exportZipBtn) els.exportZipBtn.onclick = exportZip;
+  if (els.sidebarExportZipBtn) els.sidebarExportZipBtn.onclick = exportZip;
+
+  els.downloadCsvBtn.onclick = downloadCsv;
+  if (els.sidebarDownloadCsvBtn) els.sidebarDownloadCsvBtn.onclick = downloadCsv;
+
+  els.reRunBtn.onclick = reRun;
+  if (els.sidebarReRunBtn) els.sidebarReRunBtn.onclick = reRun;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

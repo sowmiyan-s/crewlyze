@@ -92,7 +92,9 @@ def make_pipeline(
     csv_path   = f"data/sessions/{session_id}/cleaned.csv"
     output_dir = f"outputs/{session_id}"
 
-    cooldown = int(os.getenv("API_COOLDOWN", "5"))
+    from config.context import current_cooldown
+    ctx_cooldown = current_cooldown.get()
+    cooldown = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "5"))
     cb = make_cooldown_callback(min_sleep=cooldown)
 
     selected_tasks = [task.strip().lower() for task in (selected_tasks or []) if task.strip()]

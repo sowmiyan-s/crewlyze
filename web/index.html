@@ -51,6 +51,17 @@
     <div id="connectionStatus" style="display: none;"></div>
   </div>
 
+  <!-- Sidebar Project Actions -->
+  <div id="sidebarProjectActions" class="sidebar-section hidden" style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px;">
+    <div class="sidebar-section-header"><span>PROJECT ACTIONS</span></div>
+    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+      <button id="sidebarExportPdfBtn" class="sidebar-action-btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;">📄 Export PDF Report</button>
+      <button id="sidebarExportZipBtn" class="sidebar-action-btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;">📦 Export Project (.zip)</button>
+      <button id="sidebarDownloadCsvBtn" class="sidebar-action-btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-primary); border: 1px solid var(--border-mid); background: var(--bg-elevated);">📥 Download Cleaned CSV</button>
+      <button id="sidebarReRunBtn" class="sidebar-action-btn btn-ghost" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-secondary); background: transparent; border: 1px dashed var(--border-mid);">🔄 Re-run Analysis</button>
+    </div>
+  </div>
+
   <div class="sidebar-footer">
     <button id="sidebarSettingsBtn" class="btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-mid); color: var(--text-primary); cursor: pointer; transition: all 0.2s;">⚙️ Settings</button>
     <span>Agentic Data Analyst v3.1</span>
@@ -308,7 +319,7 @@
       <div style="display: flex; flex-direction: column; gap: 20px;">
         
         <!-- Table Preview Area -->
-        <div class="card" style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
+        <div id="datasetExplorerCard" class="card" style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
             <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">🔍 Dataset Explorer <span id="chatPreviewDims" style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
             <div style="display: flex; gap: 8px;">
@@ -322,7 +333,7 @@
         </div>
 
         <!-- Chat Container -->
-        <div class="card" style="padding: 20px; background: var(--bg-elevated); border: 1px solid var(--border-mid); display: flex; flex-direction: column; min-height: 480px;">
+        <div id="chatContainerCard" class="card" style="padding: 20px; background: var(--bg-elevated); border: 1px solid var(--border-mid); display: flex; flex-direction: column; min-height: 480px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-low); padding-bottom: 12px;">
             <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">💬 AI Copilot &amp; Data Interaction</h3>
             <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>

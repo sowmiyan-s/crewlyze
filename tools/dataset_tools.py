@@ -520,11 +520,7 @@ class DatasetTools:
 
             FILE_PATH = {repr(str(file_path))}
             df = pd.read_csv(FILE_PATH)
-
-            # ---- LLM-generated cleaning code ----
-            {textwrap.indent(clean_code, "            ").lstrip()}
-            # ---- end LLM code ----
-
+        """) + "\n" + clean_code + "\n" + textwrap.dedent(f"""\
             df.to_csv(FILE_PATH, index=False)
             print("Dataset cleaned and saved successfully.")
         """)
@@ -552,8 +548,9 @@ class DatasetTools:
           plt.close()
         """
         clean_code = _strip_markdown_fences(python_code)
-        csv_path = os.getenv("CURRENT_SESSION_CSV", "")
-        output_dir = os.getenv("CURRENT_SESSION_OUTPUT_DIR", "")
+        from config.context import current_session_csv, current_session_output_dir
+        csv_path = current_session_csv.get() or os.getenv("CURRENT_SESSION_CSV", "")
+        output_dir = current_session_output_dir.get() or os.getenv("CURRENT_SESSION_OUTPUT_DIR", "")
 
         # Fallbacks if env vars are missing
         if not csv_path:
@@ -582,11 +579,7 @@ class DatasetTools:
                 path = os.path.join(OUTPUT_DIR, filename)
                 plt.savefig(path, bbox_inches='tight', dpi=180)
                 print(f"Saved chart: {{filename}}")
-
-            # ---- Agent Plotting Code ----
-            {textwrap.indent(clean_code, "            ").lstrip()}
-            # ---- End Agent Code ----
-        """)
+        """) + "\n" + clean_code
 
         success, output = _run_in_subprocess(script)
         if success:

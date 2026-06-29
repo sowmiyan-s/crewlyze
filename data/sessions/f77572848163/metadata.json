@@ -5,5 +5,6 @@
   "filename": "heart_disease.csv",
   "size": 143300,
   "created_at": 1782667399183.3635,
-  "status": "completed"
+  "status": "completed",
+  "thumbnail": "/api/charts/f77572848163/scatter_age_vs_cp.png"
 }

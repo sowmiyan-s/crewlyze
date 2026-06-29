@@ -24,17 +24,18 @@ def _sync_nvidia_env(api_key: str) -> None:
 
 def get_llm_config() -> dict:
     """Return the raw provider config dict (may contain extra keys)."""
-    provider = os.getenv("LLM_PROVIDER", "nvidia")
+    from config.context import current_llm_provider, current_llm_api_key
+    provider = current_llm_provider.get() or os.getenv("LLM_PROVIDER", "nvidia")
 
     configs = {
         "nvidia": {
             "model":    "nvidia_nim/meta/llama-3.1-8b-instruct",
-            "api_key":  os.getenv("NVIDIA_API_KEY"),
+            "api_key":  current_llm_api_key.get() or os.getenv("NVIDIA_API_KEY"),
             "base_url": NVIDIA_NIM_BASE_URL,
         },
         "minimax": {
             "model":      "nvidia_nim/minimaxai/minimax-m3",
-            "api_key":    os.getenv("NVIDIA_API_KEY"),
+            "api_key":    current_llm_api_key.get() or os.getenv("NVIDIA_API_KEY"),
             "base_url":   NVIDIA_NIM_BASE_URL,
             "max_tokens": 8192,
             "temperature": 1.00,
@@ -43,51 +44,51 @@ def get_llm_config() -> dict:
         },
         "groq": {
             "model":   "groq/llama-3.1-8b-instant",
-            "api_key": os.getenv("GROQ_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("GROQ_API_KEY"),
         },
         "openai": {
             "model":   "gpt-4o-mini",
-            "api_key": os.getenv("OPENAI_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("OPENAI_API_KEY"),
         },
         "ollama": {
             "model":    "ollama/llama3",
-            "base_url": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            "base_url": current_llm_api_key.get() or os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         },
         "anthropic": {
             "model":   "claude-3-5-sonnet-20241022",
-            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("ANTHROPIC_API_KEY"),
         },
         "huggingface": {
             "model":   "huggingface/HuggingFaceH4/zephyr-7b-beta",
-            "api_key": os.getenv("HUGGINGFACE_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("HUGGINGFACE_API_KEY"),
         },
         "mistral": {
             "model":   "mistral/mistral-tiny",
-            "api_key": os.getenv("MISTRAL_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("MISTRAL_API_KEY"),
         },
         "gemini": {
             "model":   "gemini/gemini-pro",
-            "api_key": os.getenv("GEMINI_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("GEMINI_API_KEY"),
         },
         "cohere": {
             "model":   "cohere/command-r-plus",
-            "api_key": os.getenv("COHERE_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("COHERE_API_KEY"),
         },
         "together": {
             "model":   "together_ai/meta-llama/Llama-3-70b-chat-hf",
-            "api_key": os.getenv("TOGETHER_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("TOGETHER_API_KEY"),
         },
         "openrouter": {
             "model":   "openrouter/google/gemma-2-9b-it",
-            "api_key": os.getenv("OPENROUTER_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("OPENROUTER_API_KEY"),
         },
         "deepseek": {
             "model":   "deepseek/deepseek-chat",
-            "api_key": os.getenv("DEEPSEEK_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("DEEPSEEK_API_KEY"),
         },
         "perplexity": {
             "model":   "perplexity/llama-3-sonar-large-32k-chat",
-            "api_key": os.getenv("PERPLEXITY_API_KEY"),
+            "api_key": current_llm_api_key.get() or os.getenv("PERPLEXITY_API_KEY"),
         },
     }
 
@@ -117,8 +118,9 @@ def get_llm_config() -> dict:
 
 def get_llm_params() -> dict:
     """Return keyword args safe to pass directly to crewai.LLM(**...)."""
+    from config.context import current_llm_model
     config = get_llm_config()
-    model = os.getenv("LLM_MODEL") or config["model"]
+    model = current_llm_model.get() or os.getenv("LLM_MODEL") or config["model"]
 
     params: dict = {
         "model":       model,
@@ -141,7 +143,13 @@ def apply_runtime_llm_settings(
     api_key: str = "",
     env_key_name: str = "",
 ) -> None:
-    """Inject provider/model/key into os.environ before agent execution."""
+    """Inject provider/model/key into context variables and fallback env before agent execution."""
+    from config.context import current_llm_provider, current_llm_model, current_llm_api_key, current_llm_env_key_name
+    current_llm_provider.set(provider)
+    current_llm_model.set(model)
+    current_llm_api_key.set(api_key)
+    current_llm_env_key_name.set(env_key_name)
+
     os.environ["LLM_PROVIDER"] = provider
     os.environ["LLM_MODEL"] = model
 

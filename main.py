@@ -196,8 +196,51 @@ OUTPUTS_DIR = Path("outputs")
 for path in (DATA_DIR, SESSIONS_DIR, OUTPUTS_DIR):
     path.mkdir(exist_ok=True)
 
+def is_safe_id(id_str: str) -> bool:
+    """Ensure the ID is strictly alphanumeric (plus dashes/underscores) to prevent path traversal."""
+    if not id_str:
+        return False
+    return bool(re.match(r"^[a-zA-Z0-9_-]+$", id_str))
+
+def is_safe_filename(filename: str) -> bool:
+    """Ensure the filename doesn't contain path traversal characters and has a safe pattern."""
+    if not filename:
+        return False
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return False
+    if "\0" in filename:
+        return False
+    # Allow safe characters including spaces, dashes, dots, underscores, parentheses, brackets, and common special symbols in column names
+    return bool(re.match(r"^[a-zA-Z0-9_\-. ()[\]$,%&+@=;\'~#]+$", filename))
+
+def validate_project_id(project_id: str) -> str:
+    """Validate that the project_id matches a safe pattern to prevent path traversal."""
+    if not is_safe_id(project_id):
+        raise HTTPException(status_code=400, detail="Invalid project ID.")
+    return project_id
+
+def get_safe_session_dir(project_id: str) -> Path:
+    pid = validate_project_id(project_id)
+    base = SESSIONS_DIR.resolve()
+    resolved = (base / pid).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Path traversal detected.")
+    return resolved
+
+def get_safe_output_dir(project_id: str) -> Path:
+    pid = validate_project_id(project_id)
+    base = OUTPUTS_DIR.resolve()
+    resolved = (base / pid).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Path traversal detected.")
+    return resolved
+
 def save_project_metadata(project_id: str, meta: dict):
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         session_dir.mkdir(parents=True, exist_ok=True)
     metadata_path = session_dir / "metadata.json"
@@ -205,39 +248,52 @@ def save_project_metadata(project_id: str, meta: dict):
         json.dump(meta, f, indent=2)
 
 def get_project_metadata(project_id: str) -> dict:
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     metadata_path = session_dir / "metadata.json"
     
     if not session_dir.exists():
         return {}
         
+    meta = {}
     if metadata_path.exists():
         try:
             with open(metadata_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                meta = json.load(f)
         except Exception:
             pass
             
-    # Default metadata if not present (compatibility check)
-    upload_file = session_dir / "original_upload.csv"
-    filename = "dataset.csv"
-    size = 0
-    if upload_file.exists():
+    # Default metadata if not present or corrupt (compatibility check)
+    if not meta:
+        upload_file = session_dir / "original_upload.csv"
         filename = "dataset.csv"
-        size = upload_file.stat().st_size
-    
-    results_path = session_dir / "results.json"
-    status = "idle"
-    if results_path.exists():
-        status = "completed"
-    elif (session_dir / "done.txt").exists():
-        status = "completed"
+        size = 0
+        if upload_file.exists():
+            filename = "dataset.csv"
+            size = upload_file.stat().st_size
         
-    created_at = session_dir.stat().st_ctime
-    
-    # Check if there is any generated chart thumbnail
-    output_dir = OUTPUTS_DIR / project_id
-    thumbnail = None
+        results_path = session_dir / "results.json"
+        status = "idle"
+        if results_path.exists():
+            status = "completed"
+        elif (session_dir / "done.txt").exists():
+            status = "completed"
+            
+        created_at = session_dir.stat().st_ctime
+        meta = {
+            "id": project_id,
+            "name": f"Project {project_id}",
+            "filename": filename,
+            "report_title": f"{filename.rsplit('.', 1)[0].replace('_', ' ').title()} Executive Analysis",
+            "size": size,
+            "created_at": created_at * 1000,
+            "status": status,
+            "thumbnail": None
+        }
+
+    # Dynamically resolve and update the thumbnail link if generated PNGs exist
+    output_dir = get_safe_output_dir(project_id)
+    current_thumb = meta.get("thumbnail")
+    target_thumb = None
     if output_dir.exists() and output_dir.is_dir():
         png_charts = sorted(
             [f for f in output_dir.glob("*.png")],
@@ -245,20 +301,13 @@ def get_project_metadata(project_id: str) -> dict:
             reverse=True
         )
         if png_charts:
-            thumbnail = f"/api/charts/{project_id}/{png_charts[0].name}"
+            import urllib.parse
+            target_thumb = f"/api/charts/{project_id}/{urllib.parse.quote(png_charts[0].name)}"
 
-    meta = {
-        "id": project_id,
-        "name": f"Project {project_id}",
-        "filename": filename,
-        "report_title": f"{filename.rsplit('.', 1)[0].replace('_', ' ').title()} Executive Analysis",
-        "size": size,
-        "created_at": created_at * 1000,
-        "status": status,
-        "thumbnail": thumbnail
-    }
-    
-    save_project_metadata(project_id, meta)
+    if current_thumb != target_thumb:
+        meta["thumbnail"] = target_thumb
+        save_project_metadata(project_id, meta)
+        
     return meta
 
 
@@ -312,14 +361,44 @@ def run_crew_in_background(
     Orchestrates the CrewAI pipeline in a background thread, writing all
     stdout progress to a tail-able stdout.log file and serializing results.
     """
-    # 1. Inject thread-isolated LLM configurations
+    if not is_safe_id(session_id):
+        raise ValueError("Invalid session ID.")
+    session_dir = (SESSIONS_DIR / session_id).resolve()
+    resolved_csv = Path(csv_path).resolve()
+    try:
+        resolved_csv.relative_to(session_dir)
+    except ValueError:
+        raise ValueError("Path traversal detected in CSV path.")
+
+    # 1. Inject thread-isolated LLM configurations and context variables
+    from config.context import (
+        current_session_id,
+        current_session_csv,
+        current_session_output_dir,
+        current_llm_provider,
+        current_llm_model,
+        current_llm_api_key,
+        current_llm_env_key_name,
+        current_cooldown,
+        current_deep_analysis,
+    )
+    current_session_id.set(session_id)
+    current_session_csv.set(str(resolved_csv))
+    current_session_output_dir.set(str((OUTPUTS_DIR / session_id).resolve()))
+    current_llm_provider.set(provider)
+    current_llm_model.set(model)
+    current_llm_api_key.set(api_key or "")
+    current_llm_env_key_name.set(env_key_name or "")
+    current_cooldown.set(cooldown)
+    current_deep_analysis.set(deep_analysis)
+
     os.environ["LLM_PROVIDER"] = provider
     os.environ["LLM_MODEL"]    = model
     os.environ["API_COOLDOWN"]  = str(cooldown)
     os.environ["DEEP_ANALYSIS"] = "true" if deep_analysis else "false"
     os.environ["SELECTED_TASKS"] = ",".join(selected_tasks)
-    os.environ["CURRENT_SESSION_CSV"] = str(csv_path)
-    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(OUTPUTS_DIR / session_id)
+    os.environ["CURRENT_SESSION_CSV"] = str(resolved_csv)
+    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str((OUTPUTS_DIR / session_id).resolve())
     if api_key:
         os.environ[env_key_name] = api_key
 
@@ -421,7 +500,8 @@ def run_crew_in_background(
                     meta = get_project_metadata(session_id)
                     meta["status"] = "completed"
                     if png_charts_list:
-                        meta["thumbnail"] = f"/api/charts/{session_id}/{png_charts_list[0]}"
+                        import urllib.parse
+                        meta["thumbnail"] = f"/api/charts/{session_id}/{urllib.parse.quote(png_charts_list[0])}"
                     save_project_metadata(session_id, meta)
                 except Exception:
                     pass
@@ -456,7 +536,7 @@ def run_crew_in_background(
 async def upload_file(file: UploadFile = File(...)):
     """Uploads the dataset and registers a unique user session ID."""
     session_id = uuid.uuid4().hex[:12]
-    session_dir = SESSIONS_DIR / session_id
+    session_dir = get_safe_session_dir(session_id)
     session_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = session_dir / "original_upload.csv"
@@ -520,7 +600,7 @@ async def trigger_analysis(
     report_title: str = Form("")
 ):
     """Launches the CrewAI analysis process in the background."""
-    session_dir = SESSIONS_DIR / session_id
+    session_dir = get_safe_session_dir(session_id)
     csv_path = session_dir / "original_upload.csv"
 
     if not csv_path.exists():
@@ -574,7 +654,7 @@ async def trigger_analysis(
 @app.get("/api/analyze/stream")
 async def stream_analysis_logs(session_id: str):
     """Streams running stdout log lines using Server-Sent Events (SSE)."""
-    session_dir = SESSIONS_DIR / session_id
+    session_dir = get_safe_session_dir(session_id)
     log_path = session_dir / "stdout.log"
 
     # Reset streaming state
@@ -617,7 +697,8 @@ async def stream_analysis_logs(session_id: str):
 @app.get("/api/results")
 async def get_results(session_id: str):
     """Retrieves cached JSON results containing stats, insights, and charts."""
-    results_path = SESSIONS_DIR / session_id / "results.json"
+    session_dir = get_safe_session_dir(session_id)
+    results_path = session_dir / "results.json"
     if not results_path.exists():
         return {"ready": False, "status": "pending"}
 
@@ -647,15 +728,21 @@ async def ask_copilot(
     _load_crew()
     _apply_runtime_llm_settings(provider, model, api_key or "", env_key_name)
 
-    csv_path = SESSIONS_DIR / session_id / "cleaned.csv"
-    output_dir = OUTPUTS_DIR / session_id
+    session_dir = get_safe_session_dir(session_id)
+    csv_path = session_dir / "cleaned.csv"
+    output_dir = get_safe_output_dir(session_id)
 
     if not csv_path.exists():
         # Fall back to original upload if cleaning hasn't run or completed
-        csv_path = SESSIONS_DIR / session_id / "original_upload.csv"
+        csv_path = session_dir / "original_upload.csv"
 
     if not csv_path.exists():
         raise HTTPException(status_code=400, detail="Dataset not uploaded.")
+
+    # Bind thread-local context variables for the current request
+    from config.context import current_session_csv, current_session_output_dir
+    current_session_csv.set(str(csv_path))
+    current_session_output_dir.set(str(output_dir))
 
     # Call copilot model runner
     res = _run_copilot_query(query, str(csv_path), str(output_dir))
@@ -664,7 +751,8 @@ async def ask_copilot(
     plot_url = None
     if res.get("plot_path"):
         plot_filename = Path(res["plot_path"]).name
-        plot_url = f"/api/charts/{session_id}/{plot_filename}"
+        import urllib.parse
+        plot_url = f"/api/charts/{session_id}/{urllib.parse.quote(plot_filename)}"
 
     return {
         "success": res["success"],
@@ -676,8 +764,9 @@ async def ask_copilot(
 @app.get("/api/export-pdf")
 async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
     """Generates and streams back the executive PDF report."""
-    results_path = SESSIONS_DIR / session_id / "results.json"
-    cleaned_csv = SESSIONS_DIR / session_id / "cleaned.csv"
+    session_dir = get_safe_session_dir(session_id)
+    results_path = session_dir / "results.json"
+    cleaned_csv = session_dir / "cleaned.csv"
 
     if not results_path.exists() or not cleaned_csv.exists():
         raise HTTPException(status_code=400, detail="Data analysis results not available.")
@@ -697,7 +786,7 @@ async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
         "relations":      data["relations"],
         "insights":       data["insights"],
         "code":           data.get("code", ""),
-        "output_dir":     str(OUTPUTS_DIR / session_id),
+        "output_dir":     str(get_safe_output_dir(session_id)),
         "report_title":   title,
         "goal":           goal,
     }
@@ -718,7 +807,14 @@ async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
 @app.get("/api/charts/{session_id}/{filename}")
 async def serve_chart(session_id: str, filename: str):
     """Serves the generated PNG visual charts."""
-    chart_path = OUTPUTS_DIR / session_id / filename
+    if not is_safe_filename(filename):
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+    output_dir = get_safe_output_dir(session_id)
+    chart_path = (output_dir / filename).resolve()
+    try:
+        chart_path.relative_to(output_dir)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Path traversal detected.")
     if not chart_path.exists():
         raise HTTPException(status_code=404, detail="Chart not found.")
     return FileResponse(chart_path)
@@ -784,7 +880,7 @@ async def create_project(
 ):
     """Creates a new project context and uploads the dataset CSV."""
     project_id = uuid.uuid4().hex[:12]
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     session_dir.mkdir(parents=True, exist_ok=True)
 
     file_path = session_dir / "original_upload.csv"
@@ -814,7 +910,7 @@ async def create_project(
 @app.post("/api/projects/{project_id}/rename")
 async def rename_project(project_id: str, name: str = Form(...)):
     """Renames an existing project context."""
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -828,7 +924,7 @@ async def rename_project(project_id: str, name: str = Form(...)):
 @app.post("/api/projects/{project_id}/tweak-relations")
 async def tweak_relations(project_id: str, relations_text: str = Form(...)):
     """Saves tweaked relationships back to the results cache."""
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -853,8 +949,8 @@ async def tweak_relations(project_id: str, relations_text: str = Form(...)):
 @app.delete("/api/projects/{project_id}")
 async def delete_project(project_id: str):
     """Deletes all session files, artifacts, and outputs of a project."""
-    session_dir = SESSIONS_DIR / project_id
-    output_dir = OUTPUTS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
+    output_dir = get_safe_output_dir(project_id)
 
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
@@ -869,8 +965,8 @@ async def delete_project(project_id: str):
 @app.get("/api/projects/{project_id}/export-zip")
 async def export_project_zip(project_id: str):
     """Exports the entire project (metadata, data files, results, and generated charts) as a ZIP file."""
-    session_dir = SESSIONS_DIR / project_id
-    output_dir = OUTPUTS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
+    output_dir = get_safe_output_dir(project_id)
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -916,6 +1012,15 @@ async def import_project_zip(file: UploadFile = File(...)):
     output_dir = None
     try:
         with zipfile.ZipFile(zip_buffer, "r") as zip_file:
+            # Zip Slip check:
+            for member in zip_file.infolist():
+                if ".." in member.filename or member.filename.startswith("/") or member.filename.startswith("\\"):
+                    raise HTTPException(status_code=400, detail=f"Invalid zip entry: {member.filename}")
+                target_path = (temp_dir / member.filename).resolve()
+                try:
+                    target_path.relative_to(temp_dir.resolve())
+                except ValueError:
+                    raise HTTPException(status_code=400, detail=f"Zip Slip detected: {member.filename}")
             zip_file.extractall(temp_dir)
             
         # Verify metadata.json exists
@@ -928,22 +1033,26 @@ async def import_project_zip(file: UploadFile = File(...)):
             
         orig_project_id = meta.get("id")
         if orig_project_id:
+            if not is_safe_id(orig_project_id):
+                raise HTTPException(status_code=400, detail="Invalid project ID in metadata.")
             target_project_id = orig_project_id
             
         # Check if project conflicts. If so, generate new ID
-        session_dir = SESSIONS_DIR / target_project_id
+        session_dir = get_safe_session_dir(target_project_id)
         if session_dir.exists():
             target_project_id = uuid.uuid4().hex[:12]
-            session_dir = SESSIONS_DIR / target_project_id
+            session_dir = get_safe_session_dir(target_project_id)
             meta["id"] = target_project_id
             meta["name"] = f"{meta.get('name', 'Imported')} (Copy)"
             
-        output_dir = OUTPUTS_DIR / target_project_id
+        output_dir = get_safe_output_dir(target_project_id)
         session_dir.mkdir(parents=True, exist_ok=True)
         
         # Copy session files
         for item in (temp_dir / "session").iterdir():
             if item.is_file():
+                if not is_safe_filename(item.name):
+                    continue
                 shutil.copy2(item, session_dir / item.name)
                 
         # Copy outputs
@@ -951,6 +1060,8 @@ async def import_project_zip(file: UploadFile = File(...)):
             output_dir.mkdir(parents=True, exist_ok=True)
             for item in (temp_dir / "outputs").iterdir():
                 if item.is_file():
+                    if not is_safe_filename(item.name):
+                        continue
                     shutil.copy2(item, output_dir / item.name)
                     
         # Update metadata.json
@@ -976,11 +1087,10 @@ async def import_project_zip(file: UploadFile = File(...)):
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-
 @app.get("/api/projects/{project_id}/preview")
 async def get_dynamic_preview(project_id: str):
     """Dynamically reads the latest state of the CSV and returns a 100-row preview, column names, shapes, and types."""
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -1026,7 +1136,7 @@ async def get_dynamic_preview(project_id: str):
 @app.get("/api/projects/{project_id}/download-csv")
 async def download_project_csv(project_id: str):
     """Downloads the cleaned dataset CSV for the specified project."""
-    session_dir = SESSIONS_DIR / project_id
+    session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
 
