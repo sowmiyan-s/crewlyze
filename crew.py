@@ -475,12 +475,37 @@ def run_crew(
     do_insights = "insights" in env_tasks
     do_visualization = "visualization" in env_tasks
 
+    # Load goal, title, and existing tweaked relations if available
+    project_goal = ""
+    report_title = ""
+    existing_relations = ""
+    try:
+        import json
+        meta_path = Path("data/sessions") / session_id / "metadata.json"
+        if meta_path.exists():
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+                project_goal = meta.get("optimized_goal") or meta.get("goal") or ""
+                report_title = meta.get("report_title") or ""
+                
+        # Load tweaked relations from results.json
+        results_path = Path("data/sessions") / session_id / "results.json"
+        if results_path.exists():
+            with open(results_path, "r", encoding="utf-8") as f:
+                res_data = json.load(f)
+                existing_relations = res_data.get("relations") or ""
+    except Exception as e:
+        print(f"Warning: Could not read metadata or results cache: {e}")
+
     # ── Build fresh agents + tasks ────────────────────────────────────────────
     agents, tasks = make_pipeline(
         session_id,
         profile=profile,
         selected_tasks=env_tasks,
         deep_analysis=deep_analysis,
+        project_goal=project_goal,
+        report_title=report_title,
+        existing_relations=existing_relations,
     )
     # tasks = [clean_task, relation_task, insight_task, visualize_task]
 

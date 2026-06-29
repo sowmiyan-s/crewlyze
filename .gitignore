@@ -1,59 +1,77 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
 .Python
-env/
-venv/
-.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Environment Variables
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nosenv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environments
 .env
 .env.local
-
-# Streamlit
-.streamlit/secrets.toml
-
-# Project Outputs
-outputs/
-data/cleaned_csv.csv
-# If you want to ignore all uploaded data:
-# data/*
-# !data/.gitkeep
+.env.*
+.venv
+venv/
+ENV/
+env/
 
 # IDEs
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# OS specific
+# OS Specific
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Replit
-.replit
-replit.md
-
-# Binary Files
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.ico
-*.pdf
-*.zip
-*.tar
-*.gz
-*.7z
-*.exe
-*.dll
-*.so
-*.dylib
-*.class
-*.jar
-*.war
-*.ear
-*.sqlite
+# App-specific runtime databases and uploads
+data/sessions/
+outputs/
 *.db
+*.sqlite
+
+# Ignore all user-uploaded datasets or exports, but keep .gitkeep files if any
+data/*
+!data/.gitkeep
+
+# Local agent/tool files and pip cache
+.local/
+.pip_cache/

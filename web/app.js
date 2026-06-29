@@ -17,6 +17,8 @@
 
 'use strict';
 
+const DEFAULT_THUMBNAIL_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMzIwIDE4MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSIxNjAiIGN5PSI5MCIgcj0iNDAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTE0MCAxMDAgTDE2MCA4MCBMMTgwIDEwMCIgc3Ryb2tlPSIjN2MzYWVkIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xMzAgMTE1IEwxOTAgMTE1IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHRleHQgeD0iMTYwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BR0VOVElDIExPR1M8L3RleHQ+PC9zdmc+';
+
 // ────────────────────────────────────────────────────────────────────────────
 // Model catalogue (mirrors the sidebar in the old Streamlit app)
 // ────────────────────────────────────────────────────────────────────────────
@@ -220,6 +222,30 @@ const els = {
   customDialogConfirmBtn:      $('customDialogConfirmBtn'),
   closeCustomDialogBtn:        $('closeCustomDialogBtn'),
   stagePovPanel:               $('stagePovPanel'),
+  wizardReportTitle:           $('wizardReportTitle'),
+  wizardProjectGoal:           $('wizardProjectGoal'),
+  importProjectCard:           $('importProjectCard'),
+  importZipFileInput:          $('importZipFileInput'),
+  exportZipBtn:                $('exportZipBtn'),
+  btnSectionChat:              $('btnSectionChat'),
+  btnSectionAgentic:           $('btnSectionAgentic'),
+  areaChat:                    $('areaChat'),
+  areaAgentic:                 $('areaAgentic'),
+  btnRenameColQuick:           $('btnRenameColQuick'),
+  btnDeleteColQuick:           $('btnDeleteColQuick'),
+  chatPreviewDims:             $('chatPreviewDims'),
+  relationModal:               $('relationModal'),
+  relationModalXSelect:        $('relationModalXSelect'),
+  relationModalYSelect:        $('relationModalYSelect'),
+  relationModalTypeSelect:     $('relationModalTypeSelect'),
+  relationModalDetails:        $('relationModalDetails'),
+  relationModalConfirmBtn:     $('relationModalConfirmBtn'),
+  relationModalCancelBtn:      $('relationModalCancelBtn'),
+  closeRelationModalBtn:       $('closeRelationModalBtn'),
+  agenticPlaceholder:          $('agenticPlaceholder'),
+  agenticTabsBar:              $('agenticTabsBar'),
+  agenticTabPanels:            $('agenticTabPanels'),
+  btnRunAgenticPipeline:       $('btnRunAgenticPipeline'),
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -827,7 +853,7 @@ function renderProjectsList() {
             <span class="db-project-status-badge ${p.status}">${p.status}</span>
           </div>
           <div class="db-project-preview-wrap">
-            <img src="${p.thumbnail || '/default_preview.png'}" class="db-project-preview-img" alt="Project Preview" />
+            <img src="${p.thumbnail || DEFAULT_THUMBNAIL_SVG}" class="db-project-preview-img" alt="Project Preview" onerror="this.onerror=null; this.src=DEFAULT_THUMBNAIL_SVG;" />
             <div class="db-project-preview-overlay">
               <div class="db-project-folder-icon ${p.status}">
                 <svg viewBox="0 0 24 24" class="folder-svg" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -860,6 +886,51 @@ function renderProjectsList() {
   }
 }
 
+async function refreshPreviewData(sessionId) {
+  try {
+    const res = await fetch(`/api/projects/${sessionId}/preview`);
+    if (res.ok) {
+      const data = await res.json();
+      state.columns = data.columns || [];
+      state.colTypes = data.col_types || {};
+      renderPreview(data.preview || []);
+      if (els.chatPreviewDims) {
+        els.chatPreviewDims.textContent = `(${data.rows_count?.toLocaleString() || 0} rows × ${data.cols_count || 0} columns)`;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load dynamic preview:', e);
+  }
+}
+
+function switchSection(sec) {
+  if (sec === 'chat') {
+    els.btnSectionChat.classList.add('active');
+    els.btnSectionAgentic.classList.remove('active');
+    els.areaChat.classList.remove('hidden');
+    els.areaAgentic.classList.add('hidden');
+    
+    els.btnSectionChat.style.background = 'var(--violet)';
+    els.btnSectionChat.style.color = '#fff';
+    els.btnSectionAgentic.style.background = 'transparent';
+    els.btnSectionAgentic.style.color = 'var(--text-secondary)';
+  } else {
+    els.btnSectionChat.classList.remove('active');
+    els.btnSectionAgentic.classList.add('active');
+    els.areaChat.classList.add('hidden');
+    els.areaAgentic.classList.remove('hidden');
+    
+    els.btnSectionAgentic.style.background = 'var(--violet)';
+    els.btnSectionAgentic.style.color = '#fff';
+    els.btnSectionChat.style.background = 'transparent';
+    els.btnSectionChat.style.color = 'var(--text-secondary)';
+  }
+  // Resize Plotly charts when switching to agentic area
+  if (sec === 'agentic') {
+    setTimeout(() => Plotly.Plots?.resize?.(), 100);
+  }
+}
+
 async function switchToProject(p) {
   state.activeProject = p;
   renderProjectsList();
@@ -867,14 +938,30 @@ async function switchToProject(p) {
   setStatus('● Loading…', 'running');
 
   if (p.status === 'completed') {
+    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
+    if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
+    if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
     await loadResults(p.id);
   } else if (p.status === 'running') {
+    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
+    if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
+    if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
     showScreen('running');
     els.runningTitle.textContent = `Analysing "${p.name}"…`;
     setStatus('● Running', 'running');
     startSSEStream(p.id);
   } else {
-    showScreen('landing');
+    // Idle state
+    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.remove('hidden');
+    if (els.agenticTabsBar) els.agenticTabsBar.classList.add('hidden');
+    if (els.agenticTabPanels) els.agenticTabPanels.classList.add('hidden');
+
+    state.results = null;
+    await refreshPreviewData(p.id);
+    setupExport(p.id);
+    resetChat();
+    switchSection('chat');
+    showScreen('results');
     setStatus('● Idle', 'idle');
   }
 }
@@ -909,6 +996,49 @@ function resetWizardState() {
   if (els.uploadedFileActions) els.uploadedFileActions.classList.add('hidden');
 }
 
+// Import Project ZIP flow
+if (els.importProjectCard && els.importZipFileInput) {
+  els.importProjectCard.addEventListener('click', () => {
+    els.importZipFileInput.click();
+  });
+  
+  els.importZipFileInput.addEventListener('change', async () => {
+    const file = els.importZipFileInput.files[0];
+    if (!file) return;
+    if (!file.name.endsWith('.zip')) {
+      toast('Only ZIP files are supported.', 'error');
+      return;
+    }
+    
+    setStatus('● Importing…', 'running');
+    const fd = new FormData();
+    fd.append('file', file);
+    
+    try {
+      const res = await fetch('/api/projects/import-zip', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error((await res.json()).detail || 'Import failed');
+      const data = await res.json();
+      toast(`Project imported successfully: ${data.name}`, 'success');
+      
+      // Reset input
+      els.importZipFileInput.value = '';
+      
+      // Reload projects and open the imported project
+      await loadProjects();
+      const importedProj = state.projects.find(p => p.id === data.id);
+      if (importedProj) {
+        switchToProject(importedProj);
+      } else {
+        goToDashboardHome();
+      }
+    } catch (e) {
+      toast('Import failed: ' + e.message, 'error');
+      setStatus('● Idle', 'idle');
+      els.importZipFileInput.value = '';
+    }
+  });
+}
+
 // Wire wizard events
 if (els.startWizardCard) {
   els.startWizardCard.addEventListener('click', () => {
@@ -934,11 +1064,14 @@ if (els.wizardNextBtn) {
       return;
     }
     state.newProjectName = name;
+    state.newProjectReportTitle = els.wizardReportTitle ? els.wizardReportTitle.value.trim() : '';
+    state.newProjectGoal = els.wizardProjectGoal ? els.wizardProjectGoal.value.trim() : '';
+    
     if (els.wizardUploadTitle) {
       els.wizardUploadTitle.innerHTML = `Upload CSV for <strong>${escHtml(name)}</strong>`;
     }
     if (els.reportTitle) {
-      els.reportTitle.value = `${name} Executive Analysis`;
+      els.reportTitle.value = state.newProjectReportTitle || `${name} Executive Analysis`;
     }
     if (els.wizardStep1) els.wizardStep1.classList.remove('active');
     if (els.wizardStep2) els.wizardStep2.classList.add('active');
@@ -1010,6 +1143,8 @@ async function handleFileSelected(file) {
   // Create project immediately via projects endpoint
   const fd = new FormData();
   fd.append('name', state.newProjectName || file.name.replace(/\.csv$/i, ''));
+  fd.append('report_title', state.newProjectReportTitle || '');
+  fd.append('goal', state.newProjectGoal || '');
   fd.append('file', file);
 
   try {
@@ -1021,6 +1156,14 @@ async function handleFileSelected(file) {
     els.uploadedFileMeta.classList.remove('hidden');
     els.uploadedFileActions.classList.remove('hidden');
     toast(`Project created: ${state.newProjectName || data.name}`, 'success');
+    
+    // Auto-enter project workspace
+    resetWizardState();
+    await loadProjects();
+    const newProj = state.projects.find(p => p.id === data.id);
+    if (newProj) {
+      switchToProject(newProj);
+    }
   } catch (e) {
     toast('Project creation failed: ' + e.message, 'error');
   }
@@ -1311,19 +1454,21 @@ function renderStagePov(stage) {
       </div>
       <div class="pov-content">
         <svg class="pov-chords-svg" viewBox="0 0 160 100">
-          <circle cx="80" cy="50" r="30" class="pov-chord-line" stroke-dasharray="2,2"></circle>
-          <circle cx="80" cy="50" r="35" class="pov-chord-line active"></circle>
-          
-          <circle cx="50" cy="30" r="4" class="pov-node"></circle>
-          <circle cx="110" cy="30" r="4" class="pov-node"></circle>
-          <circle cx="50" cy="70" r="4" class="pov-node"></circle>
-          <circle cx="110" cy="70" r="4" class="pov-node"></circle>
-          <circle cx="80" cy="15" r="4" class="pov-node"></circle>
-          <circle cx="80" cy="85" r="4" class="pov-node"></circle>
-          
-          <path d="M50 30 L110 70" class="pov-chord-line active" stroke-dasharray="none"></path>
-          <path d="M110 30 L50 70" class="pov-chord-line" stroke-dasharray="4,4"></path>
-          <path d="M80 15 L80 85" class="pov-chord-line active" stroke-dasharray="none"></path>
+          <g class="pov-chords-rotate">
+            <circle cx="80" cy="50" r="30" class="pov-chord-line" stroke-dasharray="2,2"></circle>
+            <circle cx="80" cy="50" r="35" class="pov-chord-line active"></circle>
+            
+            <circle cx="50" cy="30" r="4" class="pov-node"></circle>
+            <circle cx="110" cy="30" r="4" class="pov-node"></circle>
+            <circle cx="50" cy="70" r="4" class="pov-node"></circle>
+            <circle cx="110" cy="70" r="4" class="pov-node"></circle>
+            <circle cx="80" cy="15" r="4" class="pov-node"></circle>
+            <circle cx="80" cy="85" r="4" class="pov-node"></circle>
+            
+            <path d="M50 30 L110 70" class="pov-chord-line active" stroke-dasharray="none"></path>
+            <path d="M110 30 L50 70" class="pov-chord-line" stroke-dasharray="4,4"></path>
+            <path d="M80 15 L80 85" class="pov-chord-line active" stroke-dasharray="none"></path>
+          </g>
         </svg>
       </div>`;
 
@@ -1489,12 +1634,18 @@ async function loadResults(sessionId) {
     if (!res.ok) throw new Error('Results not ready');
     const data = await res.json();
 
+    if (data.ready === false) {
+      throw new Error('Results pending');
+    }
+
     if (data.error) {
       setStatus('● Error', 'error');
       toast('Analysis failed: ' + data.error, 'error');
       showScreen('landing');
       return;
     }
+
+    const wasRunning = els.runningScreen.classList.contains('active');
 
     state.results = data;
 
@@ -1509,6 +1660,11 @@ async function loadResults(sessionId) {
     setStatus('● Complete', 'complete');
 
     renderDashboard(data, sessionId);
+    
+    if (wasRunning) {
+      switchSection('agentic');
+    }
+    
     showScreen('results');
   } catch (e) {
     // Results not ready yet, retry
@@ -1526,7 +1682,17 @@ function renderDashboard(data, sessionId) {
   renderVizCode(data.code || '');
   setupExport(sessionId);
   resetChat();
-  activateTab('preview');
+
+  // Set dimensions text in Chat Preview
+  if (els.chatPreviewDims) {
+    els.chatPreviewDims.textContent = `(${data.rows_count?.toLocaleString() || 0} rows × ${data.cols_count || 0} columns)`;
+  }
+  
+  // Default to AI Chat section
+  switchSection('chat');
+
+  // Activate first tab inside agentic area
+  activateTab('cleaning');
 }
 
 // ── Stats row ────────────────────────────────────────────────────────────────
@@ -1566,20 +1732,22 @@ function renderPreview(rows) {
 }
 
 // Toggle preview minimize
-els.togglePreviewBtn.addEventListener('click', () => {
-  state.previewMinimized = !state.previewMinimized;
-  if (state.previewMinimized) {
-    els.previewTableWrap.innerHTML = `
-      <div class="preview-minimized">
-        Preview minimized — ${state.results?.rows_count?.toLocaleString() ?? '?'} rows × ${state.columns.length} columns.
-      </div>`;
-    els.togglePreviewBtn.textContent = '🔼 Expand Preview';
-  } else {
-    els.previewTableWrap.innerHTML = '<div id="previewTable" class="data-table-container"></div>';
-    renderPreview(state.results?.preview || []);
-    els.togglePreviewBtn.textContent = '🔽 Minimize';
-  }
-});
+if (els.togglePreviewBtn) {
+  els.togglePreviewBtn.addEventListener('click', () => {
+    state.previewMinimized = !state.previewMinimized;
+    if (state.previewMinimized) {
+      els.previewTableWrap.innerHTML = `
+        <div class="preview-minimized">
+          Preview minimized — ${state.results?.rows_count?.toLocaleString() ?? '?'} rows × ${state.columns.length} columns.
+        </div>`;
+      els.togglePreviewBtn.textContent = '🔼 Expand Preview';
+    } else {
+      els.previewTableWrap.innerHTML = '<div id="previewTable" class="data-table-container"></div>';
+      renderPreview(state.results?.preview || []);
+      els.togglePreviewBtn.textContent = '🔽 Minimize';
+    }
+  });
+}
 
 // ── Cleaning ─────────────────────────────────────────────────────────────────
 function renderCleaning(text) {
@@ -1597,65 +1765,179 @@ function renderCleaning(text) {
 }
 
 // ── Relations ─────────────────────────────────────────────────────────────────
+// ── Relations ─────────────────────────────────────────────────────────────────
 function renderRelations(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  if (!lines.length || (lines.length === 1 && lines[0].toLowerCase().includes('skipped'))) {
-    els.relationsContent.innerHTML = '<p style="color:var(--text-muted)">No relationships found.</p>';
+  
+  // Parse lines into structured state.relationsList
+  state.relationsList = [];
+  lines.forEach(line => {
+    const xMatch = line.match(/X:\s*([^|]+)/i);
+    const yMatch = line.match(/Y:\s*([^|]+)/i);
+    const typeMatch = line.match(/Type:\s*([^|]+)/i);
+    const detailsMatch = line.match(/Details:\s*(.+)/i);
+
+    if (xMatch && yMatch) {
+      state.relationsList.push({
+        xCol: xMatch[1].trim(),
+        yCol: yMatch[1].trim(),
+        typ: typeMatch ? typeMatch[1].trim() : 'Correlation',
+        details: detailsMatch ? detailsMatch[1].trim() : 'Key relationship identified by analyst.'
+      });
+    }
+  });
+
+  renderRelationsListUI();
+}
+
+function renderRelationsListUI() {
+  const list = state.relationsList || [];
+  if (!list.length) {
+    els.relationsContent.innerHTML = `
+      <div style="text-align: center; padding: 24px; color: var(--text-secondary); background: var(--bg-card); border-radius: var(--r-md); border: 1px dashed var(--border-mid); width: 100%;">
+        <p style="margin-bottom: 8px;">No schema relationships mapped yet.</p>
+        <button id="btnAddRelation" class="btn-primary btn-sm" style="font-weight: 600;">➕ Add Custom Relation</button>
+      </div>`;
+    
+    const btn = document.getElementById('btnAddRelation');
+    if (btn) btn.onclick = () => showRelationModal(null);
     return;
   }
 
-  // Extract correlation strength value if any mention like r=0.87 or (0.87)
-  function extractStrength(line) {
-    const m = line.match(/r[=:]\s*([0-9.+-]+)|\(([0-9.+-]+)\)/);
-    if (m) { const v = parseFloat(m[1] || m[2]); return isNaN(v) ? null : v; }
-    return null;
-  }
+  let html = '<div class="relation-mapper-container">';
+  list.forEach((rel, index) => {
+    const xType = state.colTypes[rel.xCol] || 'Numeric';
+    const yType = state.colTypes[rel.yCol] || 'Numeric';
 
-  // Color the strength bar: negative=rose, low=amber, high=emerald
-  function strengthColor(r) {
-    if (r === null) return 'var(--violet-light)';
-    const abs = Math.abs(r);
-    if (abs >= 0.7) return r > 0 ? 'var(--emerald)' : 'var(--rose)';
-    if (abs >= 0.4) return 'var(--amber)';
-    return 'var(--cyan)';
-  }
+    html += `
+      <div class="relation-card" style="position: relative; width: 100%;">
+        <!-- Tweak Actions Toolbar -->
+        <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5;">
+          <button class="btn-secondary btn-sm btn-rel-edit" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(34,211,238,0.2); color: var(--cyan);">✏️ Edit</button>
+          <button class="btn-secondary btn-sm btn-rel-del" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(244,63,94,0.2); color: var(--rose);">🗑️ Delete</button>
+        </div>
 
-  // Chart type icons
-  const chartTypeIcon = { scatter: '⬥', bar: '▬', line: '∿', box: '☐', histogram: '▤', hist: '▤', heatmap: '▦' };
+        <div class="relation-node">
+          <span class="relation-node-type">${escHtml(xType)}</span>
+          <strong>${escHtml(rel.xCol)}</strong>
+        </div>
+        
+        <div class="relation-connector">
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--cyan); margin-bottom: 4px;">${escHtml(rel.typ)}</span>
+          <div class="relation-line"></div>
+          <span class="relation-info">${escHtml(rel.details)}</span>
+        </div>
+        
+        <div class="relation-node" style="border-color: rgba(34, 211, 238, 0.2);">
+          <span class="relation-node-type" style="color: var(--cyan);">${escHtml(yType)}</span>
+          <strong>${escHtml(rel.yCol)}</strong>
+        </div>
+      </div>
+    `;
+  });
 
-  els.relationsContent.innerHTML = lines.map(line => {
-    const xMatch    = line.match(/X:\s*([^|]+)/i);
-    const yMatch    = line.match(/Y:\s*([^|]+)/i);
-    const typeMatch = line.match(/Type:\s*([^|]+)/i);
-    const rVal      = extractStrength(line);
+  // Footer Actions
+  html += `
+    <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end; width: 100%;">
+      <button id="btnAddRelation" class="btn-secondary" style="font-weight: 600; font-size: 0.85rem;">➕ Add Custom Relation</button>
+      <button id="btnSaveRelations" class="btn-primary" style="font-weight: 600; font-size: 0.85rem;">💾 Save Schema Tweaks</button>
+    </div>
+  `;
+  html += '</div>';
+  
+  els.relationsContent.innerHTML = html;
 
-    if (xMatch && yMatch) {
-      const xCol  = xMatch[1].trim();
-      const yCol  = yMatch[1].trim();
-      const typ   = typeMatch ? typeMatch[1].trim() : 'relation';
-      const typLower = typ.toLowerCase();
-      const icon  = chartTypeIcon[typLower] || '↔';
-      const color = strengthColor(rVal);
-      const barPct = rVal !== null ? Math.round(Math.abs(rVal) * 100) : 60;
+  // Wire buttons
+  els.relationsContent.querySelectorAll('.btn-rel-edit').forEach(b => {
+    b.onclick = () => showRelationModal(parseInt(b.dataset.idx, 10));
+  });
+  els.relationsContent.querySelectorAll('.btn-rel-del').forEach(b => {
+    b.onclick = () => deleteRelationAt(parseInt(b.dataset.idx, 10));
+  });
+  
+  document.getElementById('btnAddRelation').onclick = () => showRelationModal(null);
+  document.getElementById('btnSaveRelations').onclick = () => saveTweakedRelations();
+}
 
-      return `
-        <div class="relation-card">
-          <div class="relation-card-top">
-            <div class="relation-cols">
-              <span class="relation-col x-col">${escHtml(xCol)}</span>
-              <span class="relation-arrow" style="color:${color}">${icon}</span>
-              <span class="relation-col y-col">${escHtml(yCol)}</span>
-            </div>
-            <span class="relation-type">${escHtml(typ)}</span>
-          </div>
-          <div class="relation-strength-bar-wrap">
-            <div class="relation-strength-bar" style="width:${barPct}%;background:${color};"></div>
-          </div>
-          ${rVal !== null ? `<div class="relation-rval" style="color:${color}">r = ${rVal.toFixed(3)}</div>` : ''}
-        </div>`;
+function showRelationModal(index) {
+  const cols = state.columns || [];
+  els.relationModalXSelect.innerHTML = cols.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  els.relationModalYSelect.innerHTML = cols.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
+  
+  if (index !== null && state.relationsList[index]) {
+    const rel = state.relationsList[index];
+    els.relationModalTitle.textContent = '✏️ Edit Relationship Schema';
+    els.relationModalXSelect.value = rel.xCol;
+    els.relationModalYSelect.value = rel.yCol;
+    els.relationModalTypeSelect.value = rel.typ;
+    els.relationModalDetails.value = rel.details;
+  } else {
+    els.relationModalTitle.textContent = '➕ Add Custom Relationship';
+    if (cols.length > 1) {
+      els.relationModalXSelect.selectedIndex = 0;
+      els.relationModalYSelect.selectedIndex = 1;
     }
-    return `<div class="relation-card"><div class="cleaning-text">${escHtml(line.replace(/^[-*•]\s*/, ''))}</div></div>`;
-  }).join('');
+    els.relationModalTypeSelect.value = 'Scatter Plot';
+    els.relationModalDetails.value = '';
+  }
+
+  els.relationModal.classList.remove('hidden');
+
+  els.relationModalConfirmBtn.onclick = () => {
+    const relObj = {
+      xCol: els.relationModalXSelect.value,
+      yCol: els.relationModalYSelect.value,
+      typ: els.relationModalTypeSelect.value,
+      details: els.relationModalDetails.value.trim() || 'Custom correlation defined by data scientist.'
+    };
+
+    if (index !== null) {
+      state.relationsList[index] = relObj;
+    } else {
+      state.relationsList.push(relObj);
+    }
+    els.relationModal.classList.add('hidden');
+    renderRelationsListUI();
+  };
+
+  els.relationModalCancelBtn.onclick = () => els.relationModal.classList.add('hidden');
+  els.closeRelationModalBtn.onclick = () => els.relationModal.classList.add('hidden');
+}
+
+function deleteRelationAt(index) {
+  state.relationsList.splice(index, 1);
+  renderRelationsListUI();
+  toast('Relationship removed from schema configuration.', 'info');
+}
+
+async function saveTweakedRelations() {
+  const sessionId = state.activeProject?.id || state.uploadedSession;
+  if (!sessionId) { toast('No active project context.', 'error'); return; }
+
+  const textLines = state.relationsList.map(r => 
+    `- X: ${r.xCol} | Y: ${r.yCol} | Type: ${r.typ} | Details: ${r.details}`
+  ).join('\n');
+
+  try {
+    const fd = new FormData();
+    fd.append('relations_text', textLines);
+
+    const res = await fetch(`/api/projects/${sessionId}/tweak-relations`, {
+      method: 'POST',
+      body: fd
+    });
+
+    if (res.ok) {
+      toast('Schema relationships committed successfully!', 'success');
+      if (state.results) {
+        state.results.relations = textLines;
+      }
+    } else {
+      toast('Failed to save schema tweaks.', 'error');
+    }
+  } catch (e) {
+    toast('Error saving schema tweaks: ' + e.message, 'error');
+  }
 }
 
 // ── Insights Markdown Formatter ──────────────────────────────────────────────
@@ -1685,64 +1967,157 @@ function formatInlineMarkdown(content) {
 // ── Insights ─────────────────────────────────────────────────────────────────
 function renderInsights(text) {
   if (!text || !text.trim() || text.toLowerCase().includes('skipped')) {
-    els.insightsContent.innerHTML = '<p style="color:var(--text-muted)">No insights generated.</p>';
+    els.insightsContent.innerHTML = '<p style="color:var(--text-muted)">No business insights generated.</p>';
     return;
   }
 
-  // Robust parsing: handle "1. ", "**1.** ", bullet "• ", or double-newline separation
-  let items = [];
+  // Parse sections
+  let objectivesText = "";
+  let statsText = "";
+  let strategicText = "";
+  let warningsText = "";
 
-  // Try numbered list first (e.g. "1. " or "**1." or "1)")
-  const numberedSplit = text.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3}\s))/);
-  if (numberedSplit.length > 1) {
-    items = numberedSplit.map(s => s.replace(/^\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3})\s*/, '').trim()).filter(Boolean);
-  } else {
-    // Fallback: split on double newlines
-    items = text.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+  const sections = text.split(/###\s+/);
+  sections.forEach(sec => {
+    const lines = sec.split('\n');
+    if (lines.length === 0) return;
+    const header = lines[0].trim().toLowerCase();
+    const content = lines.slice(1).join('\n').trim();
+
+    if (header.includes('objective') || header.includes('goal')) {
+      objectivesText = content;
+    } else if (header.includes('stat')) {
+      statsText = content;
+    } else if (header.includes('insight')) {
+      strategicText = content;
+    } else if (header.includes('warning') || header.includes('alert')) {
+      warningsText = content;
+    }
+  });
+
+  // If parsing didn't find specific sections, fallback to parsing as a single block
+  if (!strategicText && !objectivesText) {
+    strategicText = text;
   }
 
-  if (!items.length) {
-    els.insightsContent.innerHTML = `<div class="insight-card"><div class="insight-section-text">${formatInlineMarkdown(text.trim())}</div></div>`;
-    return;
+  let html = "";
+
+  // 1. Objectives & Goals Banner
+  if (objectivesText) {
+    html += `
+      <div class="insight-header-card">
+        <div class="insight-header-title">🎯 Primary Objectives &amp; Goals</div>
+        <div class="insight-header-text">${formatInsightsSubsections(objectivesText)}</div>
+      </div>
+    `;
   }
 
-  const LABEL_CFG = [
-    { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: '🔍', label: 'Observation' },
-    { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: '💼', label: 'Implication' },
-    { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: '🚀', label: 'Strategy' },
-    { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: '✅', label: 'Recommendation' },
-    { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: '⚠️', label: 'Risk' },
-    { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: '📊', label: 'Metric' },
-  ];
-
-  els.insightsContent.innerHTML = items.map((item, i) => {
-    const parts = item.split('\n').map(p => p.trim()).filter(Boolean);
-
-    const sectionHtml = parts.map(p => {
-      for (const cfg of LABEL_CFG) {
-        if (cfg.re.test(p)) {
-          const body = p.replace(cfg.re, '').trim();
-          return `<div class="insight-section">
-            <div class="insight-section-label ${cfg.cls}">${cfg.icon} ${cfg.label}</div>
-            <div class="insight-section-text">${formatInlineMarkdown(body || p)}</div>
-          </div>`;
+  // 2. Dataset Statistics Grid
+  if (statsText) {
+    const statLines = statsText.split('\n').map(l => l.trim()).filter(l => l.startsWith('-') || l.startsWith('*'));
+    if (statLines.length > 0) {
+      html += `<div class="insight-stats-grid">`;
+      statLines.forEach(line => {
+        const cleanLine = line.replace(/^[-*•]\s*/, '');
+        const colIndex = cleanLine.indexOf(':');
+        if (colIndex > -1) {
+          const key = cleanLine.slice(0, colIndex).trim();
+          const val = cleanLine.slice(colIndex + 1).trim();
+          html += `
+            <div class="insight-stat-card">
+              <div class="insight-stat-val">${escHtml(val)}</div>
+              <div class="insight-stat-lbl">${escHtml(key)}</div>
+            </div>
+          `;
         }
-      }
-      // Bullet sub-item
-      if (/^[-*•]/.test(p)) {
-        return `<div class="insight-bullet">${formatInlineMarkdown(p)}</div>`;
-      }
-      // Heading within insight
-      if (/^#{1,3}\s/.test(p)) {
-        return `<div class="insight-sub-heading">${escHtml(p.replace(/^#+\s*/, ''))}</div>`;
-      }
-      return `<div class="insight-section-text">${formatInlineMarkdown(p)}</div>`;
-    }).join('');
+      });
+      html += `</div>`;
+    } else {
+      html += `
+        <div class="card" style="padding: 16px; margin-bottom: 20px; border-color: var(--border-mid);">
+          <h4 style="margin-bottom: 8px; color: var(--cyan);">📊 Dataset Metrics</h4>
+          <div style="font-size: 0.9rem; line-height: 1.5;">${formatInsightsSubsections(statsText)}</div>
+        </div>
+      `;
+    }
+  }
 
-    return `<div class="insight-card">
-      <div class="insight-num-pill">${i + 1}</div>
-      <div class="insight-body">${sectionHtml}</div>
-    </div>`;
+  // 3. Strategic Insights List
+  if (strategicText) {
+    html += `<h4 style="margin-bottom: 12px; color: var(--violet-light); font-size: 1.05rem;">💡 Strategic Business Insights</h4>`;
+    const numberedSplit = strategicText.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3}\s))/);
+    let items = [];
+    if (numberedSplit.length > 1) {
+      items = numberedSplit.map(s => s.replace(/^\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3})\s*/, '').trim()).filter(Boolean);
+    } else {
+      items = strategicText.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
+    }
+
+    const LABEL_CFG = [
+      { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: '🔍', label: 'Observation' },
+      { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: '💼', label: 'Implication' },
+      { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: '🚀', label: 'Strategy' },
+      { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: '✅', label: 'Recommendation' },
+      { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: '⚠️', label: 'Risk' },
+      { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: '📊', label: 'Metric' },
+    ];
+
+    html += items.map((item, i) => {
+      const parts = item.split('\n').map(p => p.trim()).filter(Boolean);
+      const sectionHtml = parts.map(p => {
+        for (const cfg of LABEL_CFG) {
+          if (cfg.re.test(p)) {
+            const body = p.replace(cfg.re, '').trim();
+            return `<div class="insight-section">
+              <div class="insight-section-label ${cfg.cls}">${cfg.icon} ${cfg.label}</div>
+              <div class="insight-section-text">${formatInlineMarkdown(body || p)}</div>
+            </div>`;
+          }
+        }
+        if (/^[-*•]/.test(p)) {
+          return `<div class="insight-bullet">${formatInlineMarkdown(p)}</div>`;
+        }
+        if (/^#{1,3}\s/.test(p)) {
+          return `<div class="insight-sub-heading">${escHtml(p.replace(/^#+\s*/, ''))}</div>`;
+        }
+        return `<div class="insight-section-text">${formatInlineMarkdown(p)}</div>`;
+      }).join('');
+
+      return `
+        <div class="insight-card">
+          <div class="insight-num-pill">${i + 1}</div>
+          <div class="insight-body">${sectionHtml}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 4. Warnings & Alerts
+  if (warningsText && !warningsText.toLowerCase().includes('no warnings') && !warningsText.toLowerCase().includes('none')) {
+    html += `
+      <div class="insight-warning-card">
+        <div class="insight-warning-card-icon">⚠️</div>
+        <div class="insight-warning-card-body">
+          <div class="insight-warning-card-title">Business Risks &amp; Data Alerts</div>
+          <div class="insight-warning-card-text">${formatInsightsSubsections(warningsText)}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  els.insightsContent.innerHTML = html;
+}
+
+function formatInsightsSubsections(text) {
+  return text.split('\n').map(line => {
+    const trimmed = line.trim();
+    if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      return `<div style="margin-left: 12px; margin-top: 4px; display: flex; gap: 6px;">
+        <span>•</span>
+        <span>${formatInlineMarkdown(trimmed.replace(/^[-*•]\s*/, ''))}</span>
+      </div>`;
+    }
+    return `<p style="margin-top: 4px; margin-bottom: 4px;">${formatInlineMarkdown(trimmed)}</p>`;
   }).join('');
 }
 
@@ -1835,6 +2210,11 @@ function setupExport(sessionId) {
   els.exportPdfBtn.onclick = () => {
     window.location = `/api/export-pdf?session_id=${sessionId}`;
   };
+  if (els.exportZipBtn) {
+    els.exportZipBtn.onclick = () => {
+      window.location = `/api/projects/${sessionId}/export-zip`;
+    };
+  }
   els.downloadCsvBtn.onclick = () => {
     window.location = `/api/projects/${sessionId}/download-csv`;
   };
@@ -1954,6 +2334,12 @@ async function sendChat() {
     const data = await res.json();
     const text = data.text && data.text.trim() ? data.text : 'No response returned.';
     appendChatMsg('assistant', text, data.plot_url || null);
+    
+    // Reload dynamic preview if this query modified the dataset
+    const qLower = query.toLowerCase();
+    if (qLower.includes('delete') || qLower.includes('rename') || qLower.includes('replace') || qLower.includes('drop') || qLower.includes('fix') || qLower.includes('clean') || qLower.includes('modify') || qLower.includes('update')) {
+      await refreshPreviewData(sessionId);
+    }
   } catch (e) {
     removeTypingIndicator();
     appendChatMsg('assistant', '⚠ Network error: ' + e.message);
@@ -2055,6 +2441,55 @@ function escHtml(str) {
   resetWizardState();
   showScreen('landing');
   setStatus('● Idle', 'idle');
+
+  // Wire section switcher
+  if (els.btnSectionChat) els.btnSectionChat.addEventListener('click', () => switchSection('chat'));
+  if (els.btnSectionAgentic) els.btnSectionAgentic.addEventListener('click', () => switchSection('agentic'));
+
+  // Wire quick action buttons
+  if (els.btnRenameColQuick) {
+    els.btnRenameColQuick.addEventListener('click', async () => {
+      const oldName = await customPrompt('Select or enter the column you want to rename:', '', 'e.g. Q3_Sales', 'Rename Column');
+      if (!oldName) return;
+      if (!state.columns.includes(oldName)) {
+        toast(`Column "${oldName}" not found in dataset.`, 'error');
+        return;
+      }
+      const newName = await customPrompt(`Enter the new name for column "${oldName}":`, '', 'e.g. Sales_Q3', 'Rename Column');
+      if (!newName) return;
+      
+      // Command the copilot
+      els.chatInput.value = `Rename column \`${oldName}\` to \`${newName}\` in the dataset`;
+      sendChat();
+    });
+  }
+
+  if (els.btnDeleteColQuick) {
+    els.btnDeleteColQuick.addEventListener('click', async () => {
+      const colName = await customPrompt('Enter the name of the column you want to delete:', '', 'e.g. Unwanted_Col', 'Delete Column');
+      if (!colName) return;
+      if (!state.columns.includes(colName)) {
+        toast(`Column "${colName}" not found in dataset.`, 'error');
+        return;
+      }
+      const confirmed = await customConfirm(`Are you sure you want to permanently delete column "${colName}"?`, 'Delete Column');
+      if (!confirmed) return;
+      
+      // Command the copilot
+      els.chatInput.value = `Delete column \`${colName}\` from the dataset`;
+      sendChat();
+    });
+  }
+
+  // Wire agentic pipeline launch button
+  if (els.btnRunAgenticPipeline) {
+    els.btnRunAgenticPipeline.addEventListener('click', () => {
+      state.uploadedSession = state.activeProject?.id;
+      state.uploadedFile = { name: state.activeProject?.filename || 'dataset.csv' };
+      if (!checkApiKeySet()) return;
+      openConfigModal();
+    });
+  }
 
   // Check if a running session exists on page load
   // (handles F5 refresh during analysis)

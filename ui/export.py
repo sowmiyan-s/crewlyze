@@ -249,15 +249,20 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         textColor=text_color, leftIndent=14, firstLineIndent=-10, spaceAfter=7)
 
     # ── Cover page ────────────────────────────────────────────────────────────
-    report_filename = filename or "Data Analysis Report"
-    timestamp       = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    report_title = result.get("report_title") or filename or "Data Analysis Report"
+    report_goal  = result.get("goal") or ""
+    timestamp    = datetime.now().strftime("%B %d, %Y at %I:%M %p")
 
     cover_content = [
-        Paragraph("<b>EXECUTIVE DATA ANALYSIS REPORT</b>", title_style),
+        Paragraph(f"<b>{report_title.upper()}</b>", title_style),
         Paragraph("Autonomous Business Intelligence &amp; Strategy Recommendations", subtitle_style),
-        Paragraph(f"Dataset: <b>{report_filename}</b>", meta_style),
-        Paragraph(f"Generated: {timestamp}", meta_style),
+        Paragraph(f"Dataset: <b>{filename or 'dataset.csv'}</b>", meta_style),
+        Paragraph(f"Generated: {timestamp} (Live Analysis)", meta_style),
     ]
+    if report_goal:
+        cover_content.append(Spacer(1, 6))
+        cover_content.append(Paragraph(f"<b>Project Goal / Objective:</b> {report_goal}", ParagraphStyle("GoalStyle", parent=body_style, fontName="Helvetica", fontSize=9.5, textColor=muted_color)))
+
     cover_table = Table([[cover_content]], colWidths=[504])
     cover_table.setStyle(TableStyle([
         ("LINELEFT",      (0, 0), (0, -1), 5, secondary_color),
@@ -267,6 +272,35 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     ]))
     story.append(cover_table)
     story.append(Spacer(1, 14))
+
+    # Parse structured sections from insights text
+    raw_insights = result.get("insights", "").strip()
+    objectives_text = ""
+    stats_text = ""
+    strategic_text = ""
+    warnings_text = ""
+
+    if raw_insights:
+        sections = re.split(r"###\s+", raw_insights)
+        for sec in sections:
+            lines = sec.split("\n")
+            if not lines or not lines[0].strip():
+                continue
+            header = lines[0].strip().lower()
+            content = "\n".join(lines[1:]).strip()
+
+            if "objective" in header or "goal" in header:
+                objectives_text = content
+            elif "stat" in header:
+                stats_text = content
+            elif "insight" in header:
+                strategic_text = content
+            elif "warning" in header or "alert" in header:
+                warnings_text = content
+
+        # Fallback if no sections parsed
+        if not strategic_text and not objectives_text:
+            strategic_text = raw_insights
 
     # ── Dataset Summary callout ───────────────────────────────────────────────
     df = result.get("dataframe")
@@ -298,7 +332,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(Spacer(1, 12))
 
         # ── Data Insights (min/max/mean/median + top categories) ─────────────
-        story.append(Paragraph("📊 Data Insights", h1_style))
+        story.append(Paragraph("📊 Data Insights Summary", h1_style))
         story.append(Paragraph(
             "Per-column statistical summary of the cleaned dataset.",
             body_style,
@@ -320,6 +354,12 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                 story.append(Paragraph(f"✔ &nbsp; {_md_to_html(line)}", bullet_style))
         story.append(Spacer(1, 10))
 
+    # ── Objectives Section (if parsed) ────────────────────────────────────────
+    if objectives_text:
+        story.append(Paragraph("🎯 Project Objectives &amp; Scope", h1_style))
+        story.append(Paragraph(objectives_text.replace("\n", "<br/>"), body_style))
+        story.append(Spacer(1, 10))
+
     # ── Relations ─────────────────────────────────────────────────────────────
     relations_text = result.get("relations", "").strip()
     if relations_text:
@@ -331,10 +371,9 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(Spacer(1, 10))
 
     # ── Strategic Insights (McKinsey cards) ───────────────────────────────────
-    insights_text = result.get("insights", "").strip()
-    if insights_text:
+    if strategic_text:
         story.append(Paragraph("💡 Strategic Business Insights", h1_style))
-        insight_items  = re.split(r"\d+\.\s+", insights_text)
+        insight_items  = re.split(r"\d+\.\s+", strategic_text)
         insight_count  = 0
 
         for item in insight_items:
@@ -383,6 +422,35 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                 ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#e2e8f0")),
             ]))
             story.append(KeepTogether([lbl_para, card_table, Spacer(1, 8)]))
+
+    # ── Warnings & Alerts ─────────────────────────────────────────────────────
+    if warnings_text and not "no warnings" in warnings_text.lower() and not "none" in warnings_text.lower():
+        story.append(Paragraph("⚠️ Business Risks &amp; Critical Alerts", h1_style))
+        warning_content = [
+            Paragraph(warnings_text.replace("\n", "<br/>"), ParagraphStyle("WarnStyle", parent=body_style, fontSize=9.5, textColor=colors.HexColor("#991b1b")))
+        ]
+        warning_table = Table([[warning_content]], colWidths=[504])
+        warning_table.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#fef2f2")),
+            ("LINELEFT",      (0, 0), (0, -1),  4, colors.HexColor("#f43f5e")),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 12),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#fee2e2")),
+        ]))
+        story.append(KeepTogether([warning_table, Spacer(1, 10)]))
+
+    # ── Conclusion ────────────────────────────────────────────────────────────
+    story.append(Paragraph("🏁 Executive Conclusion &amp; Next Steps", h1_style))
+    conclusion_text = (
+        "The automated data pipeline has successfully validated, cleaned, and evaluated the dataset "
+        "under the specified project guidelines. To maximize return on these insights, management is advised "
+        "to prioritize the Actionable Strategy recommendations outlined in the insights section, address the warnings "
+        "disclosed, and leverage the visual intelligence charts for stakeholder presentations."
+    )
+    story.append(Paragraph(conclusion_text, body_style))
+    story.append(Spacer(1, 10))
 
     # ── Visualizations ───────────────────────────────────────────────────────
     output_dir = result.get("output_dir", Path("outputs"))

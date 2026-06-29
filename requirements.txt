@@ -25,8 +25,8 @@ Pillow
 reportlab
 
 # ── Pinned for Windows compatibility ─────────────────────────────────────────
-# regex 2023.12.25 has pre-built Windows wheels (no Rust required)
-regex==2023.12.25
+# regex has pre-built Windows wheels for Python 3.13
+regex
 
 # NOTE: streamlit has been removed — the app now runs on FastAPI + vanilla web UI
 # NOTE: tiktoken removed — requires Rust; not needed

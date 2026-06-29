@@ -83,10 +83,15 @@
       <!-- Wizard Container -->
       <div class="wizard-container" id="newProjectWizard">
         <!-- Step 0: Create Project Button Card -->
-        <div class="wizard-step active" id="wizardStep0" style="width: 100%; display: flex; justify-content: center;">
+        <div class="wizard-step active" id="wizardStep0" style="width: 100%; display: flex; flex-direction: row !important; justify-content: center; gap: 20px; flex-wrap: wrap;">
           <div class="create-project-card" id="startWizardCard">
             <div class="create-project-plus">+</div>
             <div class="create-project-text">Create New Project</div>
+          </div>
+          <div class="create-project-card" id="importProjectCard" style="background: rgba(16,185,129,0.02); border-color: rgba(16,185,129,0.2);">
+            <div class="create-project-plus" style="color: #10b981;">↓</div>
+            <div class="create-project-text" style="color: var(--text-primary);">Import Project (.zip)</div>
+            <input type="file" id="importZipFileInput" accept=".zip" style="display: none;" />
           </div>
         </div>
 
@@ -95,9 +100,20 @@
           <button id="wizardBack1Btn" class="btn-back">← Back</button>
           <div class="wizard-icon">✨</div>
           <h3 class="wizard-step-title">Create New Project</h3>
-          <p class="wizard-step-desc">Enter a name for your data analysis project to get started.</p>
-          <div class="field-group mt-16" style="width: 100%; max-width: 400px; margin: 16px auto 0;">
-            <input type="text" id="wizardProjectName" class="field-input text-center" placeholder="e.g. Sales Analysis Q3" style="text-align: center; font-size: 1rem; padding: 10px 14px;" />
+          <p class="wizard-step-desc">Enter a name, and optionally a title and goal for your project.</p>
+          <div style="width: 100%; max-width: 440px; margin: 16px auto 0; text-align: left; display: flex; flex-direction: column; gap: 12px;">
+            <div class="field-group">
+              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Name</label>
+              <input type="text" id="wizardProjectName" class="field-input" placeholder="e.g. Sales Analysis Q3" style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Report Title (Optional)</label>
+              <input type="text" id="wizardReportTitle" class="field-input" placeholder="e.g. Q3 Sales Executive Analysis" style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
+            </div>
+            <div class="field-group">
+              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Goal / Objective (Optional)</label>
+              <textarea id="wizardProjectGoal" class="field-input" rows="3" placeholder="e.g. Identify top 10% highest-margin customer segments and explain why spend exceeded budget." style="font-size: 0.95rem; padding: 10px 12px; font-family: inherit; resize: none; width: 100%; box-sizing: border-box;"></textarea>
+            </div>
           </div>
           <button id="wizardNextBtn" class="btn-primary btn-lg mt-20" style="min-width: 200px; margin-top: 20px;">Continue to Upload →</button>
         </div>
@@ -279,112 +295,167 @@
   <section id="resultsScreen" class="screen">
 
     <!-- Stat row -->
-    <div class="stats-row" id="statsRow"></div>
+    <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
 
-    <!-- Tabs -->
-    <div class="tabs-bar">
-      <button class="tab-btn active" data-tab="preview">🔍 Data Preview</button>
-      <button class="tab-btn" data-tab="cleaning">🧹 Cleaning Report</button>
-      <button class="tab-btn" data-tab="relations">🔗 Relations</button>
-      <button class="tab-btn" data-tab="insights">💡 Insights</button>
-      <button class="tab-btn" data-tab="charts">📈 Visualizations</button>
-      <button class="tab-btn" data-tab="chat">💬 AI Copilot</button>
+    <!-- Main Sections Switch -->
+    <div class="sections-switch" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: 30px; max-width: 440px; margin-left: auto; margin-right: auto; position: relative;">
+      <button class="section-switch-btn active" id="btnSectionChat" style="flex: 1; padding: 10px 20px; border: none; background: var(--violet-dark); color: #fff; font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">💬 AI Data Chat</button>
+      <button class="section-switch-btn" id="btnSectionAgentic" style="flex: 1; padding: 10px 20px; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;">🤖 Agentic Analysis</button>
     </div>
 
-    <!-- Tab panels -->
-    <div class="tab-panels">
-
-      <!-- DATA PREVIEW -->
-      <div class="tab-panel active" id="panel-preview">
-        <div class="panel-toolbar">
-          <h3 class="panel-title">📊 Dataset Explorer</h3>
-          <button id="togglePreviewBtn" class="btn-secondary btn-sm">🔽 Minimize</button>
-        </div>
-        <div id="previewTableWrap" class="table-wrap">
-          <div id="previewTable" class="data-table-container"></div>
-        </div>
-      </div>
-
-      <!-- CLEANING REPORT -->
-      <div class="tab-panel" id="panel-cleaning">
-        <h3 class="panel-title">🧹 Data Cleaning Audit Trail</h3>
-        <div id="cleaningContent" class="cleaning-list"></div>
-      </div>
-
-      <!-- RELATIONS -->
-      <div class="tab-panel" id="panel-relations">
-        <h3 class="panel-title">🔗 Column Relationships</h3>
-        <div id="relationsContent" class="relations-grid"></div>
-      </div>
-
-      <!-- INSIGHTS -->
-      <div class="tab-panel" id="panel-insights">
-        <h3 class="panel-title">💡 Strategic Business Insights</h3>
-        <div id="insightsContent" class="insights-list"></div>
-      </div>
-
-      <!-- CHARTS (Plotly + PNG + Viz Code) -->
-      <div class="tab-panel" id="panel-charts">
-        <h3 class="panel-title">📈 Visual Intelligence</h3>
-
-        <div id="plotlyChartsWrap" class="charts-grid"></div>
-
-        <div id="pngChartsWrap" class="png-charts-wrap hidden">
-          <h4 class="sub-title">🖼 Agent-Generated Charts</h4>
-          <div id="pngCharts" class="png-grid"></div>
-        </div>
-
-        <!-- Viz code collapsible -->
-        <details class="viz-code-details hidden" id="vizCodeDetails">
-          <summary>⚙️ Visualization Architecture Code</summary>
-          <pre id="vizCodeBlock" class="code-block"></pre>
-        </details>
-      </div>
-
-      <!-- AI COPILOT CHAT -->
-      <div class="tab-panel" id="panel-chat">
-        <div class="chat-layout">
-          <div class="chat-main">
-            <div class="chat-header">
-              <h3 class="panel-title">💬 AI Data Copilot</h3>
-              <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Chat</button>
+    <!-- ───────────────── SECTION 1: AI DATA CHAT ───────────────── -->
+    <div id="areaChat" class="section-area active">
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Table Preview Area -->
+        <div class="card" style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">🔍 Dataset Explorer <span id="chatPreviewDims" style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
+            <div style="display: flex; gap: 8px;">
+              <button id="btnRenameColQuick" class="btn-secondary btn-sm" style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">✏️ Rename Column</button>
+              <button id="btnDeleteColQuick" class="btn-secondary btn-sm" style="font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.2); color: #ef4444; display: flex; align-items: center; gap: 4px;">🗑️ Delete Column</button>
             </div>
-            <div id="chatMessages" class="chat-messages"></div>
-            <div class="chat-input-area">
-              <!-- Column / command picker -->
-              <div id="colPickerDropdown" class="col-picker-dropdown hidden"></div>
-              <div class="chat-input-row">
-                <textarea
-                  id="chatInput"
-                  class="chat-textarea"
-                  rows="2"
-                  placeholder="Ask about your data… Type / to insert a column name"
-                ></textarea>
-                <button id="sendChatBtn" class="btn-primary btn-send">Send ↑</button>
-              </div>
-              <div class="chat-hints">
-                <span class="chat-hint-chip" data-query="Show summary statistics for all numeric columns">📊 Summary Stats</span>
-                <span class="chat-hint-chip" data-query="Plot a histogram of the first numeric column">📉 Histogram</span>
-                <span class="chat-hint-chip" data-query="Which columns have the most missing values?">❓ Missing Data</span>
-                <span class="chat-hint-chip" data-query="Show top 10 rows sorted by the first numeric column descending">🔝 Top 10 Rows</span>
-              </div>
+          </div>
+          <div id="previewTableWrap" class="table-wrap" style="max-height: 250px; overflow-y: auto;">
+            <div id="previewTable" class="data-table-container"></div>
+          </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="card" style="padding: 20px; background: var(--bg-elevated); border: 1px solid var(--border-mid); display: flex; flex-direction: column; min-height: 480px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-low); padding-bottom: 12px;">
+            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">💬 AI Copilot &amp; Data Interaction</h3>
+            <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
+          </div>
+          
+          <div id="chatMessages" class="chat-messages" style="flex: 1; min-height: 260px; max-height: 420px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+            <!-- messages populate here -->
+          </div>
+
+          <div class="chat-input-area" style="position: relative;">
+            <div id="colPickerDropdown" class="col-picker-dropdown hidden" style="position: absolute; bottom: 100%; left: 0; right: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-md); z-index: 10; max-height: 160px; overflow-y: auto; padding: 4px;"></div>
+            <div class="chat-input-row" style="display: flex; gap: 8px; align-items: flex-end;">
+              <textarea id="chatInput" class="chat-textarea" rows="2" placeholder="Ask questions, request visual charts, or modify columns (type / to select a column)..." style="flex: 1; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-mid); border-radius: var(--r-md); padding: 10px 14px; font-size: 0.9rem; font-family: inherit; resize: none;"></textarea>
+              <button id="sendChatBtn" class="btn-primary btn-send" style="padding: 12px 20px; border-radius: var(--r-md); font-weight: 600;">Send ↑</button>
+            </div>
+            <div class="chat-hints" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 0.75rem; color: var(--text-secondary);">
+              <span class="chat-hint-chip" data-query="Show summary statistics for all numeric columns" style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;">📊 Summary Stats</span>
+              <span class="chat-hint-chip" data-query="Plot a distribution histogram of the first column with custom color config" style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;">📉 Custom Histogram</span>
+              <span class="chat-hint-chip" data-query="Rename column..." style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;">✏️ Rename Column</span>
+              <span class="chat-hint-chip" data-query="Delete column..." style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;">🗑️ Delete Column</span>
             </div>
           </div>
         </div>
+
+      </div>
+    </div>
+
+    <!-- ───────────────── SECTION 2: AGENTIC ANALYSIS ───────────────── -->
+    <div id="areaAgentic" class="section-area hidden">
+      <!-- Run Analysis Placeholder -->
+      <div id="agenticPlaceholder" class="hidden" style="text-align: center; padding: 60px 20px; background: rgba(24, 24, 27, 0.4); border: 1px dashed var(--border-mid); border-radius: var(--r-lg); max-width: 580px; margin: 40px auto; display: flex; flex-direction: column; align-items: center; gap: 16px; backdrop-filter: blur(12px);">
+        <div style="font-size: 3rem; animation: pulse 2s infinite;">🤖</div>
+        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Automated Pipeline Analysis</h3>
+        <p style="color: var(--text-secondary); line-height: 1.5; margin: 0; font-size: 0.9rem;">
+          Trigger autonomous AI agents to perform data cleaning, schema relationship mapping, and surface consulting-grade insights.
+        </p>
+        <button id="btnRunAgenticPipeline" class="btn-primary btn-lg" style="margin-top: 10px; font-weight: 600;">▶ Configure &amp; Run Analysis</button>
       </div>
 
-    </div><!-- /tab-panels -->
+      <!-- Tabs -->
+      <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px;">
+        <button class="tab-btn active" data-tab="cleaning">🧹 Cleaning Report</button>
+        <button class="tab-btn" data-tab="relations">🔗 Relation Mapper</button>
+        <button class="tab-btn" data-tab="insights">💡 Business Insights</button>
+        <button class="tab-btn" data-tab="charts">📈 Visualizations</button>
+      </div>
 
-    <!-- Export bar -->
-    <div class="export-bar">
+      <!-- Tab panels -->
+      <div class="tab-panels" id="agenticTabPanels">
+        <!-- CLEANING REPORT -->
+        <div class="tab-panel active" id="panel-cleaning">
+          <h3 class="panel-title">🧹 Data Cleaning Audit Trail</h3>
+          <div id="cleaningContent" class="cleaning-list"></div>
+        </div>
+
+        <!-- RELATIONS -->
+        <div class="tab-panel" id="panel-relations">
+          <h3 class="panel-title">🔗 Relationship Mapping</h3>
+          <div id="relationsContent" class="relations-grid"></div>
+        </div>
+
+        <!-- INSIGHTS -->
+        <div class="tab-panel" id="panel-insights">
+          <h3 class="panel-title">💡 Strategic Business Insights</h3>
+          <div id="insightsContent" class="insights-list"></div>
+        </div>
+
+        <!-- CHARTS -->
+        <div class="tab-panel" id="panel-charts">
+          <h3 class="panel-title">📈 Visual Intelligence</h3>
+          <div id="plotlyChartsWrap" class="charts-grid"></div>
+          <div id="pngChartsWrap" class="png-charts-wrap hidden">
+            <h4 class="sub-title">🖼 Agent-Generated Charts</h4>
+            <div id="pngCharts" class="png-grid"></div>
+          </div>
+          <details class="viz-code-details hidden" id="vizCodeDetails">
+            <summary>⚙️ Visualization Architecture Code</summary>
+            <pre id="vizCodeBlock" class="code-block"></pre>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export/action bar -->
+    <div class="export-bar" style="margin-top: 24px;">
       <button id="exportPdfBtn" class="btn-primary">📄 Export PDF Report</button>
+      <button id="exportZipBtn" class="btn-secondary" style="background: rgba(124,58,237,0.06); border-color: var(--violet-light); color: var(--violet-light); font-weight: 600;">📦 Export Project (.zip)</button>
       <button id="downloadCsvBtn" class="btn-secondary">📥 Download Cleaned CSV</button>
-      <button id="reRunBtn" class="btn-ghost">🔄 Re-run Analysis</button>
+      <button id="reRunBtn" class="btn-ghost">🔄 Re-run Agentic Analysis</button>
     </div>
 
   </section><!-- /results screen -->
 
 </main><!-- /main-area -->
+
+<!-- Schema Relation Modal -->
+<div id="relationModal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width: 480px; padding: 24px; border: 1px solid rgba(34, 211, 238, 0.3); background: rgba(18, 18, 22, 0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: var(--r-md);">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 id="relationModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">Tweak Relationship</h2>
+      <button id="closeRelationModalBtn" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary); width: auto; padding: 0;">✕</button>
+    </div>
+    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">X Variable (Source Column)</label>
+        <select id="relationModalXSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
+      </div>
+      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Y Variable (Target Column)</label>
+        <select id="relationModalYSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
+      </div>
+      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Visual Plot Recommendation</label>
+        <select id="relationModalTypeSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;">
+          <option value="Scatter Plot">Scatter Plot</option>
+          <option value="Bar Chart">Bar Chart</option>
+          <option value="Line Chart">Line Chart</option>
+          <option value="Box Plot">Box Plot</option>
+          <option value="Histogram">Histogram</option>
+          <option value="Heatmap">Heatmap</option>
+        </select>
+      </div>
+      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Correlation &amp; Statistical Details</label>
+        <textarea id="relationModalDetails" class="field-input" rows="3" placeholder="Explain the relationship correlation or domain relevance..." style="width:100%; box-sizing:border-box; font-family:inherit; resize:none; padding:8px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm);"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button id="relationModalCancelBtn" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>
+      <button id="relationModalConfirmBtn" class="btn-primary" style="padding: 8px 16px;">Apply Changes</button>
+    </div>
+  </div>
+</div>
 
 <!-- API Warning Modal -->
 <div id="apiWarningModal" class="modal-overlay hidden">

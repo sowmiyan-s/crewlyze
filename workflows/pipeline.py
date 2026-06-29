@@ -73,23 +73,21 @@ def make_cooldown_callback(min_sleep: int = 5):
 # Pipeline factory
 # ---------------------------------------------------------------------------
 
-def make_pipeline(session_id: str, profile: str = "", selected_tasks: Optional[list[str]] = None, deep_analysis: bool = False) -> tuple[list, list]:
+def make_pipeline(
+    session_id: str,
+    profile: str = "",
+    selected_tasks: Optional[list[str]] = None,
+    deep_analysis: bool = False,
+    project_goal: str = "",
+    report_title: str = "",
+    existing_relations: str = "",
+) -> tuple[list, list]:
     """
     Build and return (agents, tasks) for a single analysis run.
 
     Every call creates fresh agent instances (picks up the latest LLM config)
     and embeds the session-specific CSV and output paths + dataset profile
     into each task description.
-
-    Parameters
-    ----------
-    session_id : Short unique string used to isolate per-user data.
-    profile    : Pre-computed dataset profile string from build_dataset_profile().
-
-    Returns
-    -------
-    agents : list[Agent]
-    tasks  : list[Task]
     """
     csv_path   = f"data/sessions/{session_id}/cleaned.csv"
     output_dir = f"outputs/{session_id}"
@@ -114,8 +112,12 @@ def make_pipeline(session_id: str, profile: str = "", selected_tasks: Optional[l
     visualizer_agent = make_visualizer_agent()
 
     deep_prompt = "\n\nIf deep analysis mode is enabled, provide richer reasoning, deeper causal exploration, and more detailed business implications for each recommendation." if deep_analysis else ""
+    
+    goal_context = f"\nThe user has set the following goal for this project: '{project_goal}'." if project_goal else ""
+    
     cleaning_prompt = (
         f"The dataset working copy is at '{csv_path}'. "
+        f"{goal_context} "
         "Identify data quality issues from the profile below, then write and run "
         "Python cleaning code using 'Clean Dataset with Python Code' to fix them. "
         "Explain the business rationale of each cleaning step in the final report."
@@ -133,59 +135,85 @@ def make_pipeline(session_id: str, profile: str = "", selected_tasks: Optional[l
         callback=cb,
     )
 
+    relation_prompt = (
+        f"First, examine the 5 sample rows and column details in the dataset profile of '{csv_path}'. "
+        "Identify the data type of each column (e.g. Unique ID, Categorical, Continuous Numeric, Timestamp, Key Column). "
+        f"Then, identify 5 key column relationships with high business relevance, focusing on correlations or connections that align with the user's project goal: '{project_goal}'. "
+        "Format the output STRICTLY as:\n"
+        "- X: [Column1] | Y: [Column2] | Type: [PlotType] | Details: [Relationship details, data type mapping of both columns, and business relevance]\n"
+        "Output NOTHING else."
+        f"{profile_block}"
+    )
+
     relation_task = Task(
         agent=relation_agent,
-        description=(
-            f"Using the dataset profile below, identify 5 key relationships among the "
-            f"columns of '{csv_path}' that carry significant business meaning. "
-            "Format the output STRICTLY as:\n"
-            "- X: [Column1] | Y: [Column2] | Type: [PlotType]\n"
-            "Output NOTHING else."
-            f"{profile_block}"
-        ),
+        description=relation_prompt,
         expected_output=(
             "Strictly formatted list of relationships. Example:\n"
-            "- X: Age | Y: Income | Type: Scatter Plot"
+            "- X: Age | Y: Income | Type: Scatter Plot | Details: Age (Continuous Numeric) vs Income (Continuous Numeric). Displays moderate positive correlation, key for targeting demographics."
         ),
         callback=cb,
+    )
+
+    relations_context = f"\n\n--- TWEAKED SCHEMA & VERIFIED RELATIONSHIPS (use these verified columns & relationships to guide your analysis) ---\n{existing_relations}\n---" if existing_relations else ""
+
+    goal_prompt = f"Align all insights and strategies directly to address the project goal: '{project_goal}'." if project_goal else ""
+    insight_prompt = (
+        "Using the dataset profile and identified relationships provided below, "
+        "generate a structured report. "
+        f"{goal_prompt}\n"
+        "Format the report using markdown headers EXACTLY as follows:\n\n"
+        "### Objectives & Goals\n"
+        "[Describe the primary objective and business goals of this analysis based on the project goal and dataset profile]\n\n"
+        "### Dataset Statistics\n"
+        "- Total rows: [row count]\n"
+        "- Total columns: [col count]\n"
+        "- Numeric columns: [list numeric columns and their min/max values]\n"
+        "- Categorical columns: [list categorical columns]\n\n"
+        "### Strategic Insights\n"
+        "Generate 5 key business insights. Each insight MUST strictly use this structure:\n"
+        "1. **Observation**: [Describe the exact trend, anomaly, or correlation from the data]\n"
+        "   **Business Implication**: [Explain how this impacts profitability, risk, operation, or customers]\n"
+        "   **Actionable Strategy**: [Outline a concrete recommendation that the organization should implement immediately]\n\n"
+        "### Warnings & Alerts\n"
+        "[List any warning or alert (e.g. data quality issues, outlier presence, class imbalance, missing values, declining trends) that a data scientist or business user should be aware of]"
+        f"{relations_context}"
+        f"{profile_block}"
     )
 
     insight_task = Task(
         agent=insights_agent,
-        description=(
-            "Using the dataset profile and identified relationships provided below, "
-            "generate 5 key business insights. Each insight MUST strictly use this structure:\n"
-            "1. **Observation**: [Describe the exact trend, anomaly, or correlation from the data]\n"
-            "   **Business Implication**: [Explain how this impacts profitability, risk, operation, or customers]\n"
-            "   **Actionable Strategy**: [Outline a concrete recommendation that the organization should implement immediately]\n"
-            "Provide highly context-specific, professional management-consultant level insights. Avoid generic fillers."
-            f"{profile_block}"
-        ),
-        expected_output="Plain-text numbered list of 5 business insights in the mandated structure.",
+        description=insight_prompt,
+        expected_output="A structured report in markdown format containing Objectives & Goals, Dataset Statistics, Strategic Insights, and Warnings & Alerts.",
         callback=cb,
+    )
+
+    viz_goal_prompt = f"\nFocus visualizations on answering or addressing the project goal: '{project_goal}'." if project_goal else ""
+    visualize_prompt = (
+        "Examine the columns and data types from the profile below. Using your AI reasoning, select "
+        "the 3-4 most insightful relationships, trends, or distributions that characterize this specific dataset.\n"
+        f"{viz_goal_prompt}\n"
+        "Then, write and execute Python plotting code using 'Execute Visualization Code'.\n\n"
+        "ENVIRONMENT NOTE:\n"
+        "- The pandas DataFrame is pre-loaded as `df` in your execution environment.\n"
+        "- Pre-defined variable `OUTPUT_DIR` contains the target output folder path.\n"
+        "- A helper function `save_chart(filename_string)` is available to save the current figure.\n"
+        "- Matplotlib and Seaborn are pre-imported. Do NOT load CSVs or create folders yourself!\n\n"
+        "CODE REQUIREMENTS:\n"
+        "- Set style theme: 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
+        "- Use high-end palette hex colors (e.g. `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink, `#10b981` for Emerald).\n"
+        "- Set figure size to `(10, 6)` or `(12, 6)`.\n"
+        "- Set clear, descriptive titles and wrap long titles: 'plt.title(textwrap.fill(title, 40))'.\n"
+        "- Apply 'sns.despine(left=True, bottom=True)' to remove borders.\n"
+        "- Save each plot with: `save_chart('chart_name')`.\n"
+        "- Call `plt.close()` immediately after each save to clear the state."
+        f"{relations_context}"
+        f"{profile_block}"
     )
 
     visualize_task = Task(
         agent=visualizer_agent,
-        description=(
-            "Examine the columns and data types from the profile below. Using your AI reasoning, select "
-            "the 3-4 most insightful relationships, trends, or distributions that characterize this specific dataset.\n"
-            "Then, write and execute Python plotting code using 'Execute Visualization Code'.\n\n"
-            "ENVIRONMENT NOTE:\n"
-            "- The pandas DataFrame is pre-loaded as `df` in your execution environment.\n"
-            "- Pre-defined variable `OUTPUT_DIR` contains the target output folder path.\n"
-            "- A helper function `save_chart(filename_string)` is available to save the current figure.\n"
-            "- Matplotlib and Seaborn are pre-imported. Do NOT load CSVs or create folders yourself!\n\n"
-            "CODE REQUIREMENTS:\n"
-            "- Set style theme: 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
-            "- Use high-end palette hex colors (e.g. `#6366f1` for Indigo, `#06b6d4` for Teal, `#ec4899` for Pink, `#10b981` for Emerald).\n"
-            "- Set figure size to `(10, 6)` or `(12, 6)`.\n"
-            "- Set clear, descriptive titles and wrap long titles: 'plt.title(textwrap.fill(title, 40))'.\n"
-            "- Apply 'sns.despine(left=True, bottom=True)' to remove borders.\n"
-            "- Save each plot with: `save_chart('chart_name')`.\n"
-            "- Call `plt.close()` immediately after each save to clear the state."
-            f"{profile_block}"
-        ),
+        description=visualize_prompt,
         expected_output="Summary of the 3-4 custom visualization plots generated and saved.",
         callback=cb,
     )

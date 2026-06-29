@@ -113,7 +113,7 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
     # 4. Build LLM prompt with full column context
     prompt = textwrap.dedent(f"""
     You are an expert AI Data Analyst. You have access to a CSV dataset at:
-      FILE_PATH = '{csv_path}'
+      FILE_PATH = '{Path(csv_path).as_posix()}'
 
     === DATASET SCHEMA ===
     {column_context}
@@ -123,12 +123,17 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
 
     INSTRUCTIONS:
     1. Read the dataset: df = pd.read_csv(FILE_PATH)
-    2. Use ONLY the column names listed above (exact spelling, case-sensitive).
-    3. Perform any required analysis, aggregation, or computation.
-    4. Print a clear, formatted answer to stdout.
-    5. If the query asks for a chart/plot/graph:
+    2. Use ONLY the column names listed in the dataset schema (exact spelling, case-sensitive).
+    3. Perform any required analysis, aggregation, computation, or modifications.
+    4. Print a clear, formatted answer to stdout detailing the results or actions taken.
+    5. If the query asks to modify, clean, fix, rename, delete columns, drop rows, replace missing values, or update values in the dataset:
+       - Perform the operation on the DataFrame `df`.
+       - Save the modified DataFrame back to the CSV file at the end of the script: `df.to_csv(FILE_PATH, index=False)`.
+       - Print a confirmation message to stdout explaining exactly what dataset modifications were made.
+    6. If the query asks for a chart/plot/graph:
        - Call `import matplotlib; matplotlib.use('Agg')` BEFORE importing pyplot.
-       - Generate a professional chart and save it to: '{plot_path.as_posix()}'
+       - Generate a professional chart. Apply any specific styles, colors, layouts, grids, or palettes requested by the user. If they specify custom colors/configurations (e.g. "red-blue line chart" or "neon green theme"), make sure to use those styles/colors in your matplotlib/seaborn code.
+       - Save the chart to: '{plot_path.as_posix()}'
        - Call `plt.tight_layout()` then `plt.savefig(...)` then `plt.close()`.
 
     Return ONLY valid Python code inside a ```python ... ``` block.
