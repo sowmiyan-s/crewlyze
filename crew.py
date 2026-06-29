@@ -330,7 +330,7 @@ def _run_single_task(agent, task, max_rpm: int = 8) -> object:
         agents=[agent],
         tasks=[task],
         max_rpm=max_rpm,
-        cache=True,
+        cache=False,
         verbose=True,
     )
     mini.kickoff()
@@ -547,12 +547,14 @@ def run_crew(
         print("[Stage 2/4] Running Relation Analyst + BI Analyst ...")
         try:
             if do_relations and do_insights:
+                import contextvars
+                ctx = contextvars.copy_context()
                 with ThreadPoolExecutor(max_workers=2, thread_name_prefix="crew") as executor:
                     rel_future = executor.submit(
-                        _run_single_task, agents[1], tasks[1], 8
+                        ctx.run, _run_single_task, agents[1], tasks[1], 8
                     )
                     ins_future = executor.submit(
-                        _run_single_task, agents[2], tasks[2], 8
+                        ctx.run, _run_single_task, agents[2], tasks[2], 8
                     )
                     tasks[1] = rel_future.result()
                     tasks[2] = ins_future.result()
