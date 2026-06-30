@@ -461,11 +461,11 @@ def run_crew(
 
     # Determine requested task stages and deep analysis mode
     if selected_tasks is None:
-        env_raw = os.getenv("SELECTED_TASKS", "")
-        selected_tasks = [t.strip() for t in env_raw.split(",") if t.strip()]
+        selected_tasks = []
 
     if not deep_analysis:
-        deep_analysis = os.getenv("DEEP_ANALYSIS", "false").lower() in {"true", "1", "yes", "on"}
+        from config.context import current_deep_analysis
+        deep_analysis = current_deep_analysis.get()
 
     env_tasks = selected_tasks or []
     if not env_tasks:
@@ -548,13 +548,14 @@ def run_crew(
         try:
             if do_relations and do_insights:
                 import contextvars
-                ctx = contextvars.copy_context()
+                ctx1 = contextvars.copy_context()
+                ctx2 = contextvars.copy_context()
                 with ThreadPoolExecutor(max_workers=2, thread_name_prefix="crew") as executor:
                     rel_future = executor.submit(
-                        ctx.run, _run_single_task, agents[1], tasks[1], 8
+                        ctx1.run, _run_single_task, agents[1], tasks[1], 8
                     )
                     ins_future = executor.submit(
-                        ctx.run, _run_single_task, agents[2], tasks[2], 8
+                        ctx2.run, _run_single_task, agents[2], tasks[2], 8
                     )
                     tasks[1] = rel_future.result()
                     tasks[2] = ins_future.result()
