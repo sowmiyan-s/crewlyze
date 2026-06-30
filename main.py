@@ -22,6 +22,7 @@ import re
 import uuid
 import asyncio
 import shutil
+import threading
 import time
 import zipfile
 from io import BytesIO
@@ -158,8 +159,8 @@ def _load_crew():
     if _run_crew is None:
         from crew import run_crew as _rc
         from config.llm_config import apply_runtime_llm_settings as _arls, validate_llm_connection as _vlc
-        from ui.copilot import run_copilot_query as _rcq
-        from ui.export import export_pdf as _ep
+        from tools.ui.copilot import run_copilot_query as _rcq
+        from tools.ui.export import export_pdf as _ep
         _run_crew = _rc
         _apply_runtime_llm_settings = _arls
         _validate_llm_connection = _vlc
@@ -239,13 +240,16 @@ def get_safe_output_dir(project_id: str) -> Path:
         raise HTTPException(status_code=400, detail="Path traversal detected.")
     return resolved
 
+_metadata_lock = threading.Lock()
+
 def save_project_metadata(project_id: str, meta: dict):
     session_dir = get_safe_session_dir(project_id)
     if not session_dir.exists():
         session_dir.mkdir(parents=True, exist_ok=True)
     metadata_path = session_dir / "metadata.json"
-    with open(metadata_path, "w", encoding="utf-8") as f:
-        json.dump(meta, f, indent=2)
+    with _metadata_lock:
+        with open(metadata_path, "w", encoding="utf-8") as f:
+            json.dump(meta, f, indent=2)
 
 def get_project_metadata(project_id: str) -> dict:
     session_dir = get_safe_session_dir(project_id)
@@ -255,12 +259,13 @@ def get_project_metadata(project_id: str) -> dict:
         return {}
         
     meta = {}
-    if metadata_path.exists():
-        try:
-            with open(metadata_path, "r", encoding="utf-8") as f:
-                meta = json.load(f)
-        except Exception:
-            pass
+    with _metadata_lock:
+        if metadata_path.exists():
+            try:
+                with open(metadata_path, "r", encoding="utf-8") as f:
+                    meta = json.load(f)
+            except Exception:
+                pass
             
     # Default metadata if not present or corrupt (compatibility check)
     if not meta:
@@ -345,6 +350,10 @@ def optimize_goal_grammar(goal: str, provider: str, model: str, api_key: str, en
 # Background Task Pipeline
 # ---------------------------------------------------------------------------
 
+MAX_CONCURRENT_ANALYSES = 2
+active_analyses = 0
+active_analyses_lock = threading.Lock()
+
 def run_crew_in_background(
     session_id: str,
     csv_path: str,
@@ -392,15 +401,7 @@ def run_crew_in_background(
     current_cooldown.set(cooldown)
     current_deep_analysis.set(deep_analysis)
 
-    os.environ["LLM_PROVIDER"] = provider
-    os.environ["LLM_MODEL"]    = model
-    os.environ["API_COOLDOWN"]  = str(cooldown)
-    os.environ["DEEP_ANALYSIS"] = "true" if deep_analysis else "false"
-    os.environ["SELECTED_TASKS"] = ",".join(selected_tasks)
-    os.environ["CURRENT_SESSION_CSV"] = str(resolved_csv)
-    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str((OUTPUTS_DIR / session_id).resolve())
-    if api_key:
-        os.environ[env_key_name] = api_key
+
 
     # Save or update the report title and goal in project metadata
     try:
@@ -526,6 +527,9 @@ def run_crew_in_background(
                 # Write done sentinel to stop EventSource streams
                 with open(done_path, "w") as f:
                     f.write("done")
+                global active_analyses
+                with active_analyses_lock:
+                    active_analyses = max(0, active_analyses - 1)
 
 
 # ---------------------------------------------------------------------------
@@ -633,20 +637,35 @@ async def trigger_analysis(
     except Exception:
         pass
 
+    # Concurrency control checks
+    global active_analyses
+    with active_analyses_lock:
+        if active_analyses >= MAX_CONCURRENT_ANALYSES:
+            raise HTTPException(
+                status_code=429,
+                detail="Server is busy. Maximum concurrent analyses limit reached. Please try again later."
+            )
+        active_analyses += 1
+
     # Spawn thread-safe background execution
-    background_tasks.add_task(
-        run_crew_in_background,
-        session_id=session_id,
-        csv_path=str(csv_path),
-        provider=provider,
-        model=model,
-        api_key=api_key,
-        env_key_name=env_key_name,
-        cooldown=cooldown,
-        selected_tasks=selected_tasks,
-        deep_analysis=deep,
-        report_title=report_title.strip(),
-    )
+    try:
+        background_tasks.add_task(
+            run_crew_in_background,
+            session_id=session_id,
+            csv_path=str(csv_path),
+            provider=provider,
+            model=model,
+            api_key=api_key,
+            env_key_name=env_key_name,
+            cooldown=cooldown,
+            selected_tasks=selected_tasks,
+            deep_analysis=deep,
+            report_title=report_title.strip(),
+        )
+    except Exception as e:
+        with active_analyses_lock:
+            active_analyses = max(0, active_analyses - 1)
+        raise e
 
     return {"status": "started", "session_id": session_id}
 

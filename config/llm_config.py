@@ -143,26 +143,12 @@ def apply_runtime_llm_settings(
     api_key: str = "",
     env_key_name: str = "",
 ) -> None:
-    """Inject provider/model/key into context variables and fallback env before agent execution."""
+    """Inject provider/model/key into context variables before agent execution."""
     from config.context import current_llm_provider, current_llm_model, current_llm_api_key, current_llm_env_key_name
     current_llm_provider.set(provider)
     current_llm_model.set(model)
     current_llm_api_key.set(api_key)
     current_llm_env_key_name.set(env_key_name)
-
-    os.environ["LLM_PROVIDER"] = provider
-    os.environ["LLM_MODEL"] = model
-
-    if not api_key:
-        return
-
-    key_name = env_key_name or f"{provider.upper()}_API_KEY"
-    if provider == "ollama":
-        os.environ["OLLAMA_BASE_URL"] = api_key
-    elif provider in ("nvidia", "minimax"):
-        _sync_nvidia_env(api_key)
-    else:
-        os.environ[key_name] = api_key
 
 
 def validate_llm_connection(provider: str, model: str, api_key: str = "") -> dict:
