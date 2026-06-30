@@ -58,6 +58,7 @@ const state = {
   chatHistory:      [],   // [{role, content, plot_url}]
   previewMinimized: false,
   sseSource:        null, // current EventSource
+  resultsCache:     {},   // session_id -> results JSON cache
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -916,10 +917,9 @@ async function refreshPreviewData(sessionId) {
 }
 
 function updateSidebarProjectActionsVisibility(sec) {
-  const activeSec = sec || (els.areaAgentic.classList.contains('hidden') ? 'chat' : 'agentic');
-  const isAgenticCompleted = state.activeProject && state.activeProject.status === 'completed' && activeSec === 'agentic';
+  const isProjectCompleted = state.activeProject && state.activeProject.status === 'completed';
   if (els.sidebarProjectActions) {
-    if (isAgenticCompleted) {
+    if (isProjectCompleted) {
       els.sidebarProjectActions.classList.remove('hidden');
     } else {
       els.sidebarProjectActions.classList.add('hidden');
@@ -1000,6 +1000,7 @@ async function switchToProject(p) {
 async function deleteProject(id) {
   const confirmed = await customConfirm('Delete this project and all its data? This action cannot be undone.', 'Delete Project');
   if (!confirmed) return;
+  delete state.resultsCache[id];
   await fetch(`/api/projects/${id}`, { method: 'DELETE' });
   if (state.activeProject?.id === id) {
     state.activeProject = null;
@@ -1371,15 +1372,23 @@ els.runAnalysisBtn.addEventListener('click', async () => {
     const res = await fetch('/api/analyze', { method: 'POST', body: fd });
     if (!res.ok) throw new Error((await res.json()).detail || 'Start failed');
 
-    // Update project metadata locally
+    // Update project metadata locally in-place (or add if new)
     const projName = title || state.uploadedFile?.name?.replace(/\.csv$/i, '') || 'New Analysis';
-    const newProj = {
-      id:     state.uploadedSession,
-      name:   projName,
-      status: 'running',
-    };
-    state.activeProject = newProj;
-    state.projects.unshift(newProj);
+    delete state.resultsCache[state.uploadedSession];
+    const existingIdx = state.projects.findIndex(p => p.id === state.uploadedSession);
+    if (existingIdx !== -1) {
+      state.projects[existingIdx].status = 'running';
+      state.projects[existingIdx].name = projName;
+      state.activeProject = state.projects[existingIdx];
+    } else {
+      const newProj = {
+        id:     state.uploadedSession,
+        name:   projName,
+        status: 'running',
+      };
+      state.activeProject = newProj;
+      state.projects.unshift(newProj);
+    }
     renderProjectsList();
     setBreadcrumb(projName);
 
@@ -1659,7 +1668,21 @@ els.clearLogBtn.addEventListener('click', () => { els.logOutput.innerHTML = ''; 
 // ────────────────────────────────────────────────────────────────────────────
 // Load & Render Results
 // ────────────────────────────────────────────────────────────────────────────
-async function loadResults(sessionId) {
+async function loadResults(sessionId, retryCount = 0) {
+  // Check if we have cached results for this session
+  if (state.resultsCache[sessionId]) {
+    const data = state.resultsCache[sessionId];
+    state.results = data;
+    if (data.preview && data.preview.length) {
+      state.columns = Object.keys(data.preview[0]);
+    }
+    if (state.activeProject) state.activeProject.status = 'completed';
+    setStatus('● Complete', 'complete');
+    renderDashboard(data, sessionId);
+    showScreen('results');
+    return;
+  }
+
   try {
     const res = await fetch(`/api/results?session_id=${sessionId}`);
     if (!res.ok) throw new Error('Results not ready');
@@ -1672,9 +1695,16 @@ async function loadResults(sessionId) {
     if (data.error) {
       setStatus('● Error', 'error');
       toast('Analysis failed: ' + data.error, 'error');
+      if (state.activeProject) {
+        state.activeProject.status = 'failed';
+        loadProjects();
+      }
       showScreen('landing');
       return;
     }
+
+    // Cache the retrieved results
+    state.resultsCache[sessionId] = data;
 
     const wasRunning = els.runningScreen.classList.contains('active');
 
@@ -1698,8 +1728,18 @@ async function loadResults(sessionId) {
     
     showScreen('results');
   } catch (e) {
-    // Results not ready yet, retry
-    setTimeout(() => loadResults(sessionId), 2500);
+    // Results not ready yet, retry up to 15 times (~37 seconds)
+    if (retryCount < 15) {
+      setTimeout(() => loadResults(sessionId, retryCount + 1), 2500);
+    } else {
+      setStatus('● Error', 'error');
+      toast('Analysis failed: Server timed out producing results.', 'error');
+      if (state.activeProject) {
+        state.activeProject.status = 'failed';
+        loadProjects();
+      }
+      showScreen('landing');
+    }
   }
 }
 
@@ -1841,7 +1881,7 @@ function renderRelationsListUI() {
     const yType = state.colTypes[rel.yCol] || 'Numeric';
 
     html += `
-      <div class="relation-card" style="position: relative; width: 100%;">
+      <div class="relation-card" style="position: relative; flex: 1 1 calc(50% - 16px); min-width: 380px; box-sizing: border-box;">
         <!-- Tweak Actions Toolbar -->
         <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5;">
           <button class="btn-secondary btn-sm btn-rel-edit" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(34,211,238,0.2); color: var(--cyan);">✏️ Edit</button>
@@ -2272,10 +2312,28 @@ function setupExport(sessionId) {
 function activateTab(name) {
   els.tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
   els.tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === `panel-${name}`));
-  if (name === 'charts') setTimeout(() => Plotly.Plots?.resize?.(), 100);
+  if (name === 'charts') {
+    setTimeout(() => {
+      const chartElements = document.querySelectorAll('[id^="plotly_chart_"]');
+      chartElements.forEach(el => Plotly.Plots?.resize?.(el));
+    }, 100);
+  }
 }
 els.tabBtns.forEach(btn => {
   btn.addEventListener('click', () => activateTab(btn.dataset.tab));
+});
+
+// Debounced Window Resize Plotly Listener
+let resizeTimeout = null;
+window.addEventListener('resize', () => {
+  if (resizeTimeout) clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    const activeTabBtn = document.querySelector('.tab-btn.active');
+    if (activeTabBtn && activeTabBtn.dataset.tab === 'charts') {
+      const chartElements = document.querySelectorAll('[id^="plotly_chart_"]');
+      chartElements.forEach(el => Plotly.Plots?.resize?.(el));
+    }
+  }, 200);
 });
 
 // ────────────────────────────────────────────────────────────────────────────

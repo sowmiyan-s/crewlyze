@@ -250,9 +250,13 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  padding: 50px 24px 32px;
-  background: radial-gradient(circle at top, rgba(124, 58, 237, 0.08) 0%, transparent 65%),
-              linear-gradient(to bottom, rgba(17, 17, 19, 0.4), rgba(9, 9, 11, 0));
+  padding: 60px 24px 44px;
+  background: radial-gradient(circle at top, rgba(124, 58, 237, 0.12) 0%, transparent 65%),
+              rgba(18, 18, 22, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: var(--r-xl);
   margin-bottom: 8px;
   overflow: hidden;
@@ -1341,14 +1345,8 @@ html, body {
 }
 .chat-hint-chip:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-mid); }
 
-/* ── Export Bar ──────────────────────────────────────── */
 .export-bar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
+  display: none !important;
 }
 
 /* ── Buttons ─────────────────────────────────────────── */
@@ -1484,9 +1482,14 @@ html, body {
 
 /* ── Dashboard Projects Grid ─────────────────────────── */
 .dashboard-projects-section {
-  margin-top: 40px;
-  border-top: 1px solid var(--border);
-  padding-top: 30px;
+  margin-top: 32px;
+  background: rgba(18, 18, 22, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: var(--r-xl);
+  padding: 32px;
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .section-title-row {
   display: flex;
@@ -1995,7 +1998,8 @@ html, body {
 /* Relation Schema Mapper Styling */
 .relation-mapper-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 16px;
   width: 100%;
 }

@@ -27,9 +27,9 @@ import streamlit as st
 
 from crew import run_crew
 from tools.dataset_tools import read_csv_robust
-from ui.styles import inject_styles
-from ui.components import display_mckinsey_insights, display_cleaning_timeline, display_relations, StreamlitLogger
-from ui.export import export_pdf_cached
+from tools.ui.styles import inject_styles
+from tools.ui.components import display_mckinsey_insights, display_cleaning_timeline, display_relations, StreamlitLogger
+from tools.ui.export import export_pdf_cached
 
 # Disable CrewAI Telemetry
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
@@ -274,7 +274,7 @@ def _render_chat_panel(csv_path: str, output_dir: str, columns: list[str]) -> No
 
         with st.chat_message("assistant"):
             with st.spinner("Analysing…"):
-                from ui.copilot import run_copilot_query
+                from tools.ui.copilot import run_copilot_query
                 res = run_copilot_query(prompt, csv_path, output_dir)
 
             st.markdown(res["text"])
