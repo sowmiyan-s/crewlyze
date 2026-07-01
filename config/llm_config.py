@@ -93,10 +93,13 @@ def get_llm_config() -> dict:
     }
 
     if provider not in configs:
-        raise ValueError(
-            f"Invalid LLM provider: '{provider}'. "
-            f"Choose from: {', '.join(configs.keys())}"
-        )
+        from config.context import current_llm_model
+        model = current_llm_model.get() or os.getenv("LLM_MODEL") or f"{provider}/default"
+        api_key = current_llm_api_key.get() or os.getenv(f"{provider.upper()}_API_KEY") or os.getenv("API_KEY") or ""
+        configs[provider] = {
+            "model": model,
+            "api_key": api_key,
+        }
 
     config = configs[provider]
 
