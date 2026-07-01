@@ -1136,33 +1136,69 @@ html, body {
 /* ── Insights ────────────────────────────────────────── */
 .insights-list { display: flex; flex-direction: column; gap: 16px; }
 .insight-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
+  background: rgba(22, 22, 25, 0.4);
+  border: 1px solid var(--border-mid);
   border-radius: var(--r-lg);
-  padding: 18px 20px;
-  border-left: 4px solid var(--violet-light);
+  padding: 22px 24px;
+  position: relative;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.insight-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(167, 139, 250, 0.3);
+  background: rgba(28, 28, 33, 0.65);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3), 0 0 15px rgba(167, 139, 250, 0.08);
+}
+.insight-num-pill {
+  width: 28px;
+  height: 28px;
+  background: var(--violet-glow);
+  color: var(--violet-light);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.2);
+}
+.insight-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
-.insight-num {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: var(--violet-light);
-  text-transform: uppercase;
-}
-.insight-section { display: flex; flex-direction: column; gap: 4px; }
+.insight-section { display: flex; flex-direction: column; gap: 6px; }
 .insight-section-label {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .insight-section-label.obs   { color: var(--cyan); }
 .insight-section-label.impl  { color: var(--amber); }
 .insight-section-label.strat { color: var(--violet-light); }
-.insight-section-text { font-size: 0.84rem; color: var(--text-primary); line-height: 1.6; }
+.insight-section-text { font-size: 0.88rem; color: var(--text-primary); line-height: 1.6; }
+.insight-bullet { font-size: 0.86rem; color: var(--text-secondary); line-height: 1.5; margin-left: 12px; }
+
+/* Icon SVG vertical alignment */
+.icon-svg {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
 
 /* ── Charts ─────────────────────────────────────────── */
 .charts-grid { display: flex; flex-direction: column; gap: 20px; }
@@ -1997,9 +2033,8 @@ html, body {
 
 /* Relation Schema Mapper Styling */
 .relation-mapper-container {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 16px;
   width: 100%;
 }
@@ -2008,12 +2043,13 @@ html, body {
   background: var(--bg-card);
   border: 1px solid var(--border-mid);
   border-radius: var(--r-md);
-  padding: 16px;
+  padding: 18px;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  width: 100%;
 }
 
 .relation-card:hover {

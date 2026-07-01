@@ -389,7 +389,8 @@ function customAlert(message, title = 'Alert') {
 // ────────────────────────────────────────────────────────────────────────────
 async function fetchOllamaModels() {
   try {
-    const res = await fetch('/api/ollama-models');
+    const customUrl = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
+    const res = await fetch(`/api/ollama-models?base_url=${encodeURIComponent(customUrl)}`);
     if (res.ok) {
       const data = await res.json();
       if (data && data.models && data.models.length > 0) {
@@ -456,6 +457,21 @@ function syncActiveApiKey() {
   const provider = els.llmProvider.value;
   const key = getSavedKey(provider);
   els.apiKey.value = key;
+  
+  const statusEl = document.getElementById('sidebarApiKeyStatus');
+  if (statusEl) {
+    if (provider === 'ollama') {
+      const url = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
+      statusEl.innerHTML = `<i data-lucide="link" style="width: 14px; height: 14px; color: var(--cyan);"></i> <span style="color: var(--cyan); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 160px;">${url}</span>`;
+    } else if (key) {
+      statusEl.innerHTML = `<i data-lucide="check-circle" style="width: 14px; height: 14px; color: var(--emerald);"></i> <span style="color: var(--emerald);">API Key Set</span>`;
+    } else {
+      statusEl.innerHTML = `<i data-lucide="alert-circle" style="width: 14px; height: 14px; color: var(--amber);"></i> <span style="color: var(--amber);">API Key Not Set</span>`;
+    }
+    if (window.lucide) {
+      lucide.createIcons({ attrs: { class: 'icon-svg' } });
+    }
+  }
 }
 
 function saveLlmSettings() {
@@ -842,7 +858,7 @@ function renderProjectsList() {
     if (!state.projects.length) {
       dbGrid.innerHTML = `
         <div class="projects-empty-card">
-          <div class="empty-card-icon">📂</div>
+          <div class="empty-card-icon"><i data-lucide="folder-open" style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
           <div class="empty-card-title">No projects yet</div>
           <div class="empty-card-desc">Upload a CSV dataset above to start your first agentic analysis.</div>
         </div>
@@ -927,6 +943,8 @@ function updateSidebarProjectActionsVisibility(sec) {
   }
 }
 
+let preChatSidebarCollapsed = false;
+
 function switchSection(sec) {
   const resultsScreen = document.getElementById('resultsScreen');
   if (sec === 'chat') {
@@ -941,6 +959,13 @@ function switchSection(sec) {
     els.btnSectionAgentic.style.color = 'var(--text-secondary)';
 
     if (resultsScreen) resultsScreen.classList.add('ai-chat-mode');
+    
+    // Auto-collapse sidebar for full screen chat view
+    preChatSidebarCollapsed = els.sidebar.classList.contains('collapsed');
+    if (!preChatSidebarCollapsed) {
+      els.sidebar.classList.add('collapsed');
+      if (els.sidebarToggle) els.sidebarToggle.textContent = '›';
+    }
   } else {
     els.btnSectionChat.classList.remove('active');
     els.btnSectionAgentic.classList.add('active');
@@ -953,12 +978,22 @@ function switchSection(sec) {
     els.btnSectionChat.style.color = 'var(--text-secondary)';
 
     if (resultsScreen) resultsScreen.classList.remove('ai-chat-mode');
+    
+    // Restore sidebar state when exiting chat mode
+    if (preChatSidebarCollapsed === false && els.sidebar.classList.contains('collapsed')) {
+      els.sidebar.classList.remove('collapsed');
+      if (els.sidebarToggle) els.sidebarToggle.textContent = '‹';
+    }
   }
   // Resize Plotly charts when switching to agentic area
   if (sec === 'agentic') {
     setTimeout(() => Plotly.Plots?.resize?.(), 100);
   }
   updateSidebarProjectActionsVisibility(sec);
+
+  if (window.lucide) {
+    lucide.createIcons({ attrs: { class: 'icon-svg' } });
+  }
 }
 
 async function switchToProject(p) {
@@ -1769,15 +1804,15 @@ function renderDashboard(data, sessionId) {
 // ── Stats row ────────────────────────────────────────────────────────────────
 function renderStats(data) {
   const stats = [
-    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records', icon: '🗂️', color: 'var(--violet)' },
-    { val: data.cols_count || 0, lbl: 'Total Columns', icon: '📊', color: 'var(--cyan)' },
-    { val: data.numeric_count || 0, lbl: 'Numeric Fields', icon: '🔢', color: 'var(--emerald)' },
-    { val: data.cat_count || 0, lbl: 'Categorical Fields', icon: '🏷️', color: 'var(--amber)' },
-    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts', icon: '📈', color: 'var(--rose)' },
+    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records', icon: 'folder', color: 'var(--violet)' },
+    { val: data.cols_count || 0, lbl: 'Total Columns', icon: 'columns', color: 'var(--cyan)' },
+    { val: data.numeric_count || 0, lbl: 'Numeric Fields', icon: 'hash', color: 'var(--emerald)' },
+    { val: data.cat_count || 0, lbl: 'Categorical Fields', icon: 'tag', color: 'var(--amber)' },
+    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts', icon: 'trending-up', color: 'var(--rose)' },
   ];
   els.statsRow.innerHTML = stats.map(s => `
     <div class="stat-card" style="--accent:${s.color}">
-      <div class="stat-icon">${s.icon}</div>
+      <div class="stat-icon"><i data-lucide="${s.icon}" class="icon-svg"></i></div>
       <div class="stat-val">${s.val}</div>
       <div class="stat-lbl">${s.lbl}</div>
       <div class="stat-accent-bar"></div>
@@ -1884,8 +1919,8 @@ function renderRelationsListUI() {
       <div class="relation-card" style="position: relative; flex: 1 1 calc(50% - 16px); min-width: 380px; box-sizing: border-box;">
         <!-- Tweak Actions Toolbar -->
         <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5;">
-          <button class="btn-secondary btn-sm btn-rel-edit" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(34,211,238,0.2); color: var(--cyan);">✏️ Edit</button>
-          <button class="btn-secondary btn-sm btn-rel-del" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(244,63,94,0.2); color: var(--rose);">🗑️ Delete</button>
+          <button class="btn-secondary btn-sm btn-rel-edit" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(34,211,238,0.2); color: var(--cyan); display: flex; align-items: center; gap: 4px;"><i data-lucide="edit" style="width: 12px; height: 12px;"></i> Edit</button>
+          <button class="btn-secondary btn-sm btn-rel-del" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(244,63,94,0.2); color: var(--rose); display: flex; align-items: center; gap: 4px;"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete</button>
         </div>
 
         <div class="relation-node">
@@ -1910,8 +1945,8 @@ function renderRelationsListUI() {
   // Footer Actions
   html += `
     <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end; width: 100%;">
-      <button id="btnAddRelation" class="btn-secondary" style="font-weight: 600; font-size: 0.85rem;">➕ Add Custom Relation</button>
-      <button id="btnSaveRelations" class="btn-primary" style="font-weight: 600; font-size: 0.85rem;">💾 Save Schema Tweaks</button>
+      <button id="btnAddRelation" class="btn-secondary" style="font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Custom Relation</button>
+      <button id="btnSaveRelations" class="btn-primary" style="font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Schema Tweaks</button>
     </div>
   `;
   html += '</div>';
@@ -1937,13 +1972,13 @@ function showRelationModal(index) {
   
   if (index !== null && state.relationsList[index]) {
     const rel = state.relationsList[index];
-    els.relationModalTitle.textContent = '✏️ Edit Relationship Schema';
+    els.relationModalTitle.innerHTML = '<i data-lucide="edit" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Edit Relationship Schema';
     els.relationModalXSelect.value = rel.xCol;
     els.relationModalYSelect.value = rel.yCol;
     els.relationModalTypeSelect.value = rel.typ;
     els.relationModalDetails.value = rel.details;
   } else {
-    els.relationModalTitle.textContent = '➕ Add Custom Relationship';
+    els.relationModalTitle.innerHTML = '<i data-lucide="plus" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Add Custom Relationship';
     if (cols.length > 1) {
       els.relationModalXSelect.selectedIndex = 0;
       els.relationModalYSelect.selectedIndex = 1;
@@ -2077,7 +2112,7 @@ function renderInsights(text) {
   if (objectivesText) {
     html += `
       <div class="insight-header-card">
-        <div class="insight-header-title">🎯 Primary Objectives &amp; Goals</div>
+        <div class="insight-header-title"><i data-lucide="target" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; color: var(--violet-light);"></i> Primary Objectives &amp; Goals</div>
         <div class="insight-header-text">${formatInsightsSubsections(objectivesText)}</div>
       </div>
     `;
@@ -2106,7 +2141,7 @@ function renderInsights(text) {
     } else {
       html += `
         <div class="card" style="padding: 16px; margin-bottom: 20px; border-color: var(--border-mid);">
-          <h4 style="margin-bottom: 8px; color: var(--cyan);">📊 Dataset Metrics</h4>
+          <h4 style="margin-bottom: 8px; color: var(--cyan); display: flex; align-items: center; gap: 6px;"><i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i> Dataset Metrics</h4>
           <div style="font-size: 0.9rem; line-height: 1.5;">${formatInsightsSubsections(statsText)}</div>
         </div>
       `;
@@ -2115,7 +2150,7 @@ function renderInsights(text) {
 
   // 3. Strategic Insights List
   if (strategicText) {
-    html += `<h4 style="margin-bottom: 12px; color: var(--violet-light); font-size: 1.05rem;">💡 Strategic Business Insights</h4>`;
+    html += `<h4 style="margin-bottom: 12px; color: var(--violet-light); font-size: 1.05rem; display: flex; align-items: center; gap: 6px;"><i data-lucide="lightbulb" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Strategic Business Insights</h4>`;
     const numberedSplit = strategicText.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3}\s))/);
     let items = [];
     if (numberedSplit.length > 1) {
@@ -2125,12 +2160,12 @@ function renderInsights(text) {
     }
 
     const LABEL_CFG = [
-      { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: '🔍', label: 'Observation' },
-      { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: '💼', label: 'Implication' },
-      { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: '🚀', label: 'Strategy' },
-      { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: '✅', label: 'Recommendation' },
-      { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: '⚠️', label: 'Risk' },
-      { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: '📊', label: 'Metric' },
+      { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: 'search', label: 'Observation' },
+      { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: 'briefcase', label: 'Implication' },
+      { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: 'rocket', label: 'Strategy' },
+      { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: 'check-circle', label: 'Recommendation' },
+      { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: 'alert-triangle', label: 'Risk' },
+      { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: 'trending-up', label: 'Metric' },
     ];
 
     html += items.map((item, i) => {
@@ -2140,7 +2175,7 @@ function renderInsights(text) {
           if (cfg.re.test(p)) {
             const body = p.replace(cfg.re, '').trim();
             return `<div class="insight-section">
-              <div class="insight-section-label ${cfg.cls}">${cfg.icon} ${cfg.label}</div>
+              <div class="insight-section-label ${cfg.cls}"><i data-lucide="${cfg.icon}" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> ${cfg.label}</div>
               <div class="insight-section-text">${formatInlineMarkdown(body || p)}</div>
             </div>`;
           }
@@ -2167,7 +2202,7 @@ function renderInsights(text) {
   if (warningsText && !warningsText.toLowerCase().includes('no warnings') && !warningsText.toLowerCase().includes('none')) {
     html += `
       <div class="insight-warning-card">
-        <div class="insight-warning-card-icon">⚠️</div>
+        <div class="insight-warning-card-icon"><i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: var(--amber);"></i></div>
         <div class="insight-warning-card-body">
           <div class="insight-warning-card-title">Business Risks &amp; Data Alerts</div>
           <div class="insight-warning-card-text">${formatInsightsSubsections(warningsText)}</div>
@@ -2343,13 +2378,15 @@ function resetChat() {
   state.chatHistory = [];
   els.chatMessages.innerHTML = '';
   // Seed with a welcome message
-  appendChatMsg('assistant', `👋 Hi! I'm your AI Data Copilot. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`);
+  appendChatMsg('assistant', `Hi! I'm your AI Data Copilot. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`);
 }
 
 function appendChatMsg(role, content, plotUrl = null) {
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
-  const avatar = role === 'user' ? '👤' : '🤖';
+  const avatar = role === 'user' 
+    ? '<i data-lucide="user" style="width: 16px; height: 16px;"></i>' 
+    : '<i data-lucide="bot" style="width: 16px; height: 16px;"></i>';
 
   // Format markdown-ish content: wrap code blocks
   let formatted = escHtml(content)
@@ -2366,6 +2403,10 @@ function appendChatMsg(role, content, plotUrl = null) {
     </div>`;
   els.chatMessages.appendChild(div);
   els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+
+  if (window.lucide) {
+    lucide.createIcons({ attrs: { class: 'icon-svg' } });
+  }
 }
 
 function showTypingIndicator() {
@@ -2373,12 +2414,16 @@ function showTypingIndicator() {
   div.className = 'chat-msg assistant';
   div.id = 'typingIndicator';
   div.innerHTML = `
-    <div class="chat-avatar">🤖</div>
+    <div class="chat-avatar"><i data-lucide="bot" style="width: 16px; height: 16px;"></i></div>
     <div class="chat-bubble" style="color:var(--text-muted)">
       <span style="animation:pulse 1.2s infinite;display:inline-block">Analysing</span>…
     </div>`;
   els.chatMessages.appendChild(div);
   els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+
+  if (window.lucide) {
+    lucide.createIcons({ attrs: { class: 'icon-svg' } });
+  }
 }
 
 function removeTypingIndicator() {
@@ -2399,7 +2444,7 @@ async function sendChat() {
 
   // For non-Ollama providers, warn if no key
   if (provider !== 'ollama' && !apiKey) {
-    toast('No API key set. Go to ⚙️ Settings to add your key.', 'warning');
+    toast('No API key set. Go to settings to add your key.', 'warning');
     return;
   }
 
@@ -2426,7 +2471,7 @@ async function sendChat() {
         const errData = await res.json();
         errMsg = errData.detail || errData.message || errMsg;
       } catch (_) {}
-      appendChatMsg('assistant', `⚠️ ${errMsg}`);
+      appendChatMsg('assistant', errMsg);
       return;
     }
 
@@ -2441,7 +2486,7 @@ async function sendChat() {
     }
   } catch (e) {
     removeTypingIndicator();
-    appendChatMsg('assistant', '⚠ Network error: ' + e.message);
+    appendChatMsg('assistant', 'Network error: ' + e.message);
   }
 }
 
@@ -2470,7 +2515,7 @@ function showColumnPicker(filter = '') {
 
   if (!cols.length) { hideColumnPicker(); return; }
 
-  picker.innerHTML = `<div class="col-picker-header">📌 Insert Column — type to filter</div>` +
+  picker.innerHTML = `<div class="col-picker-header"><i data-lucide="hash" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Insert Column — type to filter</div>` +
     cols.slice(0, 20).map(c => {
       const dtype = state.colTypes[c] || '';
       return `<div class="col-picker-item" data-col="${escHtml(c)}">
@@ -2540,6 +2585,10 @@ function escHtml(str) {
   resetWizardState();
   showScreen('landing');
   setStatus('● Idle', 'idle');
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 
   // Wire section switcher
   if (els.btnSectionChat) els.btnSectionChat.addEventListener('click', () => switchSection('chat'));
