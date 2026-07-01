@@ -853,16 +853,18 @@ def BytesIO_iterator(data_bytes: bytes):
 # ---------------------------------------------------------------------------
 
 @app.get("/api/ollama-models")
-async def list_ollama_models():
+async def list_ollama_models(base_url: str = "http://localhost:11434"):
     """Fetches list of local Ollama models from the local Ollama service tags API."""
     import requests
     try:
-        response = requests.get("http://localhost:11434/api/tags", timeout=2.0)
+        url = base_url.rstrip("/") + "/api/tags"
+        response = requests.get(url, timeout=2.0)
         if response.status_code == 200:
             data = response.json()
             models = [m["name"] for m in data.get("models", [])]
             if models:
-                return {"models": models}
+                prefixed = [f"ollama/{m}" if not m.startswith("ollama/") else m for m in models]
+                return {"models": prefixed}
     except Exception:
         pass
     # Fallback defaults if Ollama service is unreachable or empty
