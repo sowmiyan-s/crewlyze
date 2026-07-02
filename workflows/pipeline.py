@@ -57,7 +57,7 @@ def make_cooldown_callback(min_sleep: int = 5):
         if hit_rate_limit:
             state["failures"] += 1
             delay = min(max(min_sleep, 10) * (2 ** (state["failures"] - 1)), 120)
-            print(f"\n⚠️  Rate-limit detected. Back-off sleep: {delay}s ...")
+            print(f"\nRate-limit detected. Back-off sleep: {delay}s ...")
             time.sleep(delay)
         elif min_sleep > 0:
             state["failures"] = max(0, state["failures"] - 1)  # cool down error count
@@ -129,7 +129,7 @@ def make_pipeline(
         f"{goal_context} "
         "Identify data quality issues from the profile below, then write and run "
         "Python cleaning code using 'Clean Dataset with Python Code' to fix them. "
-        "Explain the business rationale of each cleaning step in the final report."
+        "Explain the business rationale of each cleaning step in the final report in a simple, clear, and readable manner, using easy-to-understand language and avoiding complex jargon."
         f"{coercion_block}"
         f"{deep_prompt}{profile_block}"
     )
@@ -150,7 +150,7 @@ def make_pipeline(
         "Identify the data type of each column (e.g. Unique ID, Categorical, Continuous Numeric, Timestamp, Key Column). "
         f"Then, identify 5 key column relationships with high business relevance, focusing on correlations or connections that align with the user's project goal: '{project_goal}'. "
         "Format the output STRICTLY as:\n"
-        "- X: [Column1] | Y: [Column2] | Type: [PlotType] | Details: [Relationship details, data type mapping of both columns, and business relevance]\n"
+        "- X: [Column1] | Y: [Column2] | Type: [PlotType] | Details: [Relationship details, data type mapping of both columns, and business relevance in simple, understandable terms]\n"
         "Output NOTHING else."
         f"{profile_block}"
     )
@@ -170,7 +170,11 @@ def make_pipeline(
     goal_prompt = f"Align all insights and strategies directly to address the project goal: '{project_goal}'." if project_goal else ""
     insight_prompt = (
         "Using the dataset profile and identified relationships provided below, "
-        "generate a structured report. "
+        "generate a comprehensive structured report focusing on the data, the business context, and the overall dataset. "
+        "The main goal of your analysis is to explain not only the raw numbers, but the business context, the overall dataset structure, and the actionable business strategies.\n"
+        "Ensure all text is written in an exceptionally clear, readable, and simple manner. "
+        "Explain statistics and insights using accessible language that an executive can immediately understand. "
+        "Avoid academic jargon, dense mathematical explanations, or overly complex terms.\n"
         f"{goal_prompt}\n"
         "Format the report using markdown headers EXACTLY as follows:\n\n"
         "### Objectives & Goals\n"

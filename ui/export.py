@@ -62,10 +62,16 @@ class NumberedCanvas(canvas.Canvas):
         super().save()
 
     def draw_page_decorations(self, page_count):
-        if self._pageNumber == 1:
-            return  # Suppress headers/footers on the title page
-
         self.saveState()
+        # Watermark "crewlyze" logo at top left corner of all pages in lowercase, bold, violet
+        self.setFillColor(colors.HexColor("#7c3aed"))
+        self.setFont("Helvetica-Bold", 10)
+        self.drawString(54, 752, "crewlyze")
+
+        if self._pageNumber == 1:
+            self.restoreState()
+            return  # Suppress remaining headers/footers on the title page
+
         self.setFont("Helvetica-Bold", 8)
         self.setFillColor(colors.HexColor("#475569"))
         self.setStrokeColor(colors.HexColor("#cbd5e1"))
@@ -73,8 +79,7 @@ class NumberedCanvas(canvas.Canvas):
 
         # Header - safe distance from body top (topMargin = 80)
         self.line(54, 745, 558, 745)
-        self.drawString(54, 752, "EXECUTIVE DATA ANALYSIS REPORT")
-        self.drawRightString(558, 752, "CONFIDENTIAL")
+        self.drawRightString(558, 752, "EXECUTIVE ANALYSIS REPORT | CONFIDENTIAL")
 
         # Footer - safe distance from body bottom (bottomMargin = 80)
         self.line(54, 65, 558, 65)
@@ -174,9 +179,56 @@ def _find_matching_chart(insight_text: str, png_files: list, placed_set: set):
     return None
 
 
+def _parse_relation_line(line: str) -> dict:
+    """Parse key relations string components into a clean dictionary."""
+    parts = [p.strip() for p in line.split("|")]
+    res = {"x": "N/A", "y": "N/A", "type": "N/A", "details": "N/A"}
+    for part in parts:
+        part_clean = part.strip()
+        if ":" in part_clean:
+            key, val = part_clean.split(":", 1)
+            key = key.strip().lower()
+            val = val.strip()
+            if key == "x":
+                res["x"] = val
+            elif key == "y":
+                res["y"] = val
+            elif key == "type":
+                res["type"] = val
+            elif key == "details":
+                res["details"] = val
+        else:
+            if part_clean.startswith("- "):
+                part_clean = part_clean[2:]
+            if part_clean:
+                res["details"] = part_clean
+    return res
+
+
 # ---------------------------------------------------------------------------
 # Data Insights table builder
 # ---------------------------------------------------------------------------
+
+def _format_number(val) -> str:
+    """Formats numeric values into a clean, human-readable layout without scientific notation."""
+    try:
+        if pd.isna(val):
+            return "—"
+        val_float = float(val)
+        # If it's a float that is actually an integer
+        if val_float.is_integer():
+            return f"{int(val_float):,}"
+        # For very small numbers, use scientific representation safely
+        if abs(val_float) < 0.0001 and val_float != 0:
+            return f"{val_float:.4e}"
+        # For standard floats, format with commas and strip trailing zeros
+        formatted = f"{val_float:,.2f}"
+        if "." in formatted:
+            formatted = formatted.rstrip('0').rstrip('.')
+        return formatted
+    except Exception:
+        return str(val)
+
 
 def _build_insights_table(df: pd.DataFrame, body_style, header_style, primary_color, secondary_color) -> list:
     """
@@ -211,11 +263,11 @@ def _build_insights_table(df: pd.DataFrame, body_style, header_style, primary_co
             s_num  = s.dropna()
             row = [
                 Paragraph(str(col), body_style),
-                Paragraph(f"{s_num.min():.4g}" if not s_num.empty else "—", body_style),
-                Paragraph(f"{s_num.max():.4g}" if not s_num.empty else "—", body_style),
-                Paragraph(f"{s_num.mean():.4g}" if not s_num.empty else "—", body_style),
-                Paragraph(f"{s_num.median():.4g}" if not s_num.empty else "—", body_style),
-                Paragraph(f"{s_num.std():.4g}" if len(s_num) > 1 else "—", body_style),
+                Paragraph(_format_number(s_num.min()) if not s_num.empty else "—", body_style),
+                Paragraph(_format_number(s_num.max()) if not s_num.empty else "—", body_style),
+                Paragraph(_format_number(s_num.mean()) if not s_num.empty else "—", body_style),
+                Paragraph(_format_number(s_num.median()) if not s_num.empty else "—", body_style),
+                Paragraph(_format_number(s_num.std()) if len(s_num) > 1 else "—", body_style),
                 Paragraph(f"{miss}%", body_style),
             ]
             rows.append(row)
@@ -381,7 +433,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
             strategic_text = raw_insights
 
     # ── 2. EXECUTIVE SUMMARY & DATASET OVERVIEW (Page 2) ──────────────────────
-    story.append(Paragraph("📊 Executive Summary &amp; Dataset Overview", h1_style))
+    story.append(Paragraph("Executive Summary &amp; Dataset Overview", h1_style))
     story.append(Paragraph(
         "This autonomous executive analysis report presents high-value strategic recommendations, "
         "data quality cleaning trails, and key visualizations derived from the uploaded dataset.",
@@ -417,7 +469,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(summary_box)
         story.append(Spacer(1, 15))
 
-    story.append(PageBreak())
+    story.append(Spacer(1, 15))
 
     # ── 3. STRATEGIC BUSINESS INSIGHTS & PAIRED CHARTS (Page 3+) ──────────────
     # Locate all saved visualization charts
@@ -426,7 +478,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     placed_charts = set()
 
     if strategic_text:
-        story.append(Paragraph("💡 Strategic Business Insights", h1_style))
+        story.append(Paragraph("Strategic Business Insights", h1_style))
         story.append(Paragraph(
             "Below are the critical business insights identified from the dataset, paired directly with "
             "relevant charts indicating data correlations.",
@@ -482,10 +534,11 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                 ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
             ]))
 
-            insight_flowables = [lbl_para, card_table]
-
             # Look for a matched chart
             matched_png = _find_matching_chart(item, png_files, placed_charts)
+            fig_title = None
+            img_table = None
+
             if matched_png:
                 try:
                     with PILImage.open(matched_png) as img:
@@ -513,19 +566,24 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                         f"<i>Supporting Figure: {matched_png.stem.replace('_', ' ').title()}</i>",
                         ParagraphStyle("FigTitle", parent=body_style, fontName="Helvetica-Oblique", fontSize=8.5, textColor=muted_color, spaceBefore=4, spaceAfter=2)
                     )
-                    insight_flowables.extend([Spacer(1, 4), fig_title, img_table])
                     placed_charts.add(matched_png)
                 except Exception as exc:
-                    insight_flowables.append(Paragraph(f"Could not load matching image {matched_png.name}: {exc}", body_style))
+                    img_table = Paragraph(f"Could not load matching image {matched_png.name}: {exc}", body_style)
 
-            insight_flowables.append(Spacer(1, 14))
-            story.append(KeepTogether(insight_flowables))
+            story.append(KeepTogether([lbl_para, card_table]))
+            if matched_png:
+                story.append(Spacer(1, 4))
+                if fig_title and img_table:
+                    story.append(KeepTogether([fig_title, img_table]))
+                elif img_table:
+                    story.append(KeepTogether([img_table]))
+            story.append(Spacer(1, 14))
         
         story.append(Spacer(1, 10))
 
     # ── Warnings & Alerts (if present) ────────────────────────────────────────
     if warnings_text and not "no warnings" in warnings_text.lower() and not "none" in warnings_text.lower():
-        story.append(Paragraph("⚠️ Business Risks &amp; Critical Alerts", h1_style))
+        story.append(Paragraph("Business Risks &amp; Critical Alerts", h1_style))
         warning_content = [
             Paragraph(warnings_text.replace("\n", "<br/>"), ParagraphStyle("WarnStyle", parent=body_style, fontSize=9.5, textColor=colors.HexColor("#991b1b")))
         ]
@@ -541,45 +599,77 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         ]))
         story.append(KeepTogether([warning_table, Spacer(1, 12)]))
 
-    story.append(PageBreak())
+    story.append(Spacer(1, 15))
 
     # ── 4. DATA SUMMARY & METHODOLOGY (Page 4+) ───────────────────────────────
-    story.append(Paragraph("⚙️ Data Summary &amp; Methodology", h1_style))
+    story.append(Paragraph("Data Summary &amp; Methodology", h1_style))
     
     # Project Objectives
     if objectives_text:
-        story.append(Paragraph("🎯 Project Objectives &amp; Scope", h2_style))
+        story.append(Paragraph("Project Objectives &amp; Scope", h2_style))
         story.append(Paragraph(objectives_text.replace("\n", "<br/>"), body_style))
         story.append(Spacer(1, 8))
 
     # Cleaning steps
     if cleaning_text:
-        story.append(Paragraph("🧹 Data Cleaning Audit Trail", h2_style))
+        story.append(Paragraph("Data Cleaning Audit Trail", h2_style))
         story.append(Paragraph("Automated type inference, value imputation, and formatting constraints applied to input records:", body_style))
         for raw in cleaning_text.split("\n"):
             line = raw.strip().lstrip("-*• ").strip()
             if line:
-                story.append(Paragraph(f"✔ &nbsp; {_md_to_html(line)}", bullet_style))
+                story.append(Paragraph(f"• &nbsp; {_md_to_html(line)}", bullet_style))
         story.append(Spacer(1, 8))
 
     # Relations
     if relations_text:
-        story.append(Paragraph("🔗 Key Correlation &amp; Relationship Map", h2_style))
+        story.append(Paragraph("Key Correlation &amp; Relationship Map", h2_style))
         story.append(Paragraph("Direct associations identified across columns for target visualization selection:", body_style))
+        story.append(Spacer(1, 4))
+        
+        tbl_data = [
+            [
+                Paragraph("<b>Variable X</b>", header_style), 
+                Paragraph("<b>Variable Y</b>", header_style), 
+                Paragraph("<b>Chart Type</b>", header_style), 
+                Paragraph("<b>Business Context &amp; Relevance</b>", header_style)
+            ]
+        ]
+        
         for raw in relations_text.split("\n"):
             line = raw.strip().lstrip("-*• ").strip()
-            if line:
-                story.append(Paragraph(f"🔗 &nbsp; {_md_to_html(line)}", bullet_style))
-        story.append(Spacer(1, 8))
+            if not line:
+                continue
+            parsed = _parse_relation_line(line)
+            tbl_data.append([
+                Paragraph(parsed["x"], body_style),
+                Paragraph(parsed["y"], body_style),
+                Paragraph(parsed["type"], body_style),
+                Paragraph(parsed["details"], body_style)
+            ])
+            
+        if len(tbl_data) > 1:
+            rel_table = Table(tbl_data, colWidths=[95, 95, 95, 219])
+            rel_table.setStyle(TableStyle([
+                ("BACKGROUND",    (0, 0), (-1, 0),  colors.HexColor("#f1f5f9")),
+                ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
+                ("INNERGRID",     (0, 0), (-1, -1), 0.3, colors.HexColor("#cbd5e1")),
+                ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 5),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+            ]))
+            story.append(rel_table)
+        story.append(Spacer(1, 10))
 
-    story.append(PageBreak())
+    story.append(Spacer(1, 15))
 
     # ── 5. APPENDIX (Page 5+) ─────────────────────────────────────────────────
-    story.append(Paragraph("📁 Appendix", h1_style))
+    story.append(Paragraph("Appendix", h1_style))
     
     # Per-column statistical summary
     if df is not None and isinstance(df, pd.DataFrame):
-        story.append(Paragraph("📊 Per-Column Statistical Summary", h2_style))
+        story.append(Paragraph("Per-Column Statistical Summary", h2_style))
         story.append(Paragraph(
             "Detailed metric breakdowns for numeric distributions and categorical frequencies:",
             body_style,
@@ -593,7 +683,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     # Remaining/Unmatched Visualizations
     unplaced_charts = [png for png in png_files if png not in placed_charts]
     if unplaced_charts:
-        story.append(Paragraph("📈 Additional Analytical Visualizations", h2_style))
+        story.append(Paragraph("Additional Analytical Visualizations", h2_style))
         story.append(Paragraph(
             "Supplementary visual mappings of auxiliary data relationships:",
             body_style,
@@ -632,16 +722,30 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
             except Exception as exc:
                 story.append(Paragraph(f"Could not load image {png_file.name}: {exc}", body_style))
 
-    # Conclusion & Next steps
-    story.append(Spacer(1, 8))
-    story.append(Paragraph("🏁 Executive Conclusion &amp; Next Steps", h2_style))
-    conclusion_text = (
-        "The automated data pipeline has successfully validated, cleaned, and evaluated the dataset "
-        "under the specified project guidelines. To maximize return on these insights, management is advised "
-        "to prioritize the Actionable Strategy recommendations outlined in the insights section, address the warnings "
-        "disclosed, and leverage the visual intelligence charts for stakeholder presentations."
-    )
-    story.append(Paragraph(conclusion_text, body_style))
+    # Conclusion & Next steps styled box
+    conclusion_style = ParagraphStyle("ConclStyle", parent=body_style, fontSize=9.5, textColor=colors.HexColor("#1e293b"))
+    conclusion_content = [
+        Paragraph("<b>Executive Conclusion &amp; Next Steps</b>", ParagraphStyle("ConclHdr", parent=h2_style, fontSize=11, textColor=primary_color, spaceAfter=6)),
+        Paragraph(
+            "The automated data pipeline has successfully validated, cleaned, and evaluated the dataset "
+            "under the specified project guidelines. To maximize return on these insights, management is advised "
+            "to prioritize the Actionable Strategy recommendations outlined in the insights section, address the warnings "
+            "disclosed, and leverage the visual intelligence charts for stakeholder presentations.",
+            conclusion_style
+        )
+    ]
+    conclusion_table = Table([[conclusion_content]], colWidths=[504])
+    conclusion_table.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f8fafc")), # light slate gray background
+        ("BOX",           (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
+        ("LINELEFT",      (0, 0), (0, -1),  4, primary_color), # accent left border
+        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
+        ("TOPPADDING",    (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(Spacer(1, 15))
+    story.append(KeepTogether([conclusion_table]))
 
     doc.build(story, canvasmaker=NumberedCanvas)
     pdf_bytes = buffer.getvalue()

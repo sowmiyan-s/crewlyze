@@ -605,6 +605,12 @@ class DatasetTools:
 
             FILE_PATH = {repr(str(fp))}
             df = pd.read_csv(FILE_PATH)
+
+            # Safeguard: redirect all read_csv calls to FILE_PATH
+            _orig_read_csv = pd.read_csv
+            def custom_read_csv(*args, **kwargs):
+                return _orig_read_csv(FILE_PATH)
+            pd.read_csv = custom_read_csv
         """) + "\n" + clean_code + "\n" + textwrap.dedent(f"""\
             df.to_csv(FILE_PATH, index=False)
             print("Dataset cleaned and saved successfully.")
@@ -665,6 +671,12 @@ class DatasetTools:
 
             os.makedirs(OUTPUT_DIR, exist_ok=True)
             df = pd.read_csv(CSV_PATH)
+
+            # Safeguard: redirect all read_csv calls to the cleaned CSV path
+            _orig_read_csv = pd.read_csv
+            def custom_read_csv(*args, **kwargs):
+                return _orig_read_csv(CSV_PATH)
+            pd.read_csv = custom_read_csv
 
             def save_chart(filename):
                 if not filename.endswith('.png'):
@@ -730,27 +742,43 @@ def auto_coerce_types(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
                     pass
 
             # 2. Heuristic for Numeric: check if it could be a numeric column stored as string
-            # (e.g., currency "$1,000", percentage "95%", or numbers with commas/spaces)
+            # (e.g., currency "$1,000", percentage "95%", or numbers with commas/spaces/missing placeholders)
             numeric_like_count = 0
             for val in sample_non_null:
-                val_clean = re.sub(r'[\$,%\s]', '', val).replace(',', '')
-                if re.match(r'^-?\d+(?:\.\d+)?$', val_clean):
+                val_clean = val.strip().lower()
+                if not val_clean or val_clean in {'nan', 'null', 'n/a', 'na', '?', 'none', '-', '.', 'missing', 'empty'}:
+                    numeric_like_count += 1
+                    continue
+                # Clean currency symbols, percentage signs, commas, and whitespace
+                cleaned_val = re.sub(r'[\$,%\s]', '', val_clean).replace(',', '')
+                if re.match(r'^-?\d+(?:\.\d+)?$', cleaned_val):
                     numeric_like_count += 1
                     
             if numeric_like_count > len(sample_non_null) * 0.8:
                 try:
                     # Clean currency symbols, commas, percent signs, and spaces
-                    cleaned_col = df[col].astype(str).str.replace(r'[\$,%\s]', '', regex=True).str.replace(',', '', regex=False)
+                    # Replace common string placeholders with empty strings so pd.to_numeric turns them to NaN
+                    cleaned_col = df[col].astype(str).str.strip()
+                    # Strip any surrounding quotes first
+                    cleaned_col = cleaned_col.str.replace(r'^["\']|["\']$', '', regex=True)
+                    # Replace placeholders (exact whole-string match only, case-insensitive)
+                    for ph in ['nan', 'null', 'n/a', 'na', '?', 'none', '-', 'missing', 'empty']:
+                        cleaned_col = cleaned_col.str.replace(re.compile(rf'^\s*{re.escape(ph)}\s*$', re.IGNORECASE), '', regex=True)
+                    cleaned_col = cleaned_col.str.replace(r'[\$,%\s]', '', regex=True).str.replace(',', '', regex=False)
                     # Convert to numeric
                     converted = pd.to_numeric(cleaned_col, errors='coerce')
                     if not converted.isnull().all():
-                        # If it contains float values (has decimal points), keep as float, otherwise int if no NaNs
-                        if (converted.dropna() % 1 == 0).all() and not converted.isnull().any():
-                            df[col] = converted.astype(int)
-                            actions.append(f"Converted column '{col}' to Integer (cleaned currency/delimiters)")
+                        non_null_converted = converted.dropna()
+                        if not non_null_converted.empty and (non_null_converted % 1 == 0).all():
+                            if converted.isnull().any():
+                                df[col] = converted.astype('Int64')
+                                actions.append(f"Converted column '{col}' to Nullable Integer (cleaned currency/delimiters/nulls)")
+                            else:
+                                df[col] = converted.astype(int)
+                                actions.append(f"Converted column '{col}' to Integer (cleaned currency/delimiters/nulls)")
                         else:
                             df[col] = converted
-                            actions.append(f"Converted column '{col}' to Float (cleaned currency/delimiters)")
+                            actions.append(f"Converted column '{col}' to Float (cleaned currency/delimiters/nulls)")
                         continue
                 except Exception:
                     pass

@@ -1,757 +1,1027 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Crewlyze — AI-Powered Business Intelligence</title>
-  <meta name="description" content="Autonomous Multi-Agent AI system for data cleaning, relationship analysis, business insights, and interactive visualizations." />
+  <meta name="description"
+    content="Autonomous Multi-Agent AI system for data cleaning, relationship analysis, business insights, and interactive visualizations." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="/style.css" />
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════════ -->
-<aside id="sidebar" class="sidebar">
-  <div class="sidebar-header">
-    <div class="logo" id="sidebarLogo" style="cursor: pointer;" title="Go to Dashboard">
-      <span class="logo-icon">⬡</span>
-      <span class="logo-text">Crew<span class="logo-accent">lyze</span></span>
+  <!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════════ -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo" id="sidebarLogo" style="cursor: pointer;" title="Go to Dashboard">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Crew<span class="logo-accent">lyze</span></span>
+      </div>
+      <button id="sidebarToggle" class="sidebar-toggle" title="Collapse sidebar">‹</button>
     </div>
-    <button id="sidebarToggle" class="sidebar-toggle" title="Collapse sidebar">‹</button>
-  </div>
 
-  <!-- LLM Settings -->
-  <div class="sidebar-section">
-    <div class="sidebar-section-header"><span>LLM CONFIGURATION</span></div>
+    <!-- LLM Settings -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header"><span>LLM CONFIGURATION</span></div>
 
-    <label class="field-label">Provider</label>
-    <select id="llmProvider" class="field-select">
-      <option value="nvidia">NVIDIA NIM</option>
-      <option value="groq">Groq</option>
-      <option value="openai">OpenAI</option>
-      <option value="anthropic">Anthropic</option>
-      <option value="gemini">Google Gemini</option>
-      <option value="mistral">Mistral</option>
-      <option value="huggingface">HuggingFace</option>
-      <option value="ollama">Ollama (local)</option>
-    </select>
+      <label class="field-label">Provider</label>
+      <select id="llmProvider" class="field-select">
+        <option value="nvidia">NVIDIA NIM</option>
+        <option value="groq">Groq</option>
+        <option value="openai">OpenAI</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="mistral">Mistral</option>
+        <option value="huggingface">HuggingFace</option>
+        <option value="ollama">Ollama (local)</option>
+      </select>
 
-    <label class="field-label">Model</label>
-    <select id="llmModel" class="field-select"></select>
-    <div id="sidebarApiKeyStatus" style="font-size: 0.75rem; margin-top: 10px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;"></div>
+      <label class="field-label">Model</label>
+      <select id="llmModel" class="field-select"></select>
+      <div id="sidebarApiKeyStatus"
+        style="font-size: 0.75rem; margin-top: 10px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+      </div>
 
-    <!-- Hidden elements to ensure backward compatibility in app.js -->
-    <input type="hidden" id="apiKey" />
-    <input type="hidden" id="cooldown" value="5" />
-    <span id="cooldownVal" style="display: none;">5</span>
-    <span id="keyLabel" style="display: none;"></span>
-    <button id="testConnectionBtn" style="display: none;"></button>
-    <div id="connectionStatus" style="display: none;"></div>
-  </div>
-
-  <!-- Sidebar Project Actions -->
-  <div id="sidebarProjectActions" class="sidebar-section hidden" style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px;">
-    <div class="sidebar-section-header"><span>PROJECT ACTIONS</span></div>
-    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
-      <button id="sidebarExportPdfBtn" class="sidebar-action-btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Export PDF Report</button>
-      <button id="sidebarExportZipBtn" class="sidebar-action-btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;"><i data-lucide="archive" style="width: 14px; height: 14px;"></i> Export Project (.zip)</button>
-      <button id="sidebarDownloadCsvBtn" class="sidebar-action-btn btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-primary); border: 1px solid var(--border-mid); background: var(--bg-elevated);"><i data-lucide="download" style="width: 14px; height: 14px;"></i> Download Cleaned CSV</button>
-      <button id="sidebarReRunBtn" class="sidebar-action-btn btn-ghost" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-secondary); background: transparent; border: 1px dashed var(--border-mid);"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Re-run Analysis</button>
+      <!-- Hidden elements to ensure backward compatibility in app.js -->
+      <input type="hidden" id="apiKey" />
+      <input type="hidden" id="cooldown" value="5" />
+      <span id="cooldownVal" style="display: none;">5</span>
+      <span id="keyLabel" style="display: none;"></span>
+      <button id="testConnectionBtn" style="display: none;"></button>
+      <div id="connectionStatus" style="display: none;"></div>
     </div>
-  </div>
 
-  <div class="sidebar-footer">
-    <button id="sidebarSettingsBtn" class="btn-secondary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-mid); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"><i data-lucide="settings" style="width: 14px; height: 14px;"></i> Settings</button>
-    <span>Crewlyze v3.1</span>
-  </div>
-</aside>
-
-<!-- ═══════════════════════════════ MAIN AREA ═════════════════════════════════ -->
-<main class="main-area">
-
-  <!-- TOP NAV -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <button id="mobileSidebarBtn" class="btn-icon-lg">☰</button>
-      <div id="breadcrumb" class="breadcrumb">
-        <span class="breadcrumb-item active">Dashboard</span>
+    <!-- Sidebar Project Actions -->
+    <div id="sidebarProjectActions" class="sidebar-section hidden"
+      style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 15px;">
+      <div class="sidebar-section-header"><span>PROJECT ACTIONS</span></div>
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+        <button id="sidebarExportPdfBtn" class="sidebar-action-btn btn-primary"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;"><i
+            data-lucide="file-text" style="width: 14px; height: 14px;"></i> Export PDF Report</button>
+        <button id="sidebarExportZipBtn" class="sidebar-action-btn btn-secondary"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); font-weight: 600; cursor: pointer;"><i
+            data-lucide="archive" style="width: 14px; height: 14px;"></i> Export Project (.zip)</button>
+        <button id="sidebarDownloadCsvBtn" class="sidebar-action-btn btn-secondary"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-primary); border: 1px solid var(--border-mid); background: var(--bg-elevated);"><i
+            data-lucide="download" style="width: 14px; height: 14px;"></i> Download Cleaned CSV</button>
+        <button id="sidebarReRunBtn" class="sidebar-action-btn btn-ghost"
+          style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.8rem; padding: 10px 12px; border-radius: var(--r-sm); cursor: pointer; color: var(--text-secondary); background: transparent; border: 1px dashed var(--border-mid);"><i
+            data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Re-run Analysis</button>
       </div>
     </div>
-    <div class="topbar-right">
-      <div id="statusPill" class="status-pill idle">● Idle</div>
+
+    <div class="sidebar-footer">
+      <button id="sidebarSettingsBtn" class="btn-secondary"
+        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-mid); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"><i
+          data-lucide="settings" style="width: 14px; height: 14px;"></i> Settings</button>
+      <span>Crewlyze v3.1</span>
     </div>
-  </header>
+  </aside>
 
-  <!-- ─── LANDING / UPLOAD SCREEN ─── -->
-  <section id="landingScreen" class="screen active">
-    <div class="landing-hero">
-      <div class="hero-badge">✦ Powered by CrewAI Multi-Agent Pipeline</div>
-      <h1 class="hero-title"><span class="gradient-text">Crewlyze</span></h1>
-      <p class="hero-subtitle">Upload a CSV and let autonomous AI agents clean your data, discover relationships, surface strategic insights, and generate interactive visualizations — all in one pipeline.</p>
+  <!-- ═══════════════════════════════ MAIN AREA ═════════════════════════════════ -->
+  <main class="main-area">
 
-      <!-- Wizard Container -->
-      <div class="wizard-container" id="newProjectWizard">
-        <!-- Step 0: Create Project Button Card -->
-        <div class="wizard-step active" id="wizardStep0" style="width: 100%; display: flex; flex-direction: row !important; justify-content: center; gap: 20px; flex-wrap: wrap;">
-          <div class="create-project-card" id="startWizardCard">
-            <div class="create-project-plus">+</div>
-            <div class="create-project-text">Create New Project</div>
-            <div class="create-project-desc" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">Start a fresh analysis pipeline with a new CSV dataset</div>
+    <!-- TOP NAV -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="mobileSidebarBtn" class="btn-icon-lg">☰</button>
+        <div id="breadcrumb" class="breadcrumb">
+          <span class="breadcrumb-item active">Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div id="statusPill" class="status-pill idle">● Idle</div>
+      </div>
+    </header>
+
+    <!-- ─── LANDING / UPLOAD SCREEN ─── -->
+    <section id="landingScreen" class="screen active">
+      <div class="landing-hero">
+        <div class="hero-badge">✦ Powered by CrewAI Multi-Agent Pipeline</div>
+        <h1 class="hero-title"><span class="gradient-text">Crewlyze</span></h1>
+        <p class="hero-subtitle">Upload a CSV and let autonomous AI agents clean your data, discover relationships,
+          surface strategic insights, and generate interactive visualizations — all in one pipeline.</p>
+
+        <!-- Wizard Container -->
+        <div class="wizard-container" id="newProjectWizard">
+          <!-- Step 0: Create Project Button Card -->
+          <div class="wizard-step active" id="wizardStep0"
+            style="width: 100%; display: flex; flex-direction: row !important; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div class="create-project-card" id="startWizardCard">
+              <div class="create-project-plus">+</div>
+              <div class="create-project-text">Create New Project</div>
+              <div class="create-project-desc"
+                style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">
+                Start a fresh analysis pipeline with a new CSV dataset</div>
+            </div>
+            <div class="create-project-card" id="importProjectCard"
+              style="background: rgba(16,185,129,0.02); border-color: rgba(16,185,129,0.2);">
+              <div class="create-project-plus" style="color: #10b981;">↓</div>
+              <div class="create-project-text" style="color: var(--text-primary);">Import Project (.zip)</div>
+              <div class="create-project-desc"
+                style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">
+                Load and restore an existing project session from backup</div>
+              <input type="file" id="importZipFileInput" accept=".zip" style="display: none;" />
+            </div>
           </div>
-          <div class="create-project-card" id="importProjectCard" style="background: rgba(16,185,129,0.02); border-color: rgba(16,185,129,0.2);">
-            <div class="create-project-plus" style="color: #10b981;">↓</div>
-            <div class="create-project-text" style="color: var(--text-primary);">Import Project (.zip)</div>
-            <div class="create-project-desc" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">Load and restore an existing project session from backup</div>
-            <input type="file" id="importZipFileInput" accept=".zip" style="display: none;" />
+
+          <!-- Step 1: Project Name -->
+          <div class="wizard-step" id="wizardStep1">
+            <button id="wizardBack1Btn" class="btn-back">← Back</button>
+            <div class="wizard-icon"><i data-lucide="sparkles"
+                style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
+            <h3 class="wizard-step-title">Create New Project</h3>
+            <p class="wizard-step-desc">Enter a name, and optionally a title and goal for your project.</p>
+            <div
+              style="width: 100%; max-width: 440px; margin: 16px auto 0; text-align: left; display: flex; flex-direction: column; gap: 12px;">
+              <div class="field-group">
+                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Name</label>
+                <input type="text" id="wizardProjectName" class="field-input" placeholder="e.g. Sales Analysis Q3"
+                  style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Report Title (Optional)</label>
+                <input type="text" id="wizardReportTitle" class="field-input"
+                  placeholder="e.g. Q3 Sales Executive Analysis"
+                  style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
+              </div>
+              <div class="field-group">
+                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Goal / Objective
+                  (Optional)</label>
+                <textarea id="wizardProjectGoal" class="field-input" rows="3"
+                  placeholder="e.g. Identify top 10% highest-margin customer segments and explain why spend exceeded budget."
+                  style="font-size: 0.95rem; padding: 10px 12px; font-family: inherit; resize: none; width: 100%; box-sizing: border-box;"></textarea>
+              </div>
+            </div>
+            <button id="wizardNextBtn" class="btn-primary btn-lg mt-20"
+              style="min-width: 200px; margin-top: 20px;">Continue to Upload →</button>
+          </div>
+
+          <!-- Step 2: Upload CSV -->
+          <div class="wizard-step" id="wizardStep2">
+            <button id="wizardBackBtn" class="btn-back">← Back</button>
+            <div class="wizard-icon"><i data-lucide="folder-open"
+                style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
+            <h3 class="wizard-step-title" id="wizardUploadTitle">Upload CSV Dataset</h3>
+            <p class="wizard-step-desc">Select or drop the CSV file you want the agents to analyze.</p>
+
+            <div class="upload-zone" id="uploadZone"
+              style="width: 100%; max-width: 520px; margin: 20px auto 0; background: rgba(124,58,237,0.02);">
+              <div class="upload-icon"><i data-lucide="file"
+                  style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
+              <div class="upload-title">Drop your CSV here</div>
+              <div class="upload-hint">or <label for="fileInput" class="upload-link">browse files</label></div>
+              <input type="file" id="fileInput" accept=".csv" hidden />
+              <div id="uploadedFileMeta" class="upload-meta hidden"></div>
+            </div>
+
+            <div id="uploadedFileActions" class="upload-actions hidden" style="margin-top: 20px;">
+              <button id="startAnalysisBtn" class="btn-primary btn-lg"><i data-lucide="play"
+                  style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
+                Configure &amp; Run Analysis</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Section -->
+      <div class="dashboard-projects-section">
+        <div class="section-title-row">
+          <h2 class="section-title">Recent Projects</h2>
+          <span class="projects-count" id="dashboardProjectsCount">(0)</span>
+        </div>
+        <div class="projects-grid" id="dashboardProjectsGrid">
+          <!-- Rendered dynamically via app.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── ANALYSIS CONFIG MODAL ─── -->
+    <div id="configModal" class="modal-overlay hidden">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h2><i data-lucide="settings"
+              style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;"></i> Analysis Configuration
+          </h2>
+          <button id="closeConfigModal" class="btn-icon">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-hint">Select which stages to run. Dependencies are enforced automatically.</p>
+
+          <!-- Task cards -->
+          <div class="task-grid" id="taskGrid">
+            <label class="task-card" id="taskCardCleaning">
+              <input type="checkbox" id="taskCleaning" value="cleaning" checked />
+              <div class="task-card-icon"><i data-lucide="brush"
+                  style="width: 20px; height: 20px; color: var(--violet-light);"></i></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Data Cleaning</div>
+                <div class="task-card-desc">Fix quality issues: missing values, types, duplicates.</div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+
+            <label class="task-card" id="taskCardRelations">
+              <input type="checkbox" id="taskRelations" value="relations" checked />
+              <div class="task-card-icon"><i data-lucide="link"
+                  style="width: 20px; height: 20px; color: var(--cyan);"></i></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Relationship Analysis</div>
+                <div class="task-card-desc">Discover correlations &amp; patterns. <em>Requires Cleaning.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+
+            <label class="task-card" id="taskCardInsights">
+              <input type="checkbox" id="taskInsights" value="insights" checked />
+              <div class="task-card-icon"><i data-lucide="lightbulb"
+                  style="width: 20px; height: 20px; color: var(--amber);"></i></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Business Insights</div>
+                <div class="task-card-desc">Strategic recommendations. <em>Requires Cleaning.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+
+            <label class="task-card" id="taskCardViz">
+              <input type="checkbox" id="taskViz" value="visualization" checked />
+              <div class="task-card-icon"><i data-lucide="trending-up"
+                  style="width: 20px; height: 20px; color: var(--rose);"></i></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Visualization</div>
+                <div class="task-card-desc">Interactive charts &amp; PNGs. <em>Requires Relations.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+          </div>
+
+          <!-- Analysis depth -->
+          <div class="depth-selector">
+            <div class="depth-label"><i data-lucide="search"
+                style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Analysis Depth</div>
+            <div class="depth-options">
+              <label class="depth-option active" id="depthStandard">
+                <input type="radio" name="depth" value="false" checked />
+                <span class="depth-icon"><i data-lucide="zap"
+                    style="width: 14px; height: 14px; color: var(--violet-light);"></i></span>
+                <span class="depth-name">Standard</span>
+                <span class="depth-desc">Faster, concise</span>
+              </label>
+              <label class="depth-option" id="depthDeep">
+                <input type="radio" name="depth" value="true" />
+                <span class="depth-icon"><i data-lucide="microscope"
+                    style="width: 14px; height: 14px; color: var(--cyan);"></i></span>
+                <span class="depth-name">Deep</span>
+                <span class="depth-desc">Richer analysis &amp; detail</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Report title -->
+          <div class="field-group">
+            <label class="field-label">Report Title</label>
+            <input type="text" id="reportTitle" class="field-input"
+              placeholder="e.g. Q4 2024 Sales Performance Analysis" />
           </div>
         </div>
 
-        <!-- Step 1: Project Name -->
-        <div class="wizard-step" id="wizardStep1">
-          <button id="wizardBack1Btn" class="btn-back">← Back</button>
-          <div class="wizard-icon"><i data-lucide="sparkles" style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-          <h3 class="wizard-step-title">Create New Project</h3>
-          <p class="wizard-step-desc">Enter a name, and optionally a title and goal for your project.</p>
-          <div style="width: 100%; max-width: 440px; margin: 16px auto 0; text-align: left; display: flex; flex-direction: column; gap: 12px;">
-            <div class="field-group">
-              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Name</label>
-              <input type="text" id="wizardProjectName" class="field-input" placeholder="e.g. Sales Analysis Q3" style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
-            </div>
-            <div class="field-group">
-              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Report Title (Optional)</label>
-              <input type="text" id="wizardReportTitle" class="field-input" placeholder="e.g. Q3 Sales Executive Analysis" style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
-            </div>
-            <div class="field-group">
-              <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Goal / Objective (Optional)</label>
-              <textarea id="wizardProjectGoal" class="field-input" rows="3" placeholder="e.g. Identify top 10% highest-margin customer segments and explain why spend exceeded budget." style="font-size: 0.95rem; padding: 10px 12px; font-family: inherit; resize: none; width: 100%; box-sizing: border-box;"></textarea>
-            </div>
-          </div>
-          <button id="wizardNextBtn" class="btn-primary btn-lg mt-20" style="min-width: 200px; margin-top: 20px;">Continue to Upload →</button>
-        </div>
-
-        <!-- Step 2: Upload CSV -->
-        <div class="wizard-step" id="wizardStep2">
-          <button id="wizardBackBtn" class="btn-back">← Back</button>
-          <div class="wizard-icon"><i data-lucide="folder-open" style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-          <h3 class="wizard-step-title" id="wizardUploadTitle">Upload CSV Dataset</h3>
-          <p class="wizard-step-desc">Select or drop the CSV file you want the agents to analyze.</p>
-          
-          <div class="upload-zone" id="uploadZone" style="width: 100%; max-width: 520px; margin: 20px auto 0; background: rgba(124,58,237,0.02);">
-            <div class="upload-icon"><i data-lucide="file" style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-            <div class="upload-title">Drop your CSV here</div>
-            <div class="upload-hint">or <label for="fileInput" class="upload-link">browse files</label></div>
-            <input type="file" id="fileInput" accept=".csv" hidden />
-            <div id="uploadedFileMeta" class="upload-meta hidden"></div>
-          </div>
-
-          <div id="uploadedFileActions" class="upload-actions hidden" style="margin-top: 20px;">
-            <button id="startAnalysisBtn" class="btn-primary btn-lg"><i data-lucide="play" style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i> Configure &amp; Run Analysis</button>
-          </div>
+        <div class="modal-footer">
+          <button id="cancelConfigBtn" class="btn-secondary">Cancel</button>
+          <button id="runAnalysisBtn" class="btn-primary"><i data-lucide="play"
+              style="width: 14px; height: 14px; fill: currentColor; vertical-align: middle; margin-right: 4px;"></i>
+            Start Analysis</button>
         </div>
       </div>
     </div>
 
-    <!-- Projects Section -->
-    <div class="dashboard-projects-section">
-      <div class="section-title-row">
-        <h2 class="section-title">Recent Projects</h2>
-        <span class="projects-count" id="dashboardProjectsCount">(0)</span>
+    <!-- ─── ANALYSIS RUNNING SCREEN ─── -->
+    <section id="runningScreen" class="screen">
+      <div class="running-header" style="display: flex; align-items: center; width: 100%;">
+        <div class="running-spinner"></div>
+        <div style="flex: 1;">
+          <h2 id="runningTitle">Agents are Analysing Your Data…</h2>
+          <p class="running-sub">This may take 2–10 minutes depending on dataset size and LLM speed.</p>
+        </div>
+        <button id="btnRunInBackground" class="btn-secondary btn-sm"
+          style="margin-left: auto; display: flex; align-items: center; gap: 6px;"><i data-lucide="minimize-2"
+            style="width: 14px; height: 14px;"></i> Run in Background</button>
       </div>
-      <div class="projects-grid" id="dashboardProjectsGrid">
-        <!-- Rendered dynamically via app.js -->
+
+      <!-- Stage progress -->
+      <div class="stages-track">
+        <div class="stage-item" data-stage="cleaning">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Cleaning</div>
+        </div>
+        <div class="stage-item" data-stage="relations">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Relations</div>
+        </div>
+        <div class="stage-item" data-stage="insights">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Insights</div>
+        </div>
+        <div class="stage-item" data-stage="visualization">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Visualization</div>
+        </div>
+        <div class="stage-item" data-stage="plotly">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Charts</div>
+        </div>
+      </div>
+
+      <!-- Dynamic Stage POV Panel -->
+      <div id="stagePovPanel" class="stage-pov-panel">
+        <div class="pov-initial-state">
+          <div class="pov-pulse-ring"></div>
+          <p>Awaiting analysis stream...</p>
+        </div>
+      </div>
+
+      <!-- Live log -->
+      <div class="log-panel">
+        <div class="log-header">
+          <span><i data-lucide="clipboard-list"
+              style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Live Agent Log</span>
+          <button id="clearLogBtn" class="btn-xs">Clear</button>
+        </div>
+        <div id="logOutput" class="log-output"></div>
+      </div>
+    </section>
+
+    <!-- ─── RESULTS DASHBOARD SCREEN ─── -->
+    <section id="resultsScreen" class="screen">
+
+      <!-- Stat row -->
+      <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
+
+      <!-- Main Sections Switch -->
+      <div class="sections-switch" style="display: none !important;">
+        <button class="section-switch-btn active" id="btnSectionChat"
+          style="flex: 1; padding: 10px 20px; border: none; background: var(--violet-dark); color: #fff; font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i
+            data-lucide="message-square" style="width: 16px; height: 16px;"></i> AI Data Chat</button>
+        <button class="section-switch-btn" id="btnSectionAgentic"
+          style="flex: 1; padding: 10px 20px; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i
+            data-lucide="bot" style="width: 16px; height: 16px;"></i> Agentic Analysis</button>
+      </div>
+
+      <!-- ───────────────── SECTION 0: WORKSPACE HUB (SELECT MODE) ───────────────── -->
+      <div id="areaHub" class="section-area active">
+        <div
+          style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; max-width: 800px; margin: 0 auto; gap: 32px;">
+          <div>
+            <h2 style="font-size: 1.8rem; font-weight: 700; margin: 0 0 10px 0; color: #fff;">Choose Your Workspace Mode
+            </h2>
+            <p
+              style="color: var(--text-secondary); max-width: 540px; margin: 0 auto; font-size: 0.95rem; line-height: 1.5;">
+              Select how you would like to interact with the project dataset. Switch modes at any time.
+            </p>
+          </div>
+
+          <div class="hub-cards-grid"
+            style="display: flex; gap: 24px; width: 100%; justify-content: center; flex-wrap: wrap; margin-top: 10px;">
+            <!-- Card 1: AI Chat -->
+            <div class="hub-card" id="btnEnterChat"
+              style="flex: 1; min-width: 280px; max-width: 360px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-lg); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+              <div class="hub-card-icon-wrap"
+                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(167, 139, 250, 0.1); display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="message-square" style="width: 32px; height: 32px; color: var(--violet-light);"></i>
+              </div>
+              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">AI Data Chat</h3>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0; flex: 1;">
+                Ask questions, query statistical metrics, run quick data edits, and request tailored interactive
+                visualizations in a conversational interface.
+              </p>
+              <button class="btn-primary"
+                style="display: inline-flex; justify-content: center; align-items: center; text-align: center; pointer-events: none; width: 100%; padding: 10px 0; font-size: 0.85rem; font-weight: 700; background: var(--violet); color: #fff; border: none; transition: transform 0.2s;">Open
+                Chat Workspace</button>
+            </div>
+
+            <!-- Card 2: Crew Analysis -->
+            <div class="hub-card" id="btnEnterAgentic"
+              style="flex: 1; min-width: 280px; max-width: 360px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-lg); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 16px;">
+              <div class="hub-card-icon-wrap"
+                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(6, 182, 212, 0.1); display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="bot" style="width: 32px; height: 32px; color: var(--cyan);"></i>
+              </div>
+              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">Crew Agentic Analysis</h3>
+              <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0; flex: 1;">
+                Trigger structured multi-agent pipelines to clean datasets, map schema relationships, generate
+                McKinsey-style recommendations, and build dashboard suites.
+              </p>
+              <button class="btn-primary"
+                style="display: inline-flex; justify-content: center; align-items: center; text-align: center; pointer-events: none; width: 100%; padding: 10px 0; font-size: 0.85rem; font-weight: 700; background: var(--cyan); color: var(--bg-dark); border: none; transition: transform 0.2s;">Open
+                Agent Workspace</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ───────────────── SECTION 1: AI DATA CHAT ───────────────── -->
+      <div id="areaChat" class="section-area hidden">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+
+          <!-- Table Preview Area -->
+          <div id="datasetExplorerCard" class="card"
+            style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
+                  data-lucide="search" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Dataset
+                Explorer <span id="chatPreviewDims"
+                  style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
+              <div style="display: flex; gap: 8px;">
+                <button id="btnRenameColQuick" class="btn-secondary btn-sm"
+                  style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="edit"
+                    style="width: 12px; height: 12px;"></i> Rename Column</button>
+                <button id="btnDeleteColQuick" class="btn-secondary btn-sm"
+                  style="font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.2); color: #ef4444; display: flex; align-items: center; gap: 4px;"><i
+                    data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete Column</button>
+              </div>
+            </div>
+            <div id="previewTableWrap" class="table-wrap" style="max-height: 250px; overflow-y: auto;">
+              <div id="previewTable" class="data-table-container"></div>
+            </div>
+          </div>
+
+          <!-- Chat Container -->
+          <div id="chatContainerCard" class="card"
+            style="padding: 20px; background: var(--bg-elevated); border: 1px solid var(--border-mid); display: flex; flex-direction: column; min-height: 480px;">
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-low); padding-bottom: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="chatBackBtn" class="btn-icon"
+                  style="background:var(--bg-elevated); border:1px solid var(--border-mid); border-radius:var(--r-md); padding:10px; cursor:pointer; color:var(--text-primary);"
+                  title="Back to Dashboard"><i data-lucide="arrow-left" style="width:20px; height:20px;"></i></button>
+                <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
+                    data-lucide="message-square" style="width: 18px; height: 18px; color: var(--violet-light);"></i> AI
+                  Copilot</h3>
+              </div>
+              <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
+            </div>
+
+            <div id="chatMessages" class="chat-messages"
+              style="flex: 1; min-height: 260px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+              <!-- messages populate here -->
+            </div>
+
+            <div class="chat-input-area" style="position: relative;">
+              <div id="colPickerDropdown" class="col-picker-dropdown hidden"
+                style="position: absolute; bottom: 100%; left: 0; right: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-md); z-index: 10; max-height: 160px; overflow-y: auto; padding: 4px;">
+              </div>
+              <div class="chat-input-row" style="display: flex; gap: 8px; align-items: flex-end;">
+                <textarea id="chatInput" class="chat-textarea" rows="2"
+                  placeholder="Ask questions, request visual charts, or modify columns (type / to select a column)..."
+                  style="flex: 1; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-mid); border-radius: var(--r-md); padding: 10px 14px; font-size: 0.9rem; font-family: inherit; resize: none;"></textarea>
+                <button id="sendChatBtn" class="btn-primary btn-send"
+                  style="padding: 12px 20px; border-radius: var(--r-md); font-weight: 600;">Send ↑</button>
+              </div>
+              <div class="chat-hints"
+                style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 0.75rem; color: var(--text-secondary);">
+                <span class="chat-hint-chip" data-query="Show summary statistics for all numeric columns"
+                  style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i
+                    data-lucide="bar-chart-2"
+                    style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Summary
+                  Stats</span>
+                <span class="chat-hint-chip"
+                  data-query="Plot a distribution histogram of the first column with custom color config"
+                  style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i
+                    data-lucide="trending-down"
+                    style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Custom
+                  Histogram</span>
+                <span class="chat-hint-chip" data-query="Rename column..."
+                  style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i
+                    data-lucide="edit"
+                    style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Rename
+                  Column</span>
+                <span class="chat-hint-chip" data-query="Delete column..."
+                  style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i
+                    data-lucide="trash-2"
+                    style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Delete
+                  Column</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ───────────────── SECTION 2: AGENTIC ANALYSIS ───────────────── -->
+      <div id="areaAgentic" class="section-area hidden">
+        <!-- Run Analysis Placeholder -->
+        <div id="agenticPlaceholder" class="hidden"
+          style="text-align: center; padding: 60px 20px; background: rgba(24, 24, 27, 0.4); border: 1px dashed var(--border-mid); border-radius: var(--r-lg); max-width: 580px; margin: 40px auto; display: flex; flex-direction: column; align-items: center; gap: 16px; backdrop-filter: blur(12px);">
+          <div style="font-size: 3rem; animation: pulse 2s infinite;"><i data-lucide="bot"
+              style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
+          <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Automated Pipeline Analysis</h3>
+          <p style="color: var(--text-secondary); line-height: 1.5; margin: 0; font-size: 0.9rem;">
+            Trigger autonomous AI agents to perform data cleaning, schema relationship mapping, and surface
+            consulting-grade insights.
+          </p>
+          <button id="btnRunAgenticPipeline" class="btn-primary btn-lg" style="margin-top: 10px; font-weight: 600;"><i
+              data-lucide="play"
+              style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
+            Configure &amp; Run Analysis</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px;">
+          <button class="tab-btn active" data-tab="cleaning"><i data-lucide="brush"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Cleaning
+            Report</button>
+          <button class="tab-btn" data-tab="relations"><i data-lucide="link"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Relation
+            Mapper</button>
+          <button class="tab-btn" data-tab="insights"><i data-lucide="lightbulb"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Business
+            Insights</button>
+          <button class="tab-btn" data-tab="charts"><i data-lucide="trending-up"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Visualizations</button>
+        </div>
+
+        <!-- Tab panels -->
+        <div class="tab-panels" id="agenticTabPanels">
+          <!-- CLEANING REPORT -->
+          <div class="tab-panel active" id="panel-cleaning">
+            <h3 class="panel-title"><i data-lucide="brush"
+                style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Data Cleaning Audit
+              Trail</h3>
+            <div id="cleaningContent" class="cleaning-list"></div>
+          </div>
+
+          <!-- RELATIONS -->
+          <div class="tab-panel" id="panel-relations">
+            <h3 class="panel-title"><i data-lucide="link"
+                style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Relationship Mapping
+            </h3>
+            <div id="relationsContent" style="width: 100%;"></div>
+          </div>
+
+          <!-- INSIGHTS -->
+          <div class="tab-panel" id="panel-insights">
+            <h3 class="panel-title"><i data-lucide="lightbulb"
+                style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Strategic Business
+              Insights</h3>
+            <div id="insightsContent" class="insights-list"></div>
+          </div>
+
+          <!-- CHARTS -->
+          <div class="tab-panel" id="panel-charts">
+            <h3 class="panel-title"><i data-lucide="trending-up"
+                style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Visual Intelligence
+            </h3>
+            <div id="plotlyChartsWrap" class="charts-grid"></div>
+            <div id="pngChartsWrap" class="png-charts-wrap hidden">
+              <h4 class="sub-title"><i data-lucide="image"
+                  style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Agent-Generated
+                Charts</h4>
+              <div id="pngCharts" class="png-grid"></div>
+            </div>
+            <details class="viz-code-details hidden" id="vizCodeDetails">
+              <summary><i data-lucide="code"
+                  style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Visualization
+                Architecture Code</summary>
+              <pre id="vizCodeBlock" class="code-block"></pre>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export/action bar -->
+      <div class="export-bar" style="margin-top: 24px;">
+        <button id="exportPdfBtn" class="btn-primary"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+          Export PDF Report</button>
+        <button id="exportZipBtn" class="btn-secondary"
+          style="background: rgba(124,58,237,0.06); border-color: var(--violet-light); color: var(--violet-light); font-weight: 600;"><i
+            data-lucide="archive" style="width: 14px; height: 14px;"></i> Export Project (.zip)</button>
+        <button id="downloadCsvBtn" class="btn-secondary"><i data-lucide="download"
+            style="width: 14px; height: 14px;"></i> Download Cleaned CSV</button>
+        <button id="reRunBtn" class="btn-ghost"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+          Re-run Agentic Analysis</button>
+      </div>
+
+    </section><!-- /results screen -->
+
+  </main><!-- /main-area -->
+
+  <!-- Schema Relation Modal -->
+  <div id="relationModal" class="modal-overlay hidden">
+    <div class="modal-box"
+      style="max-width: 480px; padding: 24px; border: 1px solid rgba(34, 211, 238, 0.3); background: rgba(18, 18, 22, 0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: var(--r-md);">
+      <div class="modal-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 id="relationModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">Tweak
+          Relationship</h2>
+        <button id="closeRelationModalBtn"
+          style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary); width: auto; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+        <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">X
+            Variable (Source Column)</label>
+          <select id="relationModalXSelect" class="field-input"
+            style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
+        </div>
+        <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Y
+            Variable (Target Column)</label>
+          <select id="relationModalYSelect" class="field-input"
+            style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
+        </div>
+        <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Visual
+            Plot Recommendation</label>
+          <select id="relationModalTypeSelect" class="field-input"
+            style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;">
+            <option value="Scatter Plot">Scatter Plot</option>
+            <option value="Bar Chart">Bar Chart</option>
+            <option value="Line Chart">Line Chart</option>
+            <option value="Box Plot">Box Plot</option>
+            <option value="Histogram">Histogram</option>
+            <option value="Heatmap">Heatmap</option>
+          </select>
+        </div>
+        <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
+          <label class="field-label"
+            style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Correlation &amp; Statistical
+            Details</label>
+          <textarea id="relationModalDetails" class="field-input" rows="3"
+            placeholder="Explain the relationship correlation or domain relevance..."
+            style="width:100%; box-sizing:border-box; font-family:inherit; resize:none; padding:8px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm);"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button id="relationModalCancelBtn" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>
+        <button id="relationModalConfirmBtn" class="btn-primary" style="padding: 8px 16px;">Apply Changes</button>
       </div>
     </div>
-  </section>
+  </div>
 
-  <!-- ─── ANALYSIS CONFIG MODAL ─── -->
-  <div id="configModal" class="modal-overlay hidden">
-    <div class="modal-box">
+  <!-- API Warning Modal -->
+  <div id="apiWarningModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 420px; text-align: center; padding: 30px;">
+      <div class="modal-icon" style="font-size: 3rem; margin-bottom: 15px;"><i data-lucide="key"
+          style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
+      <h2 style="margin-bottom: 10px;">API Key Required</h2>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px;">
+        An API key is required to run the analysis with <span id="warningProviderName"
+          style="color: var(--violet-light); font-weight: 600;"></span>. Let's configure it in your LLM Settings.
+      </p>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <button id="guideToApiBtn" class="btn-primary" style="width: 100%;">Configure API Key Now</button>
+        <button id="closeApiWarningBtn" class="btn-secondary" style="width: 100%;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 500px;">
       <div class="modal-header">
-        <h2><i data-lucide="settings" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;"></i> Analysis Configuration</h2>
-        <button id="closeConfigModal" class="btn-icon">✕</button>
+        <h2><i data-lucide="settings" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;"></i>
+          API Credentials &amp; Settings</h2>
+        <button id="closeSettingsModal" class="btn-icon">✕</button>
       </div>
 
-      <div class="modal-body">
-        <p class="modal-hint">Select which stages to run. Dependencies are enforced automatically.</p>
+      <div class="modal-body"
+        style="display: flex; flex-direction: column; gap: 14px; max-height: 520px; overflow-y: auto; padding-right: 4px;">
+        <p class="modal-hint">Configure API keys for each LLM provider. Keys are saved securely in your browser.
+          Check/uncheck "Show in sidebar" to filter the options on your dashboard.</p>
 
-        <!-- Task cards -->
-        <div class="task-grid" id="taskGrid">
-          <label class="task-card" id="taskCardCleaning">
-            <input type="checkbox" id="taskCleaning" value="cleaning" checked />
-            <div class="task-card-icon"><i data-lucide="brush" style="width: 20px; height: 20px; color: var(--violet-light);"></i></div>
-            <div class="task-card-body">
-              <div class="task-card-title">Data Cleaning</div>
-              <div class="task-card-desc">Fix quality issues: missing values, types, duplicates.</div>
+        <!-- Provider Key inputs -->
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- NVIDIA -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">NVIDIA NIM API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showNvidia" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
             </div>
-            <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-          </label>
-
-          <label class="task-card" id="taskCardRelations">
-            <input type="checkbox" id="taskRelations" value="relations" checked />
-            <div class="task-card-icon"><i data-lucide="link" style="width: 20px; height: 20px; color: var(--cyan);"></i></div>
-            <div class="task-card-body">
-              <div class="task-card-title">Relationship Analysis</div>
-              <div class="task-card-desc">Discover correlations &amp; patterns. <em>Requires Cleaning.</em></div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyNvidia" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="nvidia"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
             </div>
-            <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-          </label>
+            <div class="individual-status" id="statusNvidia"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
 
-          <label class="task-card" id="taskCardInsights">
-            <input type="checkbox" id="taskInsights" value="insights" checked />
-            <div class="task-card-icon"><i data-lucide="lightbulb" style="width: 20px; height: 20px; color: var(--amber);"></i></div>
-            <div class="task-card-body">
-              <div class="task-card-title">Business Insights</div>
-              <div class="task-card-desc">Strategic recommendations. <em>Requires Cleaning.</em></div>
+          <!-- Groq -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Groq API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showGroq" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
             </div>
-            <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-          </label>
-
-          <label class="task-card" id="taskCardViz">
-            <input type="checkbox" id="taskViz" value="visualization" checked />
-            <div class="task-card-icon"><i data-lucide="trending-up" style="width: 20px; height: 20px; color: var(--rose);"></i></div>
-            <div class="task-card-body">
-              <div class="task-card-title">Visualization</div>
-              <div class="task-card-desc">Interactive charts &amp; PNGs. <em>Requires Relations.</em></div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyGroq" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="groq"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
             </div>
-            <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-          </label>
-        </div>
+            <div class="individual-status" id="statusGroq"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
 
-        <!-- Analysis depth -->
-        <div class="depth-selector">
-          <div class="depth-label"><i data-lucide="search" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Analysis Depth</div>
-          <div class="depth-options">
-            <label class="depth-option active" id="depthStandard">
-              <input type="radio" name="depth" value="false" checked />
-              <span class="depth-icon"><i data-lucide="zap" style="width: 14px; height: 14px; color: var(--violet-light);"></i></span>
-              <span class="depth-name">Standard</span>
-              <span class="depth-desc">Faster, concise</span>
-            </label>
-            <label class="depth-option" id="depthDeep">
-              <input type="radio" name="depth" value="true" />
-              <span class="depth-icon"><i data-lucide="microscope" style="width: 14px; height: 14px; color: var(--cyan);"></i></span>
-              <span class="depth-name">Deep</span>
-              <span class="depth-desc">Richer analysis &amp; detail</span>
-            </label>
+          <!-- OpenAI -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenAI API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showOpenai" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyOpenai" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="openai"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusOpenai"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Anthropic -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Anthropic API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showAnthropic" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyAnthropic" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="anthropic"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusAnthropic"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Google Gemini -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Google Gemini API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showGemini" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyGemini" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="gemini"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusGemini"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Mistral -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Mistral API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showMistral" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyMistral" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="mistral"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusMistral"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- HuggingFace -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">HuggingFace API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showHuggingface" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyHuggingface" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="huggingface"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusHuggingface"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Cohere -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Cohere API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showCohere" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyCohere" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="cohere"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusCohere"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- TogetherAI -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">TogetherAI API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showTogether" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyTogether" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="together"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusTogether"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- OpenRouter -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenRouter API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showOpenrouter" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyOpenrouter" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="openrouter"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusOpenrouter"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- DeepSeek -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">DeepSeek API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showDeepseek" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyDeepseek" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="deepseek"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusDeepseek"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Perplexity -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Perplexity API Key</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showPerplexity" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="password" id="keyPerplexity" class="field-input setting-key" placeholder="Enter key…"
+                style="flex: 1;" />
+              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+              <button class="btn-secondary test-individual-btn" data-provider="perplexity"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusPerplexity"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+          </div>
+
+          <!-- Ollama Base URL -->
+          <div class="setting-row">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Ollama Base URL</label>
+              <label
+                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+                <input type="checkbox" id="showOllama" class="setting-show-checkbox" checked /> Show in sidebar
+              </label>
+            </div>
+            <div class="key-input-wrap" style="display: flex; gap: 8px;">
+              <input type="text" id="urlOllama" class="field-input setting-key" placeholder="http://localhost:11434"
+                style="flex: 1;" />
+              <button class="btn-secondary test-individual-btn" data-provider="ollama"
+                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
+            </div>
+            <div class="individual-status" id="statusOllama"
+              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
           </div>
         </div>
 
-        <!-- Report title -->
-        <div class="field-group">
-          <label class="field-label">Report Title</label>
-          <input type="text" id="reportTitle" class="field-input" placeholder="e.g. Q4 2024 Sales Performance Analysis" />
+        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;" />
+
+        <!-- Cooldown -->
+        <div>
+          <label class="field-label" style="display: block; margin-bottom: 6px;">API Cooldown: <span
+              id="settingsCooldownVal">5</span>s</label>
+          <input type="range" id="settingsCooldown" class="field-range" min="0" max="60" value="5" />
         </div>
       </div>
 
       <div class="modal-footer">
-        <button id="cancelConfigBtn" class="btn-secondary">Cancel</button>
-        <button id="runAnalysisBtn" class="btn-primary"><i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor; vertical-align: middle; margin-right: 4px;"></i> Start Analysis</button>
+        <button id="cancelSettingsBtn" class="btn-secondary">Close</button>
+        <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
       </div>
     </div>
   </div>
 
-  <!-- ─── ANALYSIS RUNNING SCREEN ─── -->
-  <section id="runningScreen" class="screen">
-    <div class="running-header">
-      <div class="running-spinner"></div>
-      <div>
-        <h2 id="runningTitle">Agents are Analysing Your Data…</h2>
-        <p class="running-sub">This may take 2–10 minutes depending on dataset size and LLM speed.</p>
+  <!-- Custom Dialog Modal (Alert/Confirm/Prompt) -->
+  <div id="customDialogModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 460px;">
+      <div class="modal-header">
+        <h2 id="customDialogTitle">Confirm Action</h2>
+        <button id="closeCustomDialogBtn" class="btn-icon">✕</button>
       </div>
-    </div>
-
-    <!-- Stage progress -->
-    <div class="stages-track">
-      <div class="stage-item" data-stage="cleaning">
-        <div class="stage-dot"></div>
-        <div class="stage-label">Cleaning</div>
-      </div>
-      <div class="stage-item" data-stage="relations">
-        <div class="stage-dot"></div>
-        <div class="stage-label">Relations</div>
-      </div>
-      <div class="stage-item" data-stage="insights">
-        <div class="stage-dot"></div>
-        <div class="stage-label">Insights</div>
-      </div>
-      <div class="stage-item" data-stage="visualization">
-        <div class="stage-dot"></div>
-        <div class="stage-label">Visualization</div>
-      </div>
-      <div class="stage-item" data-stage="plotly">
-        <div class="stage-dot"></div>
-        <div class="stage-label">Charts</div>
-      </div>
-    </div>
-
-    <!-- Dynamic Stage POV Panel -->
-    <div id="stagePovPanel" class="stage-pov-panel">
-      <div class="pov-initial-state">
-        <div class="pov-pulse-ring"></div>
-        <p>Awaiting analysis stream...</p>
-      </div>
-    </div>
-
-    <!-- Live log -->
-    <div class="log-panel">
-      <div class="log-header">
-        <span><i data-lucide="clipboard-list" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Live Agent Log</span>
-        <button id="clearLogBtn" class="btn-xs">Clear</button>
-      </div>
-      <div id="logOutput" class="log-output"></div>
-    </div>
-  </section>
-
-  <!-- ─── RESULTS DASHBOARD SCREEN ─── -->
-  <section id="resultsScreen" class="screen">
-
-    <!-- Stat row -->
-    <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
-
-    <!-- Main Sections Switch -->
-    <div class="sections-switch" style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; padding: 4px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: 30px; max-width: 440px; margin-left: auto; margin-right: auto; position: relative;">
-      <button class="section-switch-btn active" id="btnSectionChat" style="flex: 1; padding: 10px 20px; border: none; background: var(--violet-dark); color: #fff; font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i data-lucide="message-square" style="width: 16px; height: 16px;"></i> AI Data Chat</button>
-      <button class="section-switch-btn" id="btnSectionAgentic" style="flex: 1; padding: 10px 20px; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i data-lucide="bot" style="width: 16px; height: 16px;"></i> Agentic Analysis</button>
-    </div>
-
-    <!-- ───────────────── SECTION 1: AI DATA CHAT ───────────────── -->
-    <div id="areaChat" class="section-area active">
-      <div style="display: flex; flex-direction: column; gap: 20px;">
-        
-        <!-- Table Preview Area -->
-        <div id="datasetExplorerCard" class="card" style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="search" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Dataset Explorer <span id="chatPreviewDims" style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
-            <div style="display: flex; gap: 8px;">
-              <button id="btnRenameColQuick" class="btn-secondary btn-sm" style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="edit" style="width: 12px; height: 12px;"></i> Rename Column</button>
-              <button id="btnDeleteColQuick" class="btn-secondary btn-sm" style="font-size: 0.75rem; border-color: rgba(239, 68, 68, 0.2); color: #ef4444; display: flex; align-items: center; gap: 4px;"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete Column</button>
-            </div>
-          </div>
-          <div id="previewTableWrap" class="table-wrap" style="max-height: 250px; overflow-y: auto;">
-            <div id="previewTable" class="data-table-container"></div>
-          </div>
-        </div>
-
-        <!-- Chat Container -->
-        <div id="chatContainerCard" class="card" style="padding: 20px; background: var(--bg-elevated); border: 1px solid var(--border-mid); display: flex; flex-direction: column; min-height: 480px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-low); padding-bottom: 12px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <button id="chatBackBtn" class="btn-icon" style="background:var(--bg-elevated); border:1px solid var(--border-mid); border-radius:var(--r-md); padding:10px; cursor:pointer; color:var(--text-primary);" title="Back to Dashboard"><i data-lucide="arrow-left" style="width:20px; height:20px;"></i></button>
-              <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="message-square" style="width: 18px; height: 18px; color: var(--violet-light);"></i> AI Copilot</h3>
-            </div>
-            <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
-          </div>
-          
-          <div id="chatMessages" class="chat-messages" style="flex: 1; min-height: 260px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
-            <!-- messages populate here -->
-          </div>
-
-          <div class="chat-input-area" style="position: relative;">
-            <div id="colPickerDropdown" class="col-picker-dropdown hidden" style="position: absolute; bottom: 100%; left: 0; right: 0; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-md); z-index: 10; max-height: 160px; overflow-y: auto; padding: 4px;"></div>
-            <div class="chat-input-row" style="display: flex; gap: 8px; align-items: flex-end;">
-              <textarea id="chatInput" class="chat-textarea" rows="2" placeholder="Ask questions, request visual charts, or modify columns (type / to select a column)..." style="flex: 1; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-mid); border-radius: var(--r-md); padding: 10px 14px; font-size: 0.9rem; font-family: inherit; resize: none;"></textarea>
-              <button id="sendChatBtn" class="btn-primary btn-send" style="padding: 12px 20px; border-radius: var(--r-md); font-weight: 600;">Send ↑</button>
-            </div>
-            <div class="chat-hints" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; font-size: 0.75rem; color: var(--text-secondary);">
-              <span class="chat-hint-chip" data-query="Show summary statistics for all numeric columns" style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i data-lucide="bar-chart-2" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Summary Stats</span>
-              <span class="chat-hint-chip" data-query="Plot a distribution histogram of the first column with custom color config" style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i data-lucide="trending-down" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Custom Histogram</span>
-              <span class="chat-hint-chip" data-query="Rename column..." style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i data-lucide="edit" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Rename Column</span>
-              <span class="chat-hint-chip" data-query="Delete column..." style="background: var(--bg-card); border: 1px solid var(--border-low); padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.2s;"><i data-lucide="trash-2" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Delete Column</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ───────────────── SECTION 2: AGENTIC ANALYSIS ───────────────── -->
-    <div id="areaAgentic" class="section-area hidden">
-      <!-- Run Analysis Placeholder -->
-      <div id="agenticPlaceholder" class="hidden" style="text-align: center; padding: 60px 20px; background: rgba(24, 24, 27, 0.4); border: 1px dashed var(--border-mid); border-radius: var(--r-lg); max-width: 580px; margin: 40px auto; display: flex; flex-direction: column; align-items: center; gap: 16px; backdrop-filter: blur(12px);">
-        <div style="font-size: 3rem; animation: pulse 2s infinite;"><i data-lucide="bot" style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
-        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Automated Pipeline Analysis</h3>
-        <p style="color: var(--text-secondary); line-height: 1.5; margin: 0; font-size: 0.9rem;">
-          Trigger autonomous AI agents to perform data cleaning, schema relationship mapping, and surface consulting-grade insights.
-        </p>
-        <button id="btnRunAgenticPipeline" class="btn-primary btn-lg" style="margin-top: 10px; font-weight: 600;"><i data-lucide="play" style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i> Configure &amp; Run Analysis</button>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px;">
-        <button class="tab-btn active" data-tab="cleaning"><i data-lucide="brush" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Cleaning Report</button>
-        <button class="tab-btn" data-tab="relations"><i data-lucide="link" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Relation Mapper</button>
-        <button class="tab-btn" data-tab="insights"><i data-lucide="lightbulb" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Business Insights</button>
-        <button class="tab-btn" data-tab="charts"><i data-lucide="trending-up" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Visualizations</button>
-      </div>
-
-      <!-- Tab panels -->
-      <div class="tab-panels" id="agenticTabPanels">
-        <!-- CLEANING REPORT -->
-        <div class="tab-panel active" id="panel-cleaning">
-          <h3 class="panel-title"><i data-lucide="brush" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Data Cleaning Audit Trail</h3>
-          <div id="cleaningContent" class="cleaning-list"></div>
-        </div>
-
-        <!-- RELATIONS -->
-        <div class="tab-panel" id="panel-relations">
-          <h3 class="panel-title"><i data-lucide="link" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Relationship Mapping</h3>
-          <div id="relationsContent" style="width: 100%;"></div>
-        </div>
-
-        <!-- INSIGHTS -->
-        <div class="tab-panel" id="panel-insights">
-          <h3 class="panel-title"><i data-lucide="lightbulb" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Strategic Business Insights</h3>
-          <div id="insightsContent" class="insights-list"></div>
-        </div>
-
-        <!-- CHARTS -->
-        <div class="tab-panel" id="panel-charts">
-          <h3 class="panel-title"><i data-lucide="trending-up" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Visual Intelligence</h3>
-          <div id="plotlyChartsWrap" class="charts-grid"></div>
-          <div id="pngChartsWrap" class="png-charts-wrap hidden">
-            <h4 class="sub-title"><i data-lucide="image" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Agent-Generated Charts</h4>
-            <div id="pngCharts" class="png-grid"></div>
-          </div>
-          <details class="viz-code-details hidden" id="vizCodeDetails">
-            <summary><i data-lucide="code" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Visualization Architecture Code</summary>
-            <pre id="vizCodeBlock" class="code-block"></pre>
-          </details>
+      <div class="modal-body" style="gap: 16px; padding: 24px;">
+        <p id="customDialogMessage"
+          style="font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary); margin: 0;"></p>
+        <div id="customDialogPromptContainer" class="field-group hidden" style="margin-top: 8px;">
+          <input type="text" id="customDialogInput" class="field-input"
+            style="width: 100%; text-align: left; font-size: 0.95rem; padding: 10px 14px;" />
         </div>
       </div>
-    </div>
-
-    <!-- Export/action bar -->
-    <div class="export-bar" style="margin-top: 24px;">
-      <button id="exportPdfBtn" class="btn-primary"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Export PDF Report</button>
-      <button id="exportZipBtn" class="btn-secondary" style="background: rgba(124,58,237,0.06); border-color: var(--violet-light); color: var(--violet-light); font-weight: 600;"><i data-lucide="archive" style="width: 14px; height: 14px;"></i> Export Project (.zip)</button>
-      <button id="downloadCsvBtn" class="btn-secondary"><i data-lucide="download" style="width: 14px; height: 14px;"></i> Download Cleaned CSV</button>
-      <button id="reRunBtn" class="btn-ghost"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Re-run Agentic Analysis</button>
-    </div>
-
-  </section><!-- /results screen -->
-
-</main><!-- /main-area -->
-
-<!-- Schema Relation Modal -->
-<div id="relationModal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 480px; padding: 24px; border: 1px solid rgba(34, 211, 238, 0.3); background: rgba(18, 18, 22, 0.98); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-radius: var(--r-md);">
-    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h2 id="relationModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">Tweak Relationship</h2>
-      <button id="closeRelationModalBtn" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary); width: auto; padding: 0;">✕</button>
-    </div>
-    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
-      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
-        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">X Variable (Source Column)</label>
-        <select id="relationModalXSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
+      <div class="modal-footer" style="padding: 16px 24px; background: rgba(0,0,0,0.15);">
+        <button id="customDialogCancelBtn" class="btn-secondary">Cancel</button>
+        <button id="customDialogConfirmBtn" class="btn-primary">Confirm</button>
       </div>
-      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
-        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Y Variable (Target Column)</label>
-        <select id="relationModalYSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;"></select>
-      </div>
-      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
-        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Visual Plot Recommendation</label>
-        <select id="relationModalTypeSelect" class="field-input" style="width:100%; box-sizing:border-box; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm); padding:8px;">
-          <option value="Scatter Plot">Scatter Plot</option>
-          <option value="Bar Chart">Bar Chart</option>
-          <option value="Line Chart">Line Chart</option>
-          <option value="Box Plot">Box Plot</option>
-          <option value="Histogram">Histogram</option>
-          <option value="Heatmap">Heatmap</option>
-        </select>
-      </div>
-      <div class="field-group" style="display: flex; flex-direction: column; gap: 4px;">
-        <label class="field-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.82rem;">Correlation &amp; Statistical Details</label>
-        <textarea id="relationModalDetails" class="field-input" rows="3" placeholder="Explain the relationship correlation or domain relevance..." style="width:100%; box-sizing:border-box; font-family:inherit; resize:none; padding:8px; background:var(--bg-card); color:var(--text-primary); border:1px solid var(--border-mid); border-radius:var(--r-sm);"></textarea>
-      </div>
-    </div>
-    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-      <button id="relationModalCancelBtn" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>
-      <button id="relationModalConfirmBtn" class="btn-primary" style="padding: 8px 16px;">Apply Changes</button>
     </div>
   </div>
-</div>
 
-<!-- API Warning Modal -->
-<div id="apiWarningModal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 420px; text-align: center; padding: 30px;">
-    <div class="modal-icon" style="font-size: 3rem; margin-bottom: 15px;"><i data-lucide="key" style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
-    <h2 style="margin-bottom: 10px;">API Key Required</h2>
-    <p style="font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 24px;">
-      An API key is required to run the analysis with <span id="warningProviderName" style="color: var(--violet-light); font-weight: 600;"></span>. Let's configure it in your LLM Settings.
-    </p>
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <button id="guideToApiBtn" class="btn-primary" style="width: 100%;">Configure API Key Now</button>
-      <button id="closeApiWarningBtn" class="btn-secondary" style="width: 100%;">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- Settings Modal -->
-<div id="settingsModal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 500px;">
-    <div class="modal-header">
-      <h2><i data-lucide="settings" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;"></i> API Credentials &amp; Settings</h2>
-      <button id="closeSettingsModal" class="btn-icon">✕</button>
-    </div>
-
-    <div class="modal-body" style="display: flex; flex-direction: column; gap: 14px; max-height: 520px; overflow-y: auto; padding-right: 4px;">
-      <p class="modal-hint">Configure API keys for each LLM provider. Keys are saved securely in your browser. Check/uncheck "Show in sidebar" to filter the options on your dashboard.</p>
-
-      <!-- Provider Key inputs -->
-      <div style="display: flex; flex-direction: column; gap: 14px;">
-        <!-- NVIDIA -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">NVIDIA NIM API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showNvidia" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyNvidia" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="nvidia" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusNvidia" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Groq -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Groq API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showGroq" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyGroq" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="groq" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusGroq" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- OpenAI -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenAI API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showOpenai" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyOpenai" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="openai" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusOpenai" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Anthropic -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Anthropic API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showAnthropic" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyAnthropic" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="anthropic" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusAnthropic" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Google Gemini -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Google Gemini API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showGemini" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyGemini" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="gemini" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusGemini" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Mistral -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Mistral API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showMistral" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyMistral" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="mistral" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusMistral" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- HuggingFace -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">HuggingFace API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showHuggingface" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyHuggingface" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="huggingface" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusHuggingface" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Cohere -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Cohere API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showCohere" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyCohere" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="cohere" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusCohere" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- TogetherAI -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">TogetherAI API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showTogether" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyTogether" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="together" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusTogether" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- OpenRouter -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenRouter API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showOpenrouter" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyOpenrouter" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="openrouter" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusOpenrouter" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- DeepSeek -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">DeepSeek API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showDeepseek" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyDeepseek" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="deepseek" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusDeepseek" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Perplexity -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Perplexity API Key</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showPerplexity" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="password" id="keyPerplexity" class="field-input setting-key" placeholder="Enter key…" style="flex: 1;" />
-            <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-            <button class="btn-secondary test-individual-btn" data-provider="perplexity" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusPerplexity" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-        </div>
-
-        <!-- Ollama Base URL -->
-        <div class="setting-row">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Ollama Base URL</label>
-            <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-              <input type="checkbox" id="showOllama" class="setting-show-checkbox" checked /> Show in sidebar
-            </label>
-          </div>
-          <div class="key-input-wrap" style="display: flex; gap: 8px;">
-            <input type="text" id="urlOllama" class="field-input setting-key" placeholder="http://localhost:11434" style="flex: 1;" />
-            <button class="btn-secondary test-individual-btn" data-provider="ollama" style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-          </div>
-          <div class="individual-status" id="statusOllama" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+  <!-- Floating Analysis Notification Widget (Top Right) -->
+  <div id="analysisNotification" class="analysis-notification-toast hidden">
+    <button id="dismissNotif" class="notif-close-btn">&times;</button>
+    <div class="notification-body">
+      <div class="notif-spinner"></div>
+      <div class="notif-content">
+        <div class="notif-title">Crewlyze Analysis Active</div>
+        <div class="notif-details"><span id="notifActiveJob">Cleaning...</span> | <span id="notifTimer">00:00</span>
         </div>
       </div>
-
-      <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;" />
-
-      <!-- Cooldown -->
-      <div>
-        <label class="field-label" style="display: block; margin-bottom: 6px;">API Cooldown: <span id="settingsCooldownVal">5</span>s</label>
-        <input type="range" id="settingsCooldown" class="field-range" min="0" max="60" value="5" />
-      </div>
-    </div>
-
-    <div class="modal-footer">
-      <button id="cancelSettingsBtn" class="btn-secondary">Close</button>
-      <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+      <button id="btnMaximizeNotif" class="btn-primary btn-xs"
+        style="padding: 6px 10px; font-size: 0.75rem; font-weight: 600; border-radius: var(--r-md);">View</button>
     </div>
   </div>
-</div>
 
-<!-- Custom Dialog Modal (Alert/Confirm/Prompt) -->
-<div id="customDialogModal" class="modal-overlay hidden">
-  <div class="modal-box" style="max-width: 460px;">
-    <div class="modal-header">
-      <h2 id="customDialogTitle">Confirm Action</h2>
-      <button id="closeCustomDialogBtn" class="btn-icon">✕</button>
-    </div>
-    <div class="modal-body" style="gap: 16px; padding: 24px;">
-      <p id="customDialogMessage" style="font-size: 0.92rem; line-height: 1.6; color: var(--text-secondary); margin: 0;"></p>
-      <div id="customDialogPromptContainer" class="field-group hidden" style="margin-top: 8px;">
-        <input type="text" id="customDialogInput" class="field-input" style="width: 100%; text-align: left; font-size: 0.95rem; padding: 10px 14px;" />
-      </div>
-    </div>
-    <div class="modal-footer" style="padding: 16px 24px; background: rgba(0,0,0,0.15);">
-      <button id="customDialogCancelBtn" class="btn-secondary">Cancel</button>
-      <button id="customDialogConfirmBtn" class="btn-primary">Confirm</button>
-    </div>
-  </div>
-</div>
+  <!-- Toast notifications -->
+  <div id="toastContainer" class="toast-container"></div>
 
-<!-- Toast notifications -->
-<div id="toastContainer" class="toast-container"></div>
-
-<script src="/app.js"></script>
+  <script src="/app.js"></script>
 </body>
+
 </html>
