@@ -240,6 +240,9 @@ const els = {
   btnSectionAgentic:           $('btnSectionAgentic'),
   areaChat:                    $('areaChat'),
   areaAgentic:                 $('areaAgentic'),
+  areaHub:                     $('areaHub'),
+  btnEnterChat:                $('btnEnterChat'),
+  btnEnterAgentic:             $('btnEnterAgentic'),
   btnRenameColQuick:           $('btnRenameColQuick'),
   btnDeleteColQuick:           $('btnDeleteColQuick'),
   chatPreviewDims:             $('chatPreviewDims'),
@@ -1033,6 +1036,7 @@ async function switchToProject(p) {
     if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
     if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
     await loadResults(p.id);
+    goToWorkspaceHub();
   } else if (p.status === 'running') {
     if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
     if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
@@ -1051,7 +1055,7 @@ async function switchToProject(p) {
     await refreshPreviewData(p.id);
     setupExport(p.id);
     resetChat();
-    switchSection('chat');
+    goToWorkspaceHub();
     showScreen('results');
     setStatus('● Idle', 'idle');
   }
@@ -1204,12 +1208,48 @@ if (els.newProjectBtn) {
   });
 }
 
-function setBreadcrumb(name) {
-  els.breadcrumb.innerHTML = `
-    <span class="breadcrumb-item" onclick="goToDashboardHome()" style="cursor:pointer">Dashboard</span>
-    <span class="breadcrumb-sep">›</span>
-    <span class="breadcrumb-item active">${escHtml(name)}</span>
-  `;
+function goToWorkspaceHub() {
+  const p = state.activeProject;
+  if (!p) return;
+  
+  // Hide sections switcher
+  if (els.btnSectionChat && els.btnSectionChat.parentNode) {
+    els.btnSectionChat.parentNode.classList.add('hidden');
+  }
+  
+  // Show areaHub, hide areaChat and areaAgentic
+  if (els.areaHub) els.areaHub.classList.remove('hidden');
+  if (els.areaChat) els.areaChat.classList.add('hidden');
+  if (els.areaAgentic) els.areaAgentic.classList.add('hidden');
+  
+  if (els.resultsScreen) els.resultsScreen.classList.remove('ai-chat-mode');
+  
+  // Restore sidebar state when exiting chat mode
+  if (preChatSidebarCollapsed === false && els.sidebar.classList.contains('collapsed')) {
+    els.sidebar.classList.remove('collapsed');
+    if (els.sidebarToggle) els.sidebarToggle.textContent = '‹';
+  }
+  
+  setBreadcrumb(p.name);
+}
+window.goToWorkspaceHub = goToWorkspaceHub;
+
+function setBreadcrumb(name, activeSection = '') {
+  if (!activeSection) {
+    els.breadcrumb.innerHTML = `
+      <span class="breadcrumb-item" onclick="goToDashboardHome()" style="cursor:pointer">Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-item active">${escHtml(name)}</span>
+    `;
+  } else {
+    els.breadcrumb.innerHTML = `
+      <span class="breadcrumb-item" onclick="goToDashboardHome()" style="cursor:pointer">Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-item" onclick="goToWorkspaceHub()" style="cursor:pointer">${escHtml(name)}</span>
+      <span class="breadcrumb-sep">›</span>
+      <span class="breadcrumb-item active">${escHtml(activeSection)}</span>
+    `;
+  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1478,12 +1518,12 @@ const STAGE_KEYWORDS = {
 
 function classifyLine(line) {
   const ll = line.toLowerCase();
-  if (ll.includes('💭') || ll.startsWith('thought:'))    return 'thought';
-  if (ll.includes('🛠️') || ll.startsWith('action:'))    return 'action';
-  if (ll.includes('📤') || ll.includes('observation:')) return 'response';
-  if (ll.includes('✅') || ll.includes('complete'))      return 'done';
-  if (ll.includes('❌') || ll.includes('error'))         return 'error';
-  if (ll.includes('⚠️') || ll.includes('warning'))      return 'warning';
+  if (ll.includes('[thought]') || ll.startsWith('thought:'))    return 'thought';
+  if (ll.includes('[calling tool]') || ll.startsWith('action:'))    return 'action';
+  if (ll.includes('[tool response]') || ll.includes('observation:')) return 'response';
+  if (ll.includes('[task]') || ll.includes('complete'))      return 'done';
+  if (ll.includes('[error]') || ll.includes('error'))         return 'error';
+  if (ll.includes('[warning]') || ll.includes('warning'))      return 'warning';
   return '';
 }
 
@@ -1508,7 +1548,7 @@ function renderStagePov(stage) {
   if (stage === 'cleaning') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title">🧹 Data Sanitizer Active</div>
+        <div class="pov-title"><i data-lucide="brush" style="width:18px; height:18px; color:var(--violet-light); vertical-align:middle; margin-right:8px;"></i> Data Sanitizer Active</div>
         <div class="pov-desc">Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code...</div>
       </div>
       <div class="pov-content">
@@ -1552,7 +1592,7 @@ function renderStagePov(stage) {
   } else if (stage === 'relations') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title">🔗 Correlation Detector Engaged</div>
+        <div class="pov-title"><i data-lucide="link" style="width:18px; height:18px; color:var(--cyan); vertical-align:middle; margin-right:8px;"></i> Correlation Detector Engaged</div>
         <div class="pov-desc">Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping relationship strengths...</div>
       </div>
       <div class="pov-content">
@@ -1578,7 +1618,7 @@ function renderStagePov(stage) {
   } else if (stage === 'insights') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title">💡 Strategic Business Insights</div>
+        <div class="pov-title"><i data-lucide="lightbulb" style="width:18px; height:18px; color:var(--amber); vertical-align:middle; margin-right:8px;"></i> Strategic Business Insights</div>
         <div class="pov-desc">Correlating discovered patterns to business implications and drafting actionable McKinsey-level recommendation strategies...</div>
       </div>
       <div class="pov-content">
@@ -1587,9 +1627,9 @@ function renderStagePov(stage) {
             <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
           </svg>
           <div class="pov-insight-bullets">
-            <div class="pov-bullet-text">🔍 Identifying key driver columns...</div>
-            <div class="pov-bullet-text">📈 Formulating risk matrices...</div>
-            <div class="pov-bullet-text">💡 Generating recommendations...</div>
+            <div class="pov-bullet-text">Identifying key driver columns...</div>
+            <div class="pov-bullet-text">Formulating risk matrices...</div>
+            <div class="pov-bullet-text">Generating recommendations...</div>
           </div>
         </div>
       </div>`;
@@ -1597,7 +1637,7 @@ function renderStagePov(stage) {
   } else if (stage === 'visualization') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title">🎨 Visual Intelligence Compiler</div>
+        <div class="pov-title"><i data-lucide="image" style="width:18px; height:18px; color:var(--rose); vertical-align:middle; margin-right:8px;"></i> Visual Intelligence Compiler</div>
         <div class="pov-desc">Writing corporate Seaborn/Matplotlib visualization scripts and compiling high-resolution PNG plots...</div>
       </div>
       <div class="pov-content">
@@ -1617,7 +1657,7 @@ function renderStagePov(stage) {
   } else if (stage === 'plotly') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title">📊 Interactive Dashboard Builder</div>
+        <div class="pov-title"><i data-lucide="bar-chart-3" style="width:18px; height:18px; color:var(--emerald); vertical-align:middle; margin-right:8px;"></i> Interactive Dashboard Builder</div>
         <div class="pov-desc">Building zoomable, hoverable Plotly structures and generating the final analytical results suite...</div>
       </div>
       <div class="pov-content">
@@ -1649,6 +1689,10 @@ function renderStagePov(stage) {
         </div>
       </div>`;
   }
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 function markStage(stage, status) {
@@ -1663,11 +1707,70 @@ function markStage(stage, status) {
 }
 
 let _activeStage = null;
+const STAGE_ORDER = ['cleaning', 'relations', 'insights', 'visualization', 'plotly'];
+
+function updateProgressTrack(newStage) {
+  const newIdx = STAGE_ORDER.indexOf(newStage);
+  if (newIdx === -1) return;
+
+  const currentIdx = STAGE_ORDER.indexOf(_activeStage);
+  
+  // We only progress forward. If newIdx is less than or equal to currentIdx, ignore.
+  if (newIdx <= currentIdx) return;
+
+  // Mark all stages before newStage as done
+  for (let i = 0; i < newIdx; i++) {
+    markStage(STAGE_ORDER[i], 'done');
+  }
+
+  // Mark newStage as active
+  _activeStage = newStage;
+  markStage(newStage, 'active');
+
+  // Update notification stage text
+  const labels = {
+    cleaning:      'Cleaning dataset...',
+    relations:     'Mapping relationships...',
+    insights:      'Generating BI insights...',
+    visualization: 'Exporting charts...',
+    plotly:        'Building Plotly charts...'
+  };
+  const text = labels[newStage] || 'Analysing...';
+  const el = $('notifActiveJob');
+  if (el) el.textContent = text;
+}
 
 function inferStageFromLog(line) {
   const ll = line.toLowerCase();
-  for (const [stage, keywords] of Object.entries(STAGE_KEYWORDS)) {
-    if (keywords.some(k => ll.includes(k))) return stage;
+  
+  // First, check for explicit stage indicators from stdout!
+  if (ll.includes('[stage 1/4]') || ll.includes('running data cleaner') || ll.includes('data clean')) {
+    return 'cleaning';
+  }
+  if (ll.includes('[stage 2/4]') || ll.includes('running relation analyst') || ll.includes('relation analyst + bi analyst')) {
+    return 'relations';
+  }
+  if (ll.includes('running bi analyst') || ll.includes('business intelligence analyst') || ll.includes('generating recommendations') || ll.includes('insights complete')) {
+    return 'insights';
+  }
+  if (ll.includes('[stage 3/4]') || ll.includes('running data visualizer') || ll.includes('visualization complete')) {
+    return 'visualization';
+  }
+  if (ll.includes('[stage 4/4]') || ll.includes('building interactive plotly charts') || ll.includes('plotly_charts') || ll.includes('interactive chart')) {
+    return 'plotly';
+  }
+
+  // Fallback to keywords but with strict boundary matching / ordering
+  for (const stage of STAGE_ORDER) {
+    const keywords = STAGE_KEYWORDS[stage];
+    if (keywords.some(k => {
+      if (k === 'chart' || k === 'plot') {
+        return ll.includes(k) && !ll.includes('plotly');
+      }
+      return ll.includes(k);
+    })) {
+      return stage;
+    }
   }
   return null;
 }
@@ -1690,6 +1793,36 @@ function startSSEStream(sessionId) {
       </div>`;
   }
 
+  // Initialize and show the top-right notification toast
+  const notif = $('analysisNotification');
+  if (notif) {
+    notif.classList.remove('hidden', 'complete');
+    const notifTitle = notif.querySelector('.notif-title');
+    if (notifTitle) notifTitle.textContent = 'Crewlyze Analysis Active';
+    const activeJobEl = $('notifActiveJob');
+    if (activeJobEl) activeJobEl.textContent = 'Initializing...';
+    const timerEl = $('notifTimer');
+    if (timerEl) timerEl.textContent = '00:00';
+    const btnMax = $('btnMaximizeNotif');
+    if (btnMax) {
+      btnMax.textContent = 'View';
+      btnMax.onclick = () => {
+        showScreen('running');
+      };
+    }
+  }
+
+  // Setup the elapsed timer
+  if (window.notifTimerInterval) { clearInterval(window.notifTimerInterval); }
+  window.notifElapsedSeconds = 0;
+  window.notifTimerInterval = setInterval(() => {
+    window.notifElapsedSeconds++;
+    const mins = Math.floor(window.notifElapsedSeconds / 60).toString().padStart(2, '0');
+    const secs = (window.notifElapsedSeconds % 60).toString().padStart(2, '0');
+    const timerEl = $('notifTimer');
+    if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+  }, 1000);
+
   const src = new EventSource(`/api/analyze/stream?session_id=${sessionId}`);
   state.sseSource = src;
 
@@ -1699,9 +1832,28 @@ function startSSEStream(sessionId) {
     if (line === '[EOF]') {
       src.close();
       state.sseSource = null;
-      // Mark remaining active stage as done
-      if (_activeStage) markStage(_activeStage, 'done');
-      appendLog('✅ Analysis complete! Loading results…');
+      // Mark all stages as done (green) on successful completion
+      STAGE_ORDER.forEach(s => markStage(s, 'done'));
+
+      // Finalize the notification toast
+      if (window.notifTimerInterval) { clearInterval(window.notifTimerInterval); window.notifTimerInterval = null; }
+      if (notif) {
+        notif.classList.add('complete');
+        const notifTitle = notif.querySelector('.notif-title');
+        if (notifTitle) notifTitle.textContent = 'Analysis Completed!';
+        const activeJobEl = $('notifActiveJob');
+        if (activeJobEl) activeJobEl.textContent = 'Results are ready.';
+        const btnMax = $('btnMaximizeNotif');
+        if (btnMax) {
+          btnMax.textContent = 'View Results';
+          btnMax.onclick = () => {
+            notif.classList.add('hidden');
+            loadResults(sessionId);
+          };
+        }
+      }
+
+      appendLog('Analysis complete! Loading results…');
       setStatus('● Loading…', 'running');
       setTimeout(() => loadResults(sessionId), 1500);
       return;
@@ -1709,18 +1861,35 @@ function startSSEStream(sessionId) {
 
     appendLog(line);
 
-    // Infer stage transitions
+    // Infer stage transitions and update progress track
     const stage = inferStageFromLog(line);
-    if (stage && stage !== _activeStage) {
-      if (_activeStage) markStage(_activeStage, 'done');
-      _activeStage = stage;
-      markStage(stage, 'active');
+    if (stage) {
+      updateProgressTrack(stage);
     }
   };
 
   src.onerror = () => {
     src.close();
     state.sseSource = null;
+    
+    // Stop the timer on error
+    if (window.notifTimerInterval) { clearInterval(window.notifTimerInterval); window.notifTimerInterval = null; }
+    if (notif) {
+      notif.classList.add('complete');
+      const notifTitle = notif.querySelector('.notif-title');
+      if (notifTitle) notifTitle.textContent = 'Analysis Finished';
+      const activeJobEl = $('notifActiveJob');
+      if (activeJobEl) activeJobEl.textContent = 'Stream finalized.';
+      const btnMax = $('btnMaximizeNotif');
+      if (btnMax) {
+        btnMax.textContent = 'View Results';
+        btnMax.onclick = () => {
+          notif.classList.add('hidden');
+          loadResults(sessionId);
+        };
+      }
+    }
+
     // Try to load results anyway
     setTimeout(() => loadResults(sessionId), 2000);
   };
@@ -1839,15 +2008,14 @@ function renderDashboard(data, sessionId) {
 // ── Stats row ────────────────────────────────────────────────────────────────
 function renderStats(data) {
   const stats = [
-    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records', icon: 'folder', color: 'var(--violet)' },
-    { val: data.cols_count || 0, lbl: 'Total Columns', icon: 'columns', color: 'var(--cyan)' },
-    { val: data.numeric_count || 0, lbl: 'Numeric Fields', icon: 'hash', color: 'var(--emerald)' },
-    { val: data.cat_count || 0, lbl: 'Categorical Fields', icon: 'tag', color: 'var(--amber)' },
-    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts', icon: 'trending-up', color: 'var(--rose)' },
+    { val: (data.rows_count || 0).toLocaleString(), lbl: 'Total Records', color: 'var(--violet)' },
+    { val: data.cols_count || 0, lbl: 'Total Columns', color: 'var(--cyan)' },
+    { val: data.numeric_count || 0, lbl: 'Numeric Fields', color: 'var(--emerald)' },
+    { val: data.cat_count || 0, lbl: 'Categorical Fields', color: 'var(--amber)' },
+    { val: (data.plotly_charts || []).length, lbl: 'Interactive Charts', color: 'var(--rose)' },
   ];
   els.statsRow.innerHTML = stats.map(s => `
     <div class="stat-card" style="--accent:${s.color}">
-      <div class="stat-icon"><i data-lucide="${s.icon}" class="icon-svg"></i></div>
       <div class="stat-val">${s.val}</div>
       <div class="stat-lbl">${s.lbl}</div>
       <div class="stat-accent-bar"></div>
@@ -1899,10 +2067,14 @@ function renderCleaning(text) {
   }
   els.cleaningContent.innerHTML = lines.map(l =>
     `<div class="cleaning-item">
-      <div class="cleaning-check">✔</div>
-      <div class="cleaning-text">${escHtml(l.replace(/^[-*•]\s*/, ''))}</div>
+      <div class="cleaning-check" style="display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2);"><i data-lucide="check" style="width: 12px; height: 12px; color: var(--emerald);"></i></div>
+      <div class="cleaning-text" style="flex: 1;">${escHtml(l.replace(/^[-*•]\s*/, ''))}</div>
     </div>`
   ).join('');
+  
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
 // ── Relations ─────────────────────────────────────────────────────────────────
@@ -1936,12 +2108,8 @@ function renderRelationsListUI() {
   if (!list.length) {
     els.relationsContent.innerHTML = `
       <div style="text-align: center; padding: 24px; color: var(--text-secondary); background: var(--bg-card); border-radius: var(--r-md); border: 1px dashed var(--border-mid); width: 100%;">
-        <p style="margin-bottom: 8px;">No schema relationships mapped yet.</p>
-        <button id="btnAddRelation" class="btn-primary btn-sm" style="font-weight: 600;">➕ Add Custom Relation</button>
+        <p style="margin: 0;">No schema relationships mapped yet.</p>
       </div>`;
-    
-    const btn = document.getElementById('btnAddRelation');
-    if (btn) btn.onclick = () => showRelationModal(null);
     return;
   }
 
@@ -1952,12 +2120,6 @@ function renderRelationsListUI() {
 
     html += `
       <div class="relation-card" style="position: relative; flex: 1 1 calc(50% - 16px); min-width: 380px; box-sizing: border-box;">
-        <!-- Tweak Actions Toolbar -->
-        <div style="position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 5;">
-          <button class="btn-secondary btn-sm btn-rel-edit" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(34,211,238,0.2); color: var(--cyan); display: flex; align-items: center; gap: 4px;"><i data-lucide="edit" style="width: 12px; height: 12px;"></i> Edit</button>
-          <button class="btn-secondary btn-sm btn-rel-del" data-idx="${index}" style="padding: 2px 6px; font-size: 0.72rem; border-color: rgba(244,63,94,0.2); color: var(--rose); display: flex; align-items: center; gap: 4px;"><i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete</button>
-        </div>
-
         <div class="relation-node">
           <span class="relation-node-type">${escHtml(xType)}</span>
           <strong>${escHtml(rel.xCol)}</strong>
@@ -1977,27 +2139,8 @@ function renderRelationsListUI() {
     `;
   });
 
-  // Footer Actions
-  html += `
-    <div style="display: flex; gap: 12px; margin-top: 16px; justify-content: flex-end; width: 100%; grid-column: 1 / -1;">
-      <button id="btnAddRelation" class="btn-secondary" style="font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Custom Relation</button>
-      <button id="btnSaveRelations" class="btn-primary" style="font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Schema Tweaks</button>
-    </div>
-  `;
   html += '</div>';
-  
   els.relationsContent.innerHTML = html;
-
-  // Wire buttons
-  els.relationsContent.querySelectorAll('.btn-rel-edit').forEach(b => {
-    b.onclick = () => showRelationModal(parseInt(b.dataset.idx, 10));
-  });
-  els.relationsContent.querySelectorAll('.btn-rel-del').forEach(b => {
-    b.onclick = () => deleteRelationAt(parseInt(b.dataset.idx, 10));
-  });
-  
-  document.getElementById('btnAddRelation').onclick = () => showRelationModal(null);
-  document.getElementById('btnSaveRelations').onclick = () => saveTweakedRelations();
 }
 
 function showRelationModal(index) {
@@ -2419,7 +2562,7 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
               alt="${escHtml(title)}"
               class="png-chart-img"
               loading="lazy"
-              onerror="this.parentNode.innerHTML='<div class=\'chart-img-error\'>📊 Chart not available yet — rerun analysis to generate.</div>'"
+              onerror="this.parentNode.innerHTML='<div class=\'chart-img-error\'>Chart not available yet — rerun analysis to generate.</div>'"
             />
           </div>
         </div>`;
@@ -2721,10 +2864,62 @@ function escHtml(str) {
     lucide.createIcons();
   }
 
+  // Wire Selection Hub Cards
+  if (els.btnEnterChat) {
+    els.btnEnterChat.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (!p) return;
+      if (els.btnSectionChat && els.btnSectionChat.parentNode) {
+        els.btnSectionChat.parentNode.classList.remove('hidden');
+      }
+      if (els.areaHub) els.areaHub.classList.add('hidden');
+      switchSection('chat');
+      setBreadcrumb(p.name, 'AI Data Chat');
+    });
+  }
+
+  if (els.btnEnterAgentic) {
+    els.btnEnterAgentic.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (!p) return;
+      if (p.status === 'running') {
+        showScreen('running');
+        return;
+      }
+      if (els.btnSectionChat && els.btnSectionChat.parentNode) {
+        els.btnSectionChat.parentNode.classList.remove('hidden');
+      }
+      if (els.areaHub) els.areaHub.classList.add('hidden');
+      switchSection('agentic');
+      setBreadcrumb(p.name, 'Crew Analysis');
+    });
+  }
+
   // Wire section switcher
-  if (els.btnSectionChat) els.btnSectionChat.addEventListener('click', () => switchSection('chat'));
-  if (els.btnSectionAgentic) els.btnSectionAgentic.addEventListener('click', () => switchSection('agentic'));
-  if (els.chatBackBtn) els.chatBackBtn.addEventListener('click', () => switchSection('agentic'));
+  if (els.btnSectionChat) {
+    els.btnSectionChat.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (els.areaHub) els.areaHub.classList.add('hidden');
+      switchSection('chat');
+      if (p) setBreadcrumb(p.name, 'AI Data Chat');
+    });
+  }
+  if (els.btnSectionAgentic) {
+    els.btnSectionAgentic.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (els.areaHub) els.areaHub.classList.add('hidden');
+      switchSection('agentic');
+      if (p) setBreadcrumb(p.name, 'Crew Analysis');
+    });
+  }
+  if (els.chatBackBtn) {
+    els.chatBackBtn.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (els.areaHub) els.areaHub.classList.add('hidden');
+      switchSection('agentic');
+      if (p) setBreadcrumb(p.name, 'Crew Analysis');
+    });
+  }
 
   // Wire quick action buttons
   if (els.btnRenameColQuick) {
@@ -2768,6 +2963,28 @@ function escHtml(str) {
       state.uploadedFile = { name: state.activeProject?.filename || 'dataset.csv' };
       if (!checkApiKeySet()) return;
       openConfigModal();
+    });
+  }
+
+  // Wire run in background and dismiss notification buttons
+  const btnBg = $('btnRunInBackground');
+  if (btnBg) {
+    btnBg.addEventListener('click', () => {
+      const p = state.activeProject;
+      if (p) {
+        goToWorkspaceHub();
+        showScreen('results');
+        toast('Running in background. Check notifications for progress.', 'info');
+      }
+    });
+  }
+
+  const btnDismiss = $('dismissNotif');
+  if (btnDismiss) {
+    btnDismiss.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const notif = $('analysisNotification');
+      if (notif) notif.classList.add('hidden');
     });
   }
 

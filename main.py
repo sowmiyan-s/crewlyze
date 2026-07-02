@@ -107,40 +107,40 @@ def clean_log_message(line: str, session_id: Optional[str] = None) -> Optional[s
     if stripped.startswith("[DEBUG]:") or stripped.startswith("[INFO]:"):
         if "working agent" in line_lower:
             agent_name = stripped.split(":", 2)[-1].strip()
-            return f"🤖 {agent_name} is active..."
+            return f"[Agent] {agent_name} is active..."
         return None
 
     # Format specific Langchain output structures for a premium look
     if "entering new crewagentexecutor chain" in line_lower:
-        return "⚡ Starting agent execution task..."
+        return "[Task] Starting agent execution task..."
     if "finished chain" in line_lower:
-        return "✨ Execution task completed."
+        return "[Task] Execution task completed."
     
     # Format Thoughts, Actions, inputs, and outputs nicely
     if stripped.startswith("Thought:"):
         thought_text = stripped[8:].strip()
-        return f"💭 Thought: {thought_text}"
+        return f"[Thought] {thought_text}"
         
     if stripped.startswith("Action:"):
         action_text = stripped[7:].strip()
-        return f"🛠️ Calling Tool: {action_text}"
+        return f"[Calling Tool] {action_text}"
         
     if stripped.startswith("Action Input:"):
         input_text = stripped[13:].strip()
         if len(input_text) > 150:
             input_text = input_text[:150] + "..."
-        return f"📥 Input: {input_text}"
+        return f"[Input] {input_text}"
         
     if stripped.startswith("Response:") or stripped.startswith("Observation:"):
         resp_text = stripped.split(":", 1)[1].strip()
         if len(resp_text) > 150:
             resp_text = resp_text[:150] + "..."
-        return f"📤 Tool Response: {resp_text}"
+        return f"[Tool Response] {resp_text}"
 
     if "warning" in line_lower or "error" in line_lower:
         if "error" in line_lower:
-            return f"❌ {stripped}"
-        return f"⚠️ {stripped}"
+            return f"[Error] {stripped}"
+        return f"[Warning] {stripped}"
 
     return stripped
 
@@ -411,10 +411,10 @@ def run_crew_in_background(
         
         user_goal = meta.get("goal", "")
         if user_goal.strip():
-            print("📝 Optimizing goal grammar...")
+            print("Optimizing goal grammar...")
             opt_goal = optimize_goal_grammar(user_goal, provider, model, api_key, env_key_name)
             meta["optimized_goal"] = opt_goal
-            print(f"✨ Optimized goal: {opt_goal}")
+            print(f"Optimized goal: {opt_goal}")
         else:
             meta["optimized_goal"] = ""
             
@@ -444,7 +444,7 @@ def run_crew_in_background(
         import contextlib
         with contextlib.redirect_stdout(log_file):
             try:
-                print("⚙️ Initializing multi-agent workflows...")
+                print("Initializing multi-agent workflows...")
                 _load_crew()
 
                 env_tasks = os.getenv("SELECTED_TASKS", "")
@@ -494,7 +494,7 @@ def run_crew_in_background(
                 with open(results_path, "w", encoding="utf-8") as f:
                     json.dump(serializable_result, f, indent=2)
                 
-                print("\n✅ Analysis complete! Ready to render dashboard.")
+                print("\nAnalysis complete! Ready to render dashboard.")
 
                 # Update metadata status to completed
                 try:
@@ -509,7 +509,7 @@ def run_crew_in_background(
 
             except Exception as e:
                 import traceback
-                print(f"\n❌ Pipeline failed: {e}", file=sys.stderr)
+                print(f"\nPipeline failed: {e}", file=sys.stderr)
                 traceback.print_exc(file=log_file)
                 
                 error_result = {"error": str(e)}
@@ -1168,7 +1168,16 @@ async def download_project_csv(project_id: str):
     if not csv_path.exists():
         raise HTTPException(status_code=404, detail="CSV not found.")
 
-    return FileResponse(csv_path, media_type="text/csv", filename=csv_path.name)
+    try:
+        meta = get_project_metadata(project_id)
+        orig_name = meta.get("filename", "dataset.csv")
+    except Exception:
+        orig_name = "dataset.csv"
+
+    base_name = orig_name.rsplit(".", 1)[0] if "." in orig_name else orig_name
+    download_filename = f"{base_name}_cleaned.csv"
+
+    return FileResponse(csv_path, media_type="text/csv", filename=download_filename)
 
 
 # ---------------------------------------------------------------------------

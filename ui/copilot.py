@@ -167,12 +167,12 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
 
         if success:
             answer_text = exec_output.strip() if exec_output.strip() not in ("", "(no output)") \
-                          else "✅ Query executed successfully (no text output)."
+                          else "Query executed successfully (no text output)."
             return {"success": True, "text": answer_text, "plot_path": final_plot_path}
         else:
             return {
                 "success": False,
-                "text": f"⚠️ Execution error:\n```\n{exec_output}\n```",
+                "text": f"Execution error:\n```\n{exec_output}\n```",
                 "plot_path": None,
             }
 
