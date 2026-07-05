@@ -4,7 +4,7 @@
   "description": "Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
   "main": "index.js",
   "bin": {
-    "crewlyze": "./bin/crewlyze.js"
+    "crewlyze": "bin/crewlyze.js"
   },
   "scripts": {
     "start": "node ./bin/crewlyze.js"

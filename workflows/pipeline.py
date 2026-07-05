@@ -21,6 +21,7 @@ Quality improvements:
 
 import os
 import time
+from pathlib import Path
 from typing import Optional
 
 from crewai import Task
@@ -90,8 +91,12 @@ def make_pipeline(
     and embeds the session-specific CSV and output paths + dataset profile
     into each task description.
     """
-    csv_path   = f"data/sessions/{session_id}/cleaned.csv"
-    output_dir = f"outputs/{session_id}"
+    user_home = Path.home() / ".crewlyze"
+    sessions_dir = Path(os.getenv("CREWLYZE_DATA_DIR", str(user_home / "data"))) / "sessions"
+    outputs_dir_base = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(user_home / "outputs")))
+
+    csv_path   = str((sessions_dir / session_id / "cleaned.csv").resolve())
+    output_dir = str((outputs_dir_base / session_id).resolve())
 
     from config.context import current_cooldown
     ctx_cooldown = current_cooldown.get()
@@ -116,6 +121,36 @@ def make_pipeline(
 
     deep_prompt = "\n\nIf deep analysis mode is enabled, provide richer reasoning, deeper causal exploration, and more detailed business implications for each recommendation." if deep_analysis else ""
     
+    if deep_analysis:
+        relation_deep_prompt = (
+            "\n\nDEEP ANALYSIS MODE IS ACTIVE. Map at least 5-6 key relationships. "
+            "For each relationship, explain the statistical justification, compute spearman/pearson/chi-square insights, "
+            "and detail the potential confounders or causal directions in simple business terms."
+        )
+        insight_deep_prompt = (
+            "\n\nDEEP ANALYSIS MODE IS ACTIVE. Provide: \n"
+            "- A detailed executive summary and rigorous causal analysis.\n"
+            "- For each strategic insight, expand the observation, implication, and actionable strategy into comprehensive, detailed paragraphs with estimated financial/operational metrics and risk/mitigation factors.\n"
+            "- Highlight long-term strategic opportunities and potential hidden trends."
+        )
+        visualize_deep_prompt = (
+            "\n\nDEEP ANALYSIS MODE IS ACTIVE. Generate 4-5 high-quality visualizations. "
+            "Include advanced plots such as distribution comparison subplots, multi-variable correlation grids, or boxplots highlighting outliers. "
+            "Add detailed labels, annotations, and legends."
+        )
+    else:
+        relation_deep_prompt = (
+            "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Map exactly 3-4 key relationships concisely."
+        )
+        insight_deep_prompt = (
+            "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Provide: \n"
+            "- A concise, high-level summary of the most critical trends.\n"
+            "- For each strategic insight, keep the observation, implication, and actionable strategy concise and focused (1-2 sentences each) for quick executive reading."
+        )
+        visualize_deep_prompt = (
+            "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Generate exactly 2-3 standard, clean visualizations (e.g., bar chart, scatter plot, or line chart)."
+        )
+
     goal_context = f"\nThe user has set the following goal for this project: '{project_goal}'." if project_goal else ""
     
     coercion_block = (
@@ -148,10 +183,11 @@ def make_pipeline(
     relation_prompt = (
         f"First, examine the 5 sample rows and column details in the dataset profile of '{csv_path}'. "
         "Identify the data type of each column (e.g. Unique ID, Categorical, Continuous Numeric, Timestamp, Key Column). "
-        f"Then, identify 5 key column relationships with high business relevance, focusing on correlations or connections that align with the user's project goal: '{project_goal}'. "
+        f"Then, identify key column relationships with high business relevance, focusing on correlations or connections that align with the user's project goal: '{project_goal}'. "
         "Format the output STRICTLY as:\n"
         "- X: [Column1] | Y: [Column2] | Type: [PlotType] | Details: [Relationship details, data type mapping of both columns, and business relevance in simple, understandable terms]\n"
         "Output NOTHING else."
+        f"{relation_deep_prompt}"
         f"{profile_block}"
     )
 
@@ -185,12 +221,13 @@ def make_pipeline(
         "- Numeric columns: [list numeric columns and their min/max values]\n"
         "- Categorical columns: [list categorical columns]\n\n"
         "### Strategic Insights\n"
-        "Generate 5 key business insights. Each insight MUST strictly use this structure:\n"
+        "Generate key business insights. Each insight MUST strictly use this structure:\n"
         "1. **Observation**: [Describe the exact trend, anomaly, or correlation from the data]\n"
         "   **Business Implication**: [Explain how this impacts profitability, risk, operation, or customers]\n"
         "   **Actionable Strategy**: [Outline a concrete recommendation that the organization should implement immediately]\n\n"
         "### Warnings & Alerts\n"
         "[List any warning or alert (e.g. data quality issues, outlier presence, class imbalance, missing values, declining trends) that a data scientist or business user should be aware of]"
+        f"{insight_deep_prompt}"
         f"{relations_context}"
         f"{profile_block}"
     )
@@ -205,7 +242,7 @@ def make_pipeline(
     viz_goal_prompt = f"\nFocus visualizations on answering or addressing the project goal: '{project_goal}'." if project_goal else ""
     visualize_prompt = (
         "Examine the columns and data types from the profile below. Using your AI reasoning, select "
-        "the 3-4 most insightful relationships, trends, or distributions that characterize this specific dataset.\n"
+        "the most insightful relationships, trends, or distributions that characterize this specific dataset.\n"
         f"{viz_goal_prompt}\n"
         "Then, write and execute Python plotting code using 'Execute Visualization Code'.\n\n"
         "ENVIRONMENT NOTE:\n"
@@ -215,6 +252,7 @@ def make_pipeline(
         "- Matplotlib and Seaborn are pre-imported. Do NOT load CSVs or create folders yourself!\n\n"
         "CODE REQUIREMENTS:\n"
         "- Set style theme: 'sns.set_theme(style=\"whitegrid\", palette=\"muted\")'\n"
+        "- Do NOT generate dark-themed charts. All visualisations must have a white background (facecolor='white') to look clean and professional inside the white executive PDF report.\n"
         "- Apply clean white/light styling: set figure facecolor to 'white', axes facecolor to '#f8fafc', grid lines to a subtle light gray, and tick/label text to '#334155'.\n"
         "- Use high-contrast corporate hex colors (e.g. `#4f46e5` for Indigo/Blue, `#06b6d4` for Cyan/Teal, `#ec4899` for Pink, `#10b981` for Emerald).\n"
         "- Set figure size to `(10, 6)` or `(12, 6)`.\n"
@@ -222,6 +260,7 @@ def make_pipeline(
         "- Apply 'sns.despine(left=True, bottom=True)' to remove borders.\n"
         "- Save each plot with: `save_chart('chart_name')`.\n"
         "- Call `plt.close()` immediately after each save to clear the state."
+        f"{visualize_deep_prompt}"
         f"{relations_context}"
         f"{profile_block}"
     )
@@ -229,7 +268,7 @@ def make_pipeline(
     visualize_task = Task(
         agent=visualizer_agent,
         description=visualize_prompt,
-        expected_output="Summary of the 3-4 custom visualization plots generated and saved.",
+        expected_output="Summary of the custom visualization plots generated and saved.",
         callback=cb,
     )
 

@@ -24,12 +24,14 @@
 
   <!-- ═══════════════════════════════ SIDEBAR ══════════════════════════════════ -->
   <aside id="sidebar" class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo" id="sidebarLogo" style="cursor: pointer;" title="Go to Dashboard">
-        <img src="/assets/logo.png" alt="Crewlyze Logo" style="height: 32px; object-fit: contain;" />
+    <div class="sidebar-header" style="display: flex; align-items: center; justify-content: space-between; padding: 18px 16px; min-height: 60px; flex-direction: row !important; gap: 8px;">
+      <div class="logo" id="sidebarLogo" style="cursor: pointer; display: flex; align-items: center;" title="Go to Dashboard">
+        <img src="/assets/logo.png" alt="Crewlyze Logo" style="height: 28px; object-fit: contain;" />
         <span class="logo-text" style="margin-left: 8px;">Crew<span class="logo-accent">lyze</span></span>
       </div>
-      <button id="sidebarToggle" class="sidebar-toggle" title="Collapse sidebar">‹</button>
+      <button id="sidebarToggle" class="sidebar-toggle" style="width: 32px; height: 32px; border-radius: var(--r-md); background: rgba(255, 37, 42, 0.08); border: 1px solid rgba(255, 37, 42, 0.25); color: var(--violet-light); display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: all 0.2s;" title="Collapse sidebar">
+        <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+      </button>
     </div>
 
     <!-- LLM Settings -->
@@ -84,11 +86,21 @@
       </div>
     </div>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" style="padding: 15px 24px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
       <button id="sidebarSettingsBtn" class="btn-secondary"
-        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-mid); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"><i
+        style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: var(--bg-elevated); border: 1px solid var(--border-mid); color: var(--text-primary); cursor: pointer; transition: all 0.2s;"><i
           data-lucide="settings" style="width: 14px; height: 14px;"></i> Settings</button>
-      <span>Crewlyze v3.1</span>
+      
+      <!-- TOS & GitHub Buttons -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button id="sidebarTosBtn" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 8px; border-radius: var(--r-sm); font-size: 0.72rem; cursor: pointer; background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); color: var(--text-secondary);">TOS</button>
+        <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI" target="_blank" class="btn-secondary" style="text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 8px; border-radius: var(--r-sm); font-size: 0.72rem; cursor: pointer; background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); color: var(--text-secondary); text-align: center;"><i data-lucide="github" style="width: 11px; height: 11px;"></i> GitHub</a>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
+        <span>Crewlyze v3.1</span>
+        <span>Prithiv &amp; Sebin &amp; Sowmiyan</span>
+      </div>
     </div>
   </aside>
 
@@ -103,96 +115,58 @@
           <span class="breadcrumb-item active">Dashboard</span>
         </div>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right" style="display: flex; align-items: center; gap: 12px; position: relative;">
+        <!-- Bell Notification Button -->
+        <button id="notifBellBtn" class="btn-icon" style="position: relative; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-mid); display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--bg-elevated); transition: all 0.2s;">
+          <i data-lucide="bell" style="width: 18px; height: 18px; color: var(--text-primary);"></i>
+          <span id="notifBadge" class="hidden" style="position: absolute; top: -2px; right: -2px; background: var(--violet); color: white; font-size: 0.65rem; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 6px rgba(255, 37, 42, 0.6);">0</span>
+        </button>
+        
+        <!-- Bell Notification Dropdown -->
+        <div id="notifDropdown" class="hidden" style="position: absolute; top: 44px; right: 0; width: 320px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-md); box-shadow: var(--shadow-lg); z-index: 500; display: flex; flex-direction: column; overflow: hidden; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border-low); background: rgba(255,255,255,0.01);">
+            <span style="font-size: 0.85rem; font-weight: 700; color: #fff;">Notifications</span>
+            <button id="clearNotifsBtn" style="background: transparent; border: none; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer; text-decoration: underline;">Clear All</button>
+          </div>
+          <div id="notifsList" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; padding: 4px 0;">
+            <div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">No new notifications</div>
+          </div>
+        </div>
+
         <div id="statusPill" class="status-pill idle">● Idle</div>
       </div>
     </header>
 
     <!-- ─── LANDING / UPLOAD SCREEN ─── -->
-    <section id="landingScreen" class="screen active">
-      <div class="landing-hero">
+    <section id="landingScreen" class="screen active" style="position: relative; overflow: hidden;">
+      <!-- Faded Background Logo -->
+      <div class="hero-bg-logo">
+        <img src="/assets/logo.png" alt="" />
+      </div>
+
+      <div class="landing-hero" style="position: relative; z-index: 1;">
         <div class="hero-badge">✦ Powered by CrewAI Multi-Agent Pipeline</div>
         <h1 class="hero-title"><span class="gradient-text">Crewlyze</span></h1>
-        <p class="hero-subtitle">Upload a CSV and let autonomous AI agents clean your data, discover relationships,
-          surface strategic insights, and generate interactive visualizations — all in one pipeline.</p>
+        <p class="hero-subtitle">Upload your CSV dataset and watch AI agents clean it, map relationships, generate visual charts, and give you clear business strategies in plain, simple words.</p>
 
         <!-- Wizard Container -->
         <div class="wizard-container" id="newProjectWizard">
           <!-- Step 0: Create Project Button Card -->
           <div class="wizard-step active" id="wizardStep0"
             style="width: 100%; display: flex; flex-direction: row !important; justify-content: center; gap: 20px; flex-wrap: wrap;">
-            <div class="create-project-card" id="startWizardCard">
-              <div class="create-project-plus">+</div>
-              <div class="create-project-text">Create New Project</div>
-              <div class="create-project-desc"
-                style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">
-                Start a fresh analysis pipeline with a new CSV dataset</div>
-            </div>
-            <div class="create-project-card" id="importProjectCard"
-              style="background: rgba(16,185,129,0.02); border-color: rgba(16,185,129,0.2);">
-              <div class="create-project-plus" style="color: #10b981;">↓</div>
-              <div class="create-project-text" style="color: var(--text-primary);">Import Project (.zip)</div>
-              <div class="create-project-desc"
-                style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px; text-align: center; max-width: 200px;">
-                Load and restore an existing project session from backup</div>
-              <input type="file" id="importZipFileInput" accept=".zip" style="display: none;" />
-            </div>
-          </div>
-
-          <!-- Step 1: Project Name -->
-          <div class="wizard-step" id="wizardStep1">
-            <button id="wizardBack1Btn" class="btn-back">← Back</button>
-            <div class="wizard-icon"><i data-lucide="sparkles"
-                style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-            <h3 class="wizard-step-title">Create New Project</h3>
-            <p class="wizard-step-desc">Enter a name, and optionally a title and goal for your project.</p>
-            <div
-              style="width: 100%; max-width: 440px; margin: 16px auto 0; text-align: left; display: flex; flex-direction: column; gap: 12px;">
-              <div class="field-group">
-                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Name</label>
-                <input type="text" id="wizardProjectName" class="field-input" placeholder="e.g. Sales Analysis Q3"
-                  style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
+            <div class="create-project-card" id="startWizardCard" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; border-radius: var(--r-lg); background: rgba(255, 37, 42, 0.02); border: 2px dashed rgba(255, 37, 42, 0.2); cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); min-width: 240px; text-align: center;">
+              <div style="background: rgba(255, 37, 42, 0.08); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 0 15px rgba(255, 37, 42, 0.1); border: 1px solid rgba(255, 37, 42, 0.15); transition: all 0.4s;">
+                <i data-lucide="upload-cloud" style="width: 24px; height: 24px; color: var(--violet-light);"></i>
               </div>
-              <div class="field-group">
-                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Report Title (Optional)</label>
-                <input type="text" id="wizardReportTitle" class="field-input"
-                  placeholder="e.g. Q3 Sales Executive Analysis"
-                  style="font-size: 0.95rem; padding: 10px 12px; width: 100%; box-sizing: border-box;" />
-              </div>
-              <div class="field-group">
-                <label class="field-label" style="font-weight: 600; margin-bottom: 4px;">Project Goal / Objective
-                  (Optional)</label>
-                <textarea id="wizardProjectGoal" class="field-input" rows="3"
-                  placeholder="e.g. Identify top 10% highest-margin customer segments and explain why spend exceeded budget."
-                  style="font-size: 0.95rem; padding: 10px 12px; font-family: inherit; resize: none; width: 100%; box-sizing: border-box;"></textarea>
-              </div>
+              <div class="create-project-text" style="font-weight: 700; color: #fff; font-size: 1.05rem; transition: all 0.4s;">Create New Project</div>
+              <div class="create-project-desc" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4; max-width: 200px;">Start a fresh analysis pipeline with a new CSV dataset</div>
             </div>
-            <button id="wizardNextBtn" class="btn-primary btn-lg mt-20"
-              style="min-width: 200px; margin-top: 20px;">Continue to Upload →</button>
-          </div>
-
-          <!-- Step 2: Upload CSV -->
-          <div class="wizard-step" id="wizardStep2">
-            <button id="wizardBackBtn" class="btn-back">← Back</button>
-            <div class="wizard-icon"><i data-lucide="folder-open"
-                style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-            <h3 class="wizard-step-title" id="wizardUploadTitle">Upload CSV Dataset</h3>
-            <p class="wizard-step-desc">Select or drop the CSV file you want the agents to analyze.</p>
-
-            <div class="upload-zone" id="uploadZone"
-              style="width: 100%; max-width: 520px; margin: 20px auto 0; background: rgba(124,58,237,0.02);">
-              <div class="upload-icon"><i data-lucide="file"
-                  style="width: 32px; height: 32px; color: var(--violet-light);"></i></div>
-              <div class="upload-title">Drop your CSV here</div>
-              <div class="upload-hint">or <label for="fileInput" class="upload-link">browse files</label></div>
-              <input type="file" id="fileInput" accept=".csv" hidden />
-              <div id="uploadedFileMeta" class="upload-meta hidden"></div>
-            </div>
-
-            <div id="uploadedFileActions" class="upload-actions hidden" style="margin-top: 20px;">
-              <button id="startAnalysisBtn" class="btn-primary btn-lg"><i data-lucide="play"
-                  style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
-                Configure &amp; Run Analysis</button>
+            <div class="create-project-card" id="importProjectCard" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; border-radius: var(--r-lg); background: rgba(16, 185, 129, 0.02); border: 2px dashed rgba(16, 185, 129, 0.2); cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); min-width: 240px; text-align: center;">
+              <div style="background: rgba(16, 185, 129, 0.08); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 0 15px rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.15); transition: all 0.4s;">
+                <i data-lucide="folder-archive" style="width: 24px; height: 24px; color: #10b981;"></i>
+              </div>
+              <div class="create-project-text" style="font-weight: 700; color: #fff; font-size: 1.05rem; transition: all 0.4s;">Import Project (.zip)</div>
+              <div class="create-project-desc" style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4; max-width: 200px;">Load and restore an existing project session from backup</div>
             </div>
           </div>
         </div>
@@ -368,14 +342,11 @@
     <!-- ─── RESULTS DASHBOARD SCREEN ─── -->
     <section id="resultsScreen" class="screen">
 
-      <!-- Stat row -->
-      <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
-
       <!-- Main Sections Switch -->
       <div class="sections-switch" style="display: none !important;">
         <button class="section-switch-btn active" id="btnSectionChat"
           style="flex: 1; padding: 10px 20px; border: none; background: var(--violet-dark); color: #fff; font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i
-            data-lucide="message-square" style="width: 16px; height: 16px;"></i> AI Data Chat</button>
+            data-lucide="message-square" style="width: 16px; height: 16px;"></i> Crew Chat</button>
         <button class="section-switch-btn" id="btnSectionAgentic"
           style="flex: 1; padding: 10px 20px; border: none; background: transparent; color: var(--text-secondary); font-weight: 600; border-radius: 26px; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px;"><i
             data-lucide="bot" style="width: 16px; height: 16px;"></i> Agentic Analysis</button>
@@ -396,14 +367,14 @@
 
           <div class="hub-cards-grid"
             style="display: flex; gap: 24px; width: 100%; justify-content: center; flex-wrap: wrap; margin-top: 10px;">
-            <!-- Card 1: AI Chat -->
+            <!-- Card 1: Crew Chat -->
             <div class="hub-card" id="btnEnterChat"
               style="flex: 1; min-width: 280px; max-width: 360px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-lg); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 16px;">
               <div class="hub-card-icon-wrap"
-                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(167, 139, 250, 0.1); display: flex; align-items: center; justify-content: center;">
-                <i data-lucide="message-square" style="width: 32px; height: 32px; color: var(--violet-light);"></i>
+                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 37, 42, 0.05); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255, 37, 42, 0.15);">
+                <img src="/assets/chat_logo.png" alt="Crew Chat Logo" style="width: 48px; height: 48px; object-fit: contain;" />
               </div>
-              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">AI Data Chat</h3>
+              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">Crew Chat</h3>
               <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0; flex: 1;">
                 Ask questions, query statistical metrics, run quick data edits, and request tailored interactive
                 visualizations in a conversational interface.
@@ -413,20 +384,20 @@
                 Chat Workspace</button>
             </div>
 
-            <!-- Card 2: Crew Analysis -->
+            <!-- Card 2: Crew's Analysis -->
             <div class="hub-card" id="btnEnterAgentic"
               style="flex: 1; min-width: 280px; max-width: 360px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-lg); padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; align-items: center; gap: 16px;">
               <div class="hub-card-icon-wrap"
-                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(6, 182, 212, 0.1); display: flex; align-items: center; justify-content: center;">
-                <i data-lucide="bot" style="width: 32px; height: 32px; color: var(--cyan);"></i>
+                style="width: 64px; height: 64px; border-radius: 50%; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15);">
+                <img src="/assets/logo.png" alt="Crew's Analysis Logo" style="width: 48px; height: 48px; object-fit: contain;" />
               </div>
-              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">Crew Agentic Analysis</h3>
+              <h3 style="margin: 0; font-size: 1.3rem; font-weight: 700; color: #fff;">Crew's Analysis</h3>
               <p style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0; flex: 1;">
                 Trigger structured multi-agent pipelines to clean datasets, map schema relationships, generate
                 McKinsey-style recommendations, and build dashboard suites.
               </p>
               <button class="btn-primary"
-                style="display: inline-flex; justify-content: center; align-items: center; text-align: center; pointer-events: none; width: 100%; padding: 10px 0; font-size: 0.85rem; font-weight: 700; background: var(--cyan); color: var(--bg-dark); border: none; transition: transform 0.2s;">Open
+                style="display: inline-flex; justify-content: center; align-items: center; text-align: center; pointer-events: none; width: 100%; padding: 10px 0; font-size: 0.85rem; font-weight: 700; background: #ffffff; color: #09090b !important; border: none; transition: transform 0.2s;">Open
                 Agent Workspace</button>
             </div>
           </div>
@@ -470,10 +441,13 @@
                   style="background:var(--bg-elevated); border:1px solid var(--border-mid); border-radius:var(--r-md); padding:10px; cursor:pointer; color:var(--text-primary);"
                   title="Back to Dashboard"><i data-lucide="arrow-left" style="width:20px; height:20px;"></i></button>
                 <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
-                    data-lucide="message-square" style="width: 18px; height: 18px; color: var(--violet-light);"></i> AI
-                  Copilot</h3>
+                    data-lucide="message-square" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Crew Chat</h3>
               </div>
-              <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="toggleExportModeBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 4px;"><i data-lucide="share-2" style="width:12px; height:12px;"></i> Export Chat</button>
+                <button id="exportChatPdfBtn" class="btn-primary btn-sm" style="display: none; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width:12px; height:12px;"></i> Download PDF</button>
+                <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
+              </div>
             </div>
 
             <div id="chatMessages" class="chat-messages"
@@ -527,8 +501,9 @@
         <!-- Run Analysis Placeholder -->
         <div id="agenticPlaceholder" class="hidden"
           style="text-align: center; padding: 60px 20px; background: rgba(24, 24, 27, 0.4); border: 1px dashed var(--border-mid); border-radius: var(--r-lg); max-width: 580px; margin: 40px auto; display: flex; flex-direction: column; align-items: center; gap: 16px; backdrop-filter: blur(12px);">
-          <div style="font-size: 3rem; animation: pulse 2s infinite;"><i data-lucide="bot"
-              style="width: 48px; height: 48px; color: var(--violet-light);"></i></div>
+          <div style="animation: pulse 2s infinite;">
+            <img src="/assets/logo.png" alt="Crew's Analysis Logo" style="width: 64px; height: 64px; object-fit: contain;" />
+          </div>
           <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Automated Pipeline Analysis</h3>
           <p style="color: var(--text-secondary); line-height: 1.5; margin: 0; font-size: 0.9rem;">
             Trigger autonomous AI agents to perform data cleaning, schema relationship mapping, and surface
@@ -537,8 +512,11 @@
           <button id="btnRunAgenticPipeline" class="btn-primary btn-lg" style="margin-top: 10px; font-weight: 600;"><i
               data-lucide="play"
               style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
-            Configure &amp; Run Analysis</button>
+            Run Analysis</button>
         </div>
+
+        <!-- Stat row -->
+        <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
 
         <!-- Tabs -->
         <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px;">
@@ -689,6 +667,58 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── METRICS SCREEN ─── -->
+  <section id="metricsScreen" class="screen" style="padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+    <div class="section-title-row" style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <h1 class="hero-title" style="margin: 0; font-size: 1.8rem; font-weight: 700; line-height: 1.2;"><span class="gradient-text">Performance Metrics</span></h1>
+      <button id="backToDashboardBtn" class="btn-secondary" style="padding: 8px 16px; border-radius: var(--r-sm); font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;"><i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Back</button>
+    </div>
+    <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.9rem;">Track runtime performance, token consumption, and API costs across your data analysis runs.</p>
+    
+    <!-- Metrics overview cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; width: 100%;">
+      <div class="stat-card" style="background: var(--bg-elevated); border: 1px solid var(--border); padding: 20px; border-radius: var(--r-md); box-sizing: border-box;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase;">TOTAL RUNS</div>
+        <div id="metricsTotalRuns" style="font-size: 2rem; font-weight: 700; color: #fff;">0</div>
+      </div>
+      <div class="stat-card" style="background: var(--bg-elevated); border: 1px solid var(--border); padding: 20px; border-radius: var(--r-md); box-sizing: border-box;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase;">AVG RUN TIME</div>
+        <div id="metricsAvgTime" style="font-size: 2rem; font-weight: 700; color: var(--violet-light);">0s</div>
+      </div>
+      <div class="stat-card" style="background: var(--bg-elevated); border: 1px solid var(--border); padding: 20px; border-radius: var(--r-md); box-sizing: border-box;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase;">TOTAL TOKENS USED</div>
+        <div id="metricsTotalTokens" style="font-size: 2rem; font-weight: 700; color: var(--cyan);">0</div>
+      </div>
+      <div class="stat-card" style="background: var(--bg-elevated); border: 1px solid var(--border); padding: 20px; border-radius: var(--r-md); box-sizing: border-box;">
+        <div style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; letter-spacing: 0.05em; text-transform: uppercase;">ESTIMATED COST</div>
+        <div id="metricsTotalCost" style="font-size: 2rem; font-weight: 700; color: var(--amber);">$0.00</div>
+      </div>
+    </div>
+    
+    <!-- Metrics table -->
+    <div style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; width: 100%; box-sizing: border-box;">
+      <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; color: #fff; font-size: 0.95rem; background: rgba(255,255,255,0.01);">Run Execution History</div>
+      <div style="overflow-x: auto; max-height: 400px; width: 100%;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; min-width: 700px;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border); color: var(--text-secondary); font-weight: 600; background: rgba(0,0,0,0.15);">
+              <th style="padding: 12px 20px;">Dataset</th>
+              <th style="padding: 12px 20px;">Shape</th>
+              <th style="padding: 12px 20px;">Total Duration</th>
+              <th style="padding: 12px 20px;">Tokens Used</th>
+              <th style="padding: 12px 20px;">Estimated Cost</th>
+              <th style="padding: 12px 20px;">Timestamp</th>
+              <th style="padding: 12px 20px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="metricsTableBody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 
   <!-- Settings Modal -->
   <div id="settingsModal" class="modal-overlay hidden">
@@ -1004,6 +1034,117 @@
     </div>
   </div>
 
+  <!-- Terms of Service Modal -->
+  <div id="tosModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2><i data-lucide="file-text" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px; color: var(--violet-light);"></i>
+          Terms of Service</h2>
+        <button id="closeTosModal" class="btn-icon">✕</button>
+      </div>
+
+      <div class="modal-body"
+        style="display: flex; flex-direction: column; gap: 14px; max-height: 400px; overflow-y: auto; padding-right: 4px; font-size: 0.85rem; line-height: 1.6; color: var(--text-secondary); text-align: left;">
+        <p style="color: #fff; font-weight: 600;">Welcome to Crewlyze!</p>
+        <p>By using our autonomous multi-agent data analysis platform, you agree to these Terms of Service. Please read them carefully.</p>
+        
+        <h3 style="color: #fff; font-size: 0.95rem; font-weight: 700; margin: 10px 0 4px 0;">1. Data Privacy &amp; CSV Datasets</h3>
+        <p>All datasets uploaded to Crewlyze are processed locally on your server. Crewlyze does not store, transmit, or share your CSV content with external servers other than the configured LLM API endpoints for analysis reasoning.</p>
+
+        <h3>2. API Usage and Charges</h3>
+        <p>Users are responsible for setting up their own API credentials (e.g. OpenAI, Anthropic, Gemini, NVIDIA, Groq) and any API charges incurred during dataset execution.</p>
+
+        <h3>3. Disclaimer of Warranties</h3>
+        <p>Crewlyze is provided "as is". The agentic data cleaning, relationship mappings, and business insights generated are automated AI suggestions and should be verified before making business decisions.</p>
+
+        <h3>4. Open Source Licensing</h3>
+        <p>This software is distributed under the MIT License. Feel free to copy, modify, and distribute according to the license terms.</p>
+      </div>
+
+      <div class="modal-footer">
+        <button id="acceptTosBtn" class="btn-primary" style="width: 100%;">I Understand &amp; Agree</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── CREATE NEW PROJECT MODAL ─── -->
+  <div id="newProjectModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><i data-lucide="plus-circle"></i>
+          Create New Project</h2>
+        <button id="closeNewProjectModal" class="btn-icon">✕</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Step 1: Project Metadata -->
+        <div id="modalStep1" class="wizard-step active">
+          <p>
+            Enter a name, and optionally a title and goal for your project.
+          </p>
+          <div class="field-group">
+            <label class="field-label">Project Name</label>
+            <input type="text" id="wizardProjectName" class="field-input" placeholder="e.g. Sales Analysis Q3" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Report Title (Optional)</label>
+            <input type="text" id="wizardReportTitle" class="field-input" placeholder="e.g. Q3 Sales Executive Analysis" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Project Goal / Objective (Optional)</label>
+            <textarea id="wizardProjectGoal" class="field-input" rows="3"
+              placeholder="e.g. Identify top 10% highest-margin customer segments and explain why spend exceeded budget."></textarea>
+          </div>
+          <button id="wizardNextBtn" class="btn-primary btn-lg">Continue to Upload →</button>
+        </div>
+
+        <!-- Step 2: Upload CSV -->
+        <div id="modalStep2" class="wizard-step">
+          <h3 class="wizard-step-title" id="wizardUploadTitle">Upload CSV Dataset</h3>
+          <p class="wizard-step-desc">Select or drop the CSV file you want the agents to analyze.</p>
+
+          <div class="upload-zone" id="uploadZone">
+            <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
+            <div class="upload-title">Drop your CSV here</div>
+            <div class="upload-hint">or <label for="fileInput" class="upload-link">browse files</label></div>
+            <input type="file" id="fileInput" accept=".csv" hidden />
+            <div id="uploadedFileMeta" class="upload-meta hidden"></div>
+          </div>
+
+          <div id="uploadedFileActions" class="upload-actions hidden">
+            <button id="wizardBackBtn" class="btn-secondary">Back</button>
+            <button id="startAnalysisBtn" class="btn-primary"><i data-lucide="play"></i>
+              Run Analysis</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── IMPORT PROJECT MODAL ─── -->
+  <div id="importProjectModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><i data-lucide="archive-restore"></i>
+          Import Project</h2>
+        <button id="closeImportModal" class="btn-icon">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>
+          Restore your previous analysis session. Select or drop a `.zip` backup archive exported from Crewlyze.
+        </p>
+        
+        <div class="upload-zone" id="importZipZone">
+          <div class="upload-icon"><i data-lucide="folder-archive"></i></div>
+          <div class="upload-title">Drop your Project .zip here</div>
+          <div class="upload-hint">or <label for="importZipFileInput" class="upload-link">browse backups</label></div>
+          <input type="file" id="importZipFileInput" accept=".zip" hidden />
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Custom Dialog Modal (Alert/Confirm/Prompt) -->
   <div id="customDialogModal" class="modal-overlay hidden">
     <div class="modal-box" style="max-width: 460px;">
@@ -1026,18 +1167,16 @@
     </div>
   </div>
 
-  <!-- Floating Analysis Notification Widget (Top Right) -->
+  <!-- Floating Analysis Notification Widget (Top Right, Left of Bell) -->
   <div id="analysisNotification" class="analysis-notification-toast hidden">
-    <button id="dismissNotif" class="notif-close-btn">&times;</button>
-    <div class="notification-body">
-      <div class="notif-spinner"></div>
-      <div class="notif-content">
-        <div class="notif-title">Crewlyze Analysis Active</div>
-        <div class="notif-details"><span id="notifActiveJob">Cleaning...</span> | <span id="notifTimer">00:00</span>
-        </div>
-      </div>
-      <button id="btnMaximizeNotif" class="btn-primary btn-xs"
-        style="padding: 6px 10px; font-size: 0.75rem; font-weight: 600; border-radius: var(--r-md);">View</button>
+    <div class="notif-spinner"></div>
+    <div class="notif-content" style="display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 1;">
+      <div class="notif-title" style="font-size: 0.78rem; font-weight: 700; color: #fff; line-height: 1.2;">Crewlyze Analysis Active</div>
+      <div class="notif-details" style="font-size: 0.68rem; color: var(--text-secondary); margin: 0; line-height: 1.2;"><span id="notifActiveJob">Cleaning...</span> | <span id="notifTimer">00:00</span></div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+      <button id="btnMaximizeNotif" class="btn-primary btn-xs" style="padding: 4px 8px; font-size: 0.68rem; font-weight: 600; border-radius: var(--r-sm); height: 24px; line-height: 24px; display: flex; align-items: center;">View</button>
+      <button id="dismissNotif" class="notif-close-btn" style="font-size: 1.1rem; line-height: 1; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0 4px;">✕</button>
     </div>
   </div>
 

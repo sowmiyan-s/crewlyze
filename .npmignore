@@ -1,0 +1,34 @@
+# Ignore development environments
+.env
+.env.local
+.env.development
+.env.production
+.venv/
+venv/
+node_modules/
+
+# Ignore local execution artifacts
+data/
+outputs/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore compiler and python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore documentation, workspace files, and logs
+*.log
+scratch.txt
+install_deps.bat
+run.bat
+run_web.bat
+.git/
+.github/
+.idea/
+.vscode/
+.gemini/

@@ -39,6 +39,40 @@ try:
 except Exception:
     pass
 
+# Copy assets on startup/reload
+try:
+    import glob
+    import shutil
+    
+    # 1. Copy ai chat logo
+    src_logo = Path(__file__).resolve().parent / "ai chat logo.png"
+    dest_logo = Path(__file__).resolve().parent / "assets" / "chat_logo.png"
+    if src_logo.exists():
+        shutil.copy2(src_logo, dest_logo)
+        print("Successfully copied ai chat logo.png to assets/chat_logo.png")
+        
+    # 2. Copy generated placeholder thumbnail
+    artifact_dir = Path("C:/Users/Asus/.gemini/antigravity-ide/brain/dcde0815-2aa1-4cf6-8671-5a5dceebea4b")
+    dest_thumb = Path(__file__).resolve().parent / "assets" / "placeholder_thumbnail.png"
+    if artifact_dir.exists():
+        thumbs = glob.glob(str(artifact_dir / "placeholder_thumbnail*.png"))
+        if thumbs:
+            thumbs.sort(key=os.path.getmtime, reverse=True)
+            shutil.copy2(thumbs[0], dest_thumb)
+            print(f"Successfully copied {Path(thumbs[0]).name} to assets/placeholder_thumbnail.png")
+
+    # 3. Convert bin/crewlyze.js line endings to LF
+    bin_js = Path(__file__).resolve().parent / "bin" / "crewlyze.js"
+    if bin_js.exists():
+        with open(bin_js, "rb") as f:
+            content = f.read()
+        lf_content = content.replace(b"\r\n", b"\n")
+        with open(bin_js, "wb") as f:
+            f.write(lf_content)
+        print("Successfully converted bin/crewlyze.js line endings to LF")
+except Exception as e:
+    print(f"Failed to auto-copy assets or convert line endings: {e}")
+
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -152,20 +186,22 @@ _apply_runtime_llm_settings = None
 _validate_llm_connection = None
 _run_copilot_query = None
 _export_pdf = None
+_export_chat_pdf = None
 
 def _load_crew():
     global _run_crew, _apply_runtime_llm_settings, _validate_llm_connection
-    global _run_copilot_query, _export_pdf
+    global _run_copilot_query, _export_pdf, _export_chat_pdf
     if _run_crew is None:
         from crew import run_crew as _rc
         from config.llm_config import apply_runtime_llm_settings as _arls, validate_llm_connection as _vlc
         from ui.copilot import run_copilot_query as _rcq
-        from ui.export import export_pdf as _ep
+        from ui.export import export_pdf as _ep, export_chat_pdf as _ecp
         _run_crew = _rc
         _apply_runtime_llm_settings = _arls
         _validate_llm_connection = _vlc
         _run_copilot_query = _rcq
         _export_pdf = _ep
+        _export_chat_pdf = _ecp
 
 # Suppress warnings
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
@@ -190,12 +226,13 @@ app.add_middleware(
 # State & Directory Setup
 # ---------------------------------------------------------------------------
 
-DATA_DIR = Path("data")
+USER_HOME = Path.home() / ".crewlyze"
+DATA_DIR = Path(os.getenv("CREWLYZE_DATA_DIR", str(USER_HOME / "data")))
 SESSIONS_DIR = DATA_DIR / "sessions"
-OUTPUTS_DIR = Path("outputs")
+OUTPUTS_DIR = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(USER_HOME / "outputs")))
 
 for path in (DATA_DIR, SESSIONS_DIR, OUTPUTS_DIR):
-    path.mkdir(exist_ok=True)
+    path.mkdir(exist_ok=True, parents=True)
 
 def is_safe_id(id_str: str) -> bool:
     """Ensure the ID is strictly alphanumeric (plus dashes/underscores) to prevent path traversal."""
@@ -446,16 +483,11 @@ def run_crew_in_background(
             try:
                 print("Initializing multi-agent workflows...")
                 _load_crew()
-
-                env_tasks = os.getenv("SELECTED_TASKS", "")
-                parsed_tasks = [t.strip() for t in env_tasks.split(",") if t.strip()]
-                deep_flag = os.getenv("DEEP_ANALYSIS", "false").lower() in {"true", "1", "yes", "on"}
-
                 result = _run_crew(
                     csv_path,
                     session_id=session_id,
-                    selected_tasks=parsed_tasks or None,
-                    deep_analysis=deep_flag,
+                    selected_tasks=selected_tasks or None,
+                    deep_analysis=deep_analysis,
                 )
                 
                 # Convert results to JSON-serializable structure
@@ -823,6 +855,31 @@ async def get_pdf_report(session_id: str, report_title: Optional[str] = None):
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
 
 
+@app.post("/api/export-chat-pdf")
+async def export_chat_history_pdf(
+    session_id: str = Form(...),
+    messages_json: str = Form(...)
+):
+    """Generates and downloads a PDF containing a custom selection of chat messages."""
+    import json
+    try:
+        messages = json.loads(messages_json)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid messages format: {e}")
+
+    try:
+        _load_crew()
+        pdf_bytes = _export_chat_pdf(messages, session_id)
+        filename = f"chat_history_{session_id}"
+        return StreamingResponse(
+            BytesIO_iterator(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}.pdf"}
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
+
+
 @app.get("/api/charts/{session_id}/{filename}")
 async def serve_chart(session_id: str, filename: str):
     """Serves the generated PNG visual charts."""
@@ -869,6 +926,80 @@ async def list_ollama_models(base_url: str = "http://localhost:11434"):
         pass
     # Fallback defaults if Ollama service is unreachable or empty
     return {"models": ["ollama/llama3", "ollama/mistral", "ollama/gemma2"]}
+
+
+# ---------------------------------------------------------------------------
+# Metrics & Configurations APIs
+# ---------------------------------------------------------------------------
+
+def get_local_config_path() -> Path:
+    return USER_HOME / "config.json"
+
+@app.get("/api/metrics")
+async def get_performance_metrics():
+    from config.metrics_tracker import get_metrics
+    return get_metrics()
+
+@app.get("/api/config")
+async def get_local_config():
+    cfg_path = get_local_config_path()
+    if not cfg_path.exists():
+        return {}
+    try:
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+            masked = {}
+            for k, v in cfg.items():
+                if v and any(keyword in k.lower() for keyword in ("key", "secret", "token")):
+                    masked[k] = v[:4] + "..." + v[-4:] if len(v) > 8 else "********"
+                else:
+                    masked[k] = v
+            return masked
+    except Exception:
+        return {}
+
+@app.post("/api/config")
+async def save_local_config(
+    provider: str = Form(...),
+    api_key: Optional[str] = Form(""),
+    base_url: Optional[str] = Form("")
+):
+    cfg_path = get_local_config_path()
+    cfg_path.parent.mkdir(parents=True, exist_ok=True)
+    cfg = {}
+    if cfg_path.exists():
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+    
+    if provider == "ollama":
+        key_name = "OLLAMA_BASE_URL"
+        cfg[key_name] = base_url.strip()
+    elif provider in ("nvidia", "minimax"):
+        key_name = "NVIDIA_API_KEY"
+    else:
+        key_name = f"{provider.upper()}_API_KEY"
+
+    if provider != "ollama":
+        if api_key.strip():
+            if not api_key.endswith("..."):
+                cfg[key_name] = api_key.strip()
+        else:
+            cfg.pop(key_name, None)
+            
+    if base_url.strip() and provider == "custom":
+        cfg["CUSTOM_BASE_URL"] = base_url.strip()
+        
+    try:
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2)
+        for k, v in cfg.items():
+            os.environ[k] = str(v)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
+    return {"status": "success"}
 
 
 # ---------------------------------------------------------------------------
@@ -1184,17 +1315,12 @@ async def download_project_csv(project_id: str):
 # Frontend Static Mounts
 # ---------------------------------------------------------------------------
 
-# Mount custom SPA frontend
-web_dir = Path("web")
-web_dir.mkdir(exist_ok=True)
+BASE_DIR = Path(__file__).resolve().parent
+web_dir = BASE_DIR / "web"
+assets_dir = BASE_DIR / "assets"
 
-# Mount assets (served at /assets)
-assets_dir = Path("assets")
-assets_dir.mkdir(exist_ok=True)
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
-
-# Mount statics (served at /app.js, /style.css, etc.)
-app.mount("/", StaticFiles(directory="web", html=True), name="web")
+app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+app.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
 
 
 # ── Server Boot ─────────────────────────────────────────────────────────────

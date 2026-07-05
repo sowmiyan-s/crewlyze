@@ -3,19 +3,25 @@
 # Licensed under the MIT License
 
 """
-PDF export — professional executive report.
-
-Improvements:
-- Cover page: project title (filename) + timestamp.
-- Data Insights section: per-column min/max/mean/median/std for numerics,
-  top categories for categoricals — placed after the dataset summary.
-- No empty spacers for sections with no content.
-- KeepTogether for insight cards to prevent orphaned headers.
-- export_pdf_cached() wrapper used by app.py.
+PDF export — world-class executive report format.
+Premium design with:
+  - Cinematic cover page with gradient header band and Crewlyze branding
+  - Table of Contents page
+  - Numbered section headers with coloured icon chips
+  - Three-panel insight cards (Observation | Business Implication | Actionable Strategy)
+  - Chart thumbnails embedded inline below each insight
+  - Professional correlation tables with alternating bands
+  - Data statistics tables with conditional number formatting
+  - Styled risk alert boxes
+  - Polished chat-log format with role badges and timestamps
+  - Two-pass page-number canvas with company footer rule
 """
 
+import html
 import io
+import os
 import re
+import urllib.parse
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -35,15 +41,38 @@ from reportlab.platypus import (
     Spacer,
     Table,
     TableStyle,
+    HRFlowable,
 )
 
 
-# ---------------------------------------------------------------------------
-# Two-pass Canvas — Page X of Y + Corporate Rules
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# Colour palette
+# ─────────────────────────────────────────────────────────────────────────────
+C_CRIMSON      = colors.HexColor("#c0392b")   # primary accent
+C_CRIMSON_DARK = colors.HexColor("#7b1d1d")   # dark crimson for headings
+C_CRIMSON_PALE = colors.HexColor("#fff0f0")   # very light rose tint
+C_AMBER        = colors.HexColor("#d97706")   # warning amber
+C_AMBER_PALE   = colors.HexColor("#fffbeb")
+C_EMERALD      = colors.HexColor("#047857")   # strategy green
+C_EMERALD_PALE = colors.HexColor("#ecfdf5")
+C_SAPPHIRE     = colors.HexColor("#1d4ed8")   # observation blue
+C_SAPPHIRE_PALE= colors.HexColor("#eff6ff")
+C_INK          = colors.HexColor("#0f172a")   # body text
+C_MUTED        = colors.HexColor("#475569")   # secondary text
+C_BORDER       = colors.HexColor("#cbd5e1")
+C_LIGHT_GRID   = colors.HexColor("#e2e8f0")
+C_ROW_ALT      = colors.HexColor("#f8fafc")
+C_WHITE        = colors.white
+C_COVER_BG     = colors.HexColor("#100608")   # near-black cover bg
+C_COVER_BAND   = colors.HexColor("#8b0000")   # deep red band
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Two-Pass Canvas — Page X of Y + corporate rules
+# ─────────────────────────────────────────────────────────────────────────────
 
 class NumberedCanvas(canvas.Canvas):
-    """Two-pass canvas for dynamic page count and corporate header/footer rules."""
+    """Two-pass canvas that renders running headers, footers, and page numbers."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,46 +83,51 @@ class NumberedCanvas(canvas.Canvas):
         self._startPage()
 
     def save(self):
-        num_pages = len(self._saved_page_states)
+        total = len(self._saved_page_states)
         for state in self._saved_page_states:
             self.__dict__.update(state)
-            self.draw_page_decorations(num_pages)
+            self._draw_decorations(total)
             super().showPage()
         super().save()
 
-    def draw_page_decorations(self, page_count):
+    def _draw_decorations(self, total_pages: int):
         self.saveState()
-        # Watermark "crewlyze" logo at top left corner of all pages in lowercase, bold, red
-        self.setFillColor(colors.HexColor("#ff252a"))
-        self.setFont("Helvetica-Bold", 10)
-        self.drawString(54, 752, "crewlyze")
+        page_num = self._pageNumber
 
-        if self._pageNumber == 1:
+        # Crewlyze wordmark — always top-left
+        self.setFillColor(C_CRIMSON)
+        self.setFont("Helvetica-Bold", 9)
+        self.drawString(54, 756, "CREWLYZE")
+
+        if page_num == 1:
+            # Cover page: suppress header/footer rules
             self.restoreState()
-            return  # Suppress remaining headers/footers on the title page
+            return
 
-        self.setFont("Helvetica-Bold", 8)
-        self.setFillColor(colors.HexColor("#475569"))
-        self.setStrokeColor(colors.HexColor("#cbd5e1"))
+        # ── Running header ──────────────────────────────────────────────────
+        self.setStrokeColor(C_BORDER)
         self.setLineWidth(0.5)
+        self.line(54, 748, 558, 748)
+        self.setFont("Helvetica", 7.5)
+        self.setFillColor(C_MUTED)
+        self.drawRightString(558, 753, "EXECUTIVE ANALYSIS REPORT  ·  CONFIDENTIAL")
 
-        # Header - safe distance from body top (topMargin = 80)
-        self.line(54, 745, 558, 745)
-        self.drawRightString(558, 752, "EXECUTIVE ANALYSIS REPORT | CONFIDENTIAL")
+        # ── Footer rule ─────────────────────────────────────────────────────
+        self.line(54, 62, 558, 62)
+        self.setFont("Helvetica", 7.5)
+        self.setFillColor(C_MUTED)
+        self.drawString(54, 50, "Generated by Crewlyze  ·  Powered by CrewAI")
+        self.drawRightString(558, 50, f"Page {page_num} of {total_pages}")
 
-        # Footer - safe distance from body bottom (bottomMargin = 80)
-        self.line(54, 65, 558, 65)
-        self.setFont("Helvetica", 8)
-        self.drawString(54, 50, "Generated by Crewlyze System")
-        self.drawRightString(558, 50, f"Page {self._pageNumber} of {page_count}")
         self.restoreState()
 
 
-# ---------------------------------------------------------------------------
-# Markdown → ReportLab HTML
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# Markdown → ReportLab HTML helpers
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _md_to_html(text: str) -> str:
+    """Convert minimal markdown (**bold**, *italic*) to ReportLab-safe HTML."""
     if not text:
         return ""
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
@@ -106,646 +140,756 @@ def _md_to_html(text: str) -> str:
     text = (
         text.replace("&lt;b&gt;",  "<b>").replace("&lt;/b&gt;", "</b>")
             .replace("&lt;i&gt;",  "<i>").replace("&lt;/i&gt;", "</i>")
+            .replace("&lt;br/&gt;", "<br/>")
     )
     return text.strip()
 
 
 def _clean_ai_artifacts(text: str) -> str:
-    """Remove AI reasoning artifacts like Thought, Action, Route, Response logs from raw text."""
+    """Strip AI reasoning prefixes (Thought, Action, Observation …) from raw text."""
     if not text:
         return ""
     lines = text.split("\n")
-    cleaned_lines = []
+    cleaned = []
     for line in lines:
-        l_strip = line.strip()
-        # skip lines that start with thought, action, observation, response, etc.
-        if re.match(r'^(thought|action|observation|route|call|api_key|response):\s*', l_strip, re.IGNORECASE):
+        stripped = line.strip()
+        if re.match(r"^(thought|action|observation|route|call|api_key|response):\s*", stripped, re.IGNORECASE):
             continue
-        cleaned_lines.append(line)
-    return "\n".join(cleaned_lines).strip()
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
 
+
+def _escape(text: str) -> str:
+    """HTML-escape a plain string for safe inclusion in ReportLab Paragraphs."""
+    return html.escape(str(text)) if text else ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Insight / relation parsers
+# ─────────────────────────────────────────────────────────────────────────────
 
 def _parse_insight_fields(text: str) -> dict:
-    """Extract Observation, Business Implication, and Actionable Strategy from insight text."""
-    obs = ""
-    imp = ""
-    strat = ""
-    
-    # Clean text first
+    """Extract Observation, Business Implication, and Actionable Strategy."""
     text_clean = _clean_ai_artifacts(text)
-    
-    # Try parsing using regex
-    obs_m = re.search(r"\*\*Observation\*\*:\s*(.*?)(?=\*\*Business Implication\*\*|\*\*Actionable Strategy\*\*|$)", text_clean, re.DOTALL | re.IGNORECASE)
-    imp_m = re.search(r"\*\*Business Implication\*\*:\s*(.*?)(?=\*\*Observation\*\*|\*\*Actionable Strategy\*\*|$)", text_clean, re.DOTALL | re.IGNORECASE)
+    obs = imp = strat = ""
+
+    obs_m   = re.search(r"\*\*Observation\*\*:\s*(.*?)(?=\*\*Business Implication\*\*|\*\*Actionable Strategy\*\*|$)", text_clean, re.DOTALL | re.IGNORECASE)
+    imp_m   = re.search(r"\*\*Business Implication\*\*:\s*(.*?)(?=\*\*Observation\*\*|\*\*Actionable Strategy\*\*|$)", text_clean, re.DOTALL | re.IGNORECASE)
     strat_m = re.search(r"\*\*Actionable Strategy\*\*:\s*(.*?)(?=\*\*Observation\*\*|\*\*Business Implication\*\*|$)", text_clean, re.DOTALL | re.IGNORECASE)
-    
-    if obs_m:
-        obs = obs_m.group(1).strip()
-    if imp_m:
-        imp = imp_m.group(1).strip()
-    if strat_m:
-        strat = strat_m.group(1).strip()
-        
-    # Loose match fallbacks
+
+    if obs_m:   obs   = obs_m.group(1).strip()
+    if imp_m:   imp   = imp_m.group(1).strip()
+    if strat_m: strat = strat_m.group(1).strip()
+
+    # Loose fallbacks without asterisks
     if not obs:
-        obs_m = re.search(r"Observation:\s*(.*?)(?=Business Implication|Actionable Strategy|$)", text_clean, re.DOTALL | re.IGNORECASE)
-        if obs_m: obs = obs_m.group(1).strip()
+        m = re.search(r"Observation:\s*(.*?)(?=Business Implication|Actionable Strategy|$)", text_clean, re.DOTALL | re.IGNORECASE)
+        if m: obs = m.group(1).strip()
     if not imp:
-        imp_m = re.search(r"Business Implication:\s*(.*?)(?=Observation|Actionable Strategy|$)", text_clean, re.DOTALL | re.IGNORECASE)
-        if imp_m: imp = imp_m.group(1).strip()
+        m = re.search(r"Business Implication:\s*(.*?)(?=Observation|Actionable Strategy|$)", text_clean, re.DOTALL | re.IGNORECASE)
+        if m: imp = m.group(1).strip()
     if not strat:
-        strat_m = re.search(r"Actionable Strategy:\s*(.*?)(?=Observation|Business Implication|$)", text_clean, re.DOTALL | re.IGNORECASE)
-        if strat_m: strat = strat_m.group(1).strip()
-        
+        m = re.search(r"Actionable Strategy:\s*(.*?)(?=Observation|Business Implication|$)", text_clean, re.DOTALL | re.IGNORECASE)
+        if m: strat = m.group(1).strip()
+
     return {
         "observation": obs or text_clean,
         "implication": imp,
-        "strategy": strat
+        "strategy":    strat,
     }
 
 
-def _find_matching_chart(insight_text: str, png_files: list, placed_set: set):
-    """Find a chart from png_files that is relevant to the column names mentioned in insight_text."""
+def _parse_relation_line(line: str) -> dict:
+    parts = [p.strip() for p in line.split("|")]
+    res   = {"x": "N/A", "y": "N/A", "type": "N/A", "details": "N/A"}
+    for part in parts:
+        if ":" in part:
+            key, val = part.split(":", 1)
+            key = key.strip().lower()
+            val = val.strip()
+            if   key == "x":       res["x"]       = val
+            elif key == "y":       res["y"]       = val
+            elif key == "type":    res["type"]    = val
+            elif key == "details": res["details"] = val
+        else:
+            pc = part.lstrip("- ").strip()
+            if pc:
+                res["details"] = pc
+    return res
+
+
+def _find_matching_chart(insight_text: str, png_files: list, placed: set):
     text_lower = insight_text.lower()
     for png in png_files:
-        if png in placed_set:
+        if png in placed:
             continue
-        # Get words from filename (excluding extension)
-        stem_clean = png.stem.lower().replace("_", " ")
-        # Check if any significant words from the filename are in the insight text
-        words = [w for w in stem_clean.split() if w not in ("vs", "plot", "chart", "scatter", "bar", "box", "line", "distribution", "correlation")]
+        stem = png.stem.lower().replace("_", " ")
+        words = [w for w in stem.split()
+                 if w not in ("vs", "plot", "chart", "scatter", "bar",
+                               "box", "line", "distribution", "correlation")]
         if words and all(w in text_lower for w in words):
             return png
     return None
 
 
-def _parse_relation_line(line: str) -> dict:
-    """Parse key relations string components into a clean dictionary."""
-    parts = [p.strip() for p in line.split("|")]
-    res = {"x": "N/A", "y": "N/A", "type": "N/A", "details": "N/A"}
-    for part in parts:
-        part_clean = part.strip()
-        if ":" in part_clean:
-            key, val = part_clean.split(":", 1)
-            key = key.strip().lower()
-            val = val.strip()
-            if key == "x":
-                res["x"] = val
-            elif key == "y":
-                res["y"] = val
-            elif key == "type":
-                res["type"] = val
-            elif key == "details":
-                res["details"] = val
-        else:
-            if part_clean.startswith("- "):
-                part_clean = part_clean[2:]
-            if part_clean:
-                res["details"] = part_clean
-    return res
+# ─────────────────────────────────────────────────────────────────────────────
+# Number formatting
+# ─────────────────────────────────────────────────────────────────────────────
 
-
-# ---------------------------------------------------------------------------
-# Data Insights table builder
-# ---------------------------------------------------------------------------
-
-def _format_number(val) -> str:
-    """Formats numeric values into a clean, human-readable layout without scientific notation."""
+def _fmt_num(val) -> str:
     try:
         if pd.isna(val):
             return "—"
-        val_float = float(val)
-        # If it's a float that is actually an integer
-        if val_float.is_integer():
-            return f"{int(val_float):,}"
-        # For very small numbers, use scientific representation safely
-        if abs(val_float) < 0.0001 and val_float != 0:
-            return f"{val_float:.4e}"
-        # For standard floats, format with commas and strip trailing zeros
-        formatted = f"{val_float:,.2f}"
-        if "." in formatted:
-            formatted = formatted.rstrip('0').rstrip('.')
-        return formatted
+        f = float(val)
+        if f.is_integer():
+            return f"{int(f):,}"
+        if abs(f) < 0.0001 and f != 0:
+            return f"{f:.4e}"
+        s = f"{f:,.2f}".rstrip("0").rstrip(".")
+        return s
     except Exception:
         return str(val)
 
 
-def _build_insights_table(df: pd.DataFrame, body_style, header_style, primary_color, secondary_color) -> list:
-    """
-    Build a Data Insights table showing per-column statistics.
-    Returns a list of flowables (may be empty if no numeric cols).
-    """
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable layout primitives
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _section_header(number: str, title: str, body_style) -> Table:
+    """Premium numbered section header with left crimson chip + uppercase title."""
+    chip_style = ParagraphStyle(
+        "ChipNum", fontName="Helvetica-Bold", fontSize=9,
+        textColor=C_WHITE, alignment=1, leading=11
+    )
+    title_style = ParagraphStyle(
+        "SectTitle", fontName="Helvetica-Bold", fontSize=13,
+        textColor=C_INK, leading=16, leftIndent=0
+    )
+    chip = Paragraph(number, chip_style)
+    heading = Paragraph(title.upper(), title_style)
+
+    tbl = Table([[chip, heading]], colWidths=[24, 476])
+    tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (0, 0), C_CRIMSON),
+        ("BACKGROUND",    (1, 0), (1, 0), colors.HexColor("#fafafa")),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING",   (0, 0), (0, 0),  0),
+        ("LEFTPADDING",   (1, 0), (1, 0), 12),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+        ("LINEBELOW",     (0, 0), (-1, -1), 1.5, C_CRIMSON),
+    ]))
+    return tbl
+
+
+def _kv_chip(label: str, value: str, label_style, value_style) -> Table:
+    """Compact key-value pair rendered in two cells."""
+    return Table(
+        [[Paragraph(f"<b>{label}</b>", label_style), Paragraph(_escape(value), value_style)]],
+        colWidths=[130, 370]
+    )
+
+
+def _img_flowable(png_path: Path, max_w: int = 440, max_h: int = 250):
+    """Return (img_table, fig_title) for a chart image, or (None, None) on error."""
+    try:
+        with PILImage.open(png_path) as im:
+            ow, oh = im.size
+        aspect = oh / ow
+        if aspect > (max_h / max_w):
+            nh, nw = max_h, max_h / aspect
+        else:
+            nw, nh = max_w, max_w * aspect
+
+        img_flow  = Image(str(png_path), width=nw, height=nh)
+        img_table = Table([[img_flow]], colWidths=[504])
+        img_table.setStyle(TableStyle([
+            ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+            ("BOX",           (0, 0), (-1, -1), 0.75, C_BORDER),
+            ("BACKGROUND",    (0, 0), (-1, -1), C_WHITE),
+            ("TOPPADDING",    (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        fig_title = Paragraph(
+            f"<i>Figure: {png_path.stem.replace('_', ' ').title()}</i>",
+            ParagraphStyle("FigCap", fontName="Helvetica-Oblique", fontSize=7.5,
+                           textColor=C_MUTED, spaceBefore=3, spaceAfter=2, alignment=1)
+        )
+        return img_table, fig_title
+    except Exception:
+        return None, None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Column statistics table
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_stats_tables(df: pd.DataFrame, body_style) -> list:
     flowables = []
+
+    hdr_style = ParagraphStyle("TblHdr", fontName="Helvetica-Bold", fontSize=8.5,
+                               textColor=C_WHITE, leading=11)
+    cell_style = ParagraphStyle("TblCell", fontName="Helvetica", fontSize=8.5,
+                                textColor=C_INK, leading=12)
 
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     cat_cols     = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
-    table_header_style = ParagraphStyle("TblHdrWht", parent=body_style,
-        fontName="Helvetica-Bold", fontSize=9, leading=12,
-        textColor=colors.white)
-
-    # ── Numeric stats table ──────────────────────────────────────────────────
     if numeric_cols:
-        header_row = [
-            Paragraph("<b>Column</b>", table_header_style),
-            Paragraph("<b>Min</b>",    table_header_style),
-            Paragraph("<b>Max</b>",    table_header_style),
-            Paragraph("<b>Mean</b>",   table_header_style),
-            Paragraph("<b>Median</b>", table_header_style),
-            Paragraph("<b>Std Dev</b>",table_header_style),
-            Paragraph("<b>Missing%</b>", table_header_style),
+        header = [
+            Paragraph("<b>Column</b>",   hdr_style),
+            Paragraph("<b>Min</b>",      hdr_style),
+            Paragraph("<b>Max</b>",      hdr_style),
+            Paragraph("<b>Mean</b>",     hdr_style),
+            Paragraph("<b>Median</b>",   hdr_style),
+            Paragraph("<b>Std Dev</b>",  hdr_style),
+            Paragraph("<b>Missing%</b>", hdr_style),
         ]
-        rows = [header_row]
-
-        for col in numeric_cols[:20]:   # cap at 20 columns
-            s      = df[col]
-            miss   = round(s.isnull().sum() / max(len(df), 1) * 100, 1)
-            s_num  = s.dropna()
-            row = [
-                Paragraph(str(col), body_style),
-                Paragraph(_format_number(s_num.min()) if not s_num.empty else "—", body_style),
-                Paragraph(_format_number(s_num.max()) if not s_num.empty else "—", body_style),
-                Paragraph(_format_number(s_num.mean()) if not s_num.empty else "—", body_style),
-                Paragraph(_format_number(s_num.median()) if not s_num.empty else "—", body_style),
-                Paragraph(_format_number(s_num.std()) if len(s_num) > 1 else "—", body_style),
-                Paragraph(f"{miss}%", body_style),
-            ]
-            rows.append(row)
-
-        tbl = Table(rows, colWidths=[120, 55, 55, 55, 55, 55, 55])
-        tbl.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, 0),  primary_color),
-            ("LINEBELOW",     (0, 0), (-1, 0),  1.2, secondary_color),
-            ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("INNERGRID",     (0, 0), (-1, -1), 0.3, colors.HexColor("#e2e8f0")),
-            ("TOPPADDING",    (0, 0), (-1, -1), 5),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
-        ]))
-        flowables.append(tbl)
-        flowables.append(Spacer(1, 8))
-
-    # ── Categorical top-values table ─────────────────────────────────────────
-    if cat_cols:
-        cat_header = [
-            Paragraph("<b>Column</b>",     table_header_style),
-            Paragraph("<b>Top Values (count)</b>", table_header_style),
-            Paragraph("<b>Unique</b>",     table_header_style),
-            Paragraph("<b>Missing%</b>",   table_header_style),
-        ]
-        cat_rows = [cat_header]
-
-        for col in cat_cols[:10]:
-            s     = df[col]
-            miss  = round(s.isnull().sum() / max(len(df), 1) * 100, 1)
-            unique = s.nunique()
-            top3  = s.value_counts().head(3)
-            top_str = ", ".join(f"{v}({c})" for v, c in top3.items()) if not top3.empty else "—"
-            cat_rows.append([
-                Paragraph(str(col), body_style),
-                Paragraph(top_str[:80], body_style),
-                Paragraph(str(unique), body_style),
-                Paragraph(f"{miss}%", body_style),
+        rows = [header]
+        for col in numeric_cols[:22]:
+            s   = df[col]
+            sn  = s.dropna()
+            miss = round(s.isnull().sum() / max(len(df), 1) * 100, 1)
+            rows.append([
+                Paragraph(_escape(str(col)),                                  cell_style),
+                Paragraph(_fmt_num(sn.min())    if not sn.empty else "—",     cell_style),
+                Paragraph(_fmt_num(sn.max())    if not sn.empty else "—",     cell_style),
+                Paragraph(_fmt_num(sn.mean())   if not sn.empty else "—",     cell_style),
+                Paragraph(_fmt_num(sn.median()) if not sn.empty else "—",     cell_style),
+                Paragraph(_fmt_num(sn.std())    if len(sn) > 1 else "—",      cell_style),
+                Paragraph(f"{miss}%",                                          cell_style),
             ])
 
-        cat_tbl = Table(cat_rows, colWidths=[100, 280, 55, 65])
-        cat_tbl.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, 0),  primary_color),
-            ("LINEBELOW",     (0, 0), (-1, 0),  1.2, secondary_color),
-            ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-            ("INNERGRID",     (0, 0), (-1, -1), 0.3, colors.HexColor("#e2e8f0")),
+        tbl = Table(rows, colWidths=[130, 52, 52, 52, 52, 52, 58])
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0),  C_CRIMSON_DARK),
+            ("BOX",           (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("INNERGRID",     (0, 0), (-1, -1), 0.25, C_LIGHT_GRID),
+            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
             ("TOPPADDING",    (0, 0), (-1, -1), 5),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
             ("LEFTPADDING",   (0, 0), (-1, -1), 6),
             ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+        ]))
+        flowables.extend([tbl, Spacer(1, 10)])
+
+    if cat_cols:
+        cat_hdr = [
+            Paragraph("<b>Column</b>",             hdr_style),
+            Paragraph("<b>Top Values (count)</b>", hdr_style),
+            Paragraph("<b>Unique</b>",             hdr_style),
+            Paragraph("<b>Missing%</b>",           hdr_style),
+        ]
+        cat_rows = [cat_hdr]
+        for col in cat_cols[:10]:
+            s    = df[col]
+            miss = round(s.isnull().sum() / max(len(df), 1) * 100, 1)
+            top3 = s.value_counts().head(3)
+            top_str = ", ".join(f"{_escape(str(v))}({c})" for v, c in top3.items()) if not top3.empty else "—"
+            cat_rows.append([
+                Paragraph(_escape(str(col)), cell_style),
+                Paragraph(top_str[:100],     cell_style),
+                Paragraph(str(s.nunique()),  cell_style),
+                Paragraph(f"{miss}%",        cell_style),
+            ])
+
+        cat_tbl = Table(cat_rows, colWidths=[110, 278, 56, 56])
+        cat_tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, 0),  C_CRIMSON_DARK),
+            ("BOX",           (0, 0), (-1, -1), 0.5, C_BORDER),
+            ("INNERGRID",     (0, 0), (-1, -1), 0.25, C_LIGHT_GRID),
+            ("ROWBACKGROUNDS",(0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
+            ("TOPPADDING",    (0, 0), (-1, -1), 5),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
+            ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ]))
         flowables.append(cat_tbl)
 
     return flowables
 
 
-# ---------------------------------------------------------------------------
-# PDF Generation
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# Main Executive PDF generator
+# ─────────────────────────────────────────────────────────────────────────────
 
 def export_pdf(result: dict, filename: str = "") -> bytes:
-    """Build and return a professional executive PDF report."""
+    """Build and return a premium world-class executive PDF report."""
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=letter,
-        rightMargin=54,
-        leftMargin=54,
-        topMargin=80,      # Increased top margin for header safety
-        bottomMargin=80,   # Increased bottom margin for footer safety
+        rightMargin=54, leftMargin=54,
+        topMargin=82, bottomMargin=82,
     )
-    story = []
+
+    story  = []
     styles = getSampleStyleSheet()
 
-    primary_color   = colors.HexColor("#4a0404")
-    secondary_color = colors.HexColor("#ff252a")
-    text_color      = colors.HexColor("#0f172a")
-    muted_color     = colors.HexColor("#475569")
+    # Shared paragraph styles
+    body_style = ParagraphStyle("Body", fontName="Helvetica", fontSize=9.5,
+                                leading=14.5, textColor=C_INK, spaceAfter=5)
+    small_style = ParagraphStyle("Small", fontName="Helvetica", fontSize=8.5,
+                                 leading=13, textColor=C_MUTED)
+    h2_style = ParagraphStyle("H2", fontName="Helvetica-Bold", fontSize=10.5,
+                               leading=14, textColor=C_CRIMSON_DARK,
+                               spaceBefore=10, spaceAfter=4, keepWithNext=True)
+    bullet_style = ParagraphStyle("Bullet", fontName="Helvetica", fontSize=9.5,
+                                  leading=14.5, textColor=C_INK,
+                                  leftIndent=14, firstLineIndent=-10, spaceAfter=5)
+    label_style = ParagraphStyle("MetaKey", fontName="Helvetica-Bold", fontSize=8,
+                                 textColor=C_MUTED, leading=11)
+    value_style = ParagraphStyle("MetaVal", fontName="Helvetica", fontSize=9,
+                                 textColor=C_INK, leading=13)
 
-    title_style = ParagraphStyle("DocTitle", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=24, leading=30,
-        textColor=primary_color, spaceAfter=4)
-    subtitle_style = ParagraphStyle("DocSubTitle", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=11, leading=15,
-        textColor=secondary_color, spaceAfter=6)
-    meta_style = ParagraphStyle("Meta", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=9, leading=13,
-        textColor=muted_color, spaceAfter=12)
-    h1_style = ParagraphStyle("H1", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=15, leading=20,
-        textColor=primary_color, spaceBefore=16, spaceAfter=8, keepWithNext=True)
-    h2_style = ParagraphStyle("H2", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=11, leading=15,
-        textColor=secondary_color, spaceBefore=10, spaceAfter=4, keepWithNext=True)
-    body_style = ParagraphStyle("Body", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=10, leading=15,
-        textColor=text_color, spaceAfter=5)
-    header_style = ParagraphStyle("TblHdr", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=9, leading=12,
-        textColor=primary_color)
-    bullet_style = ParagraphStyle("Bullet", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=9.5, leading=14,
-        textColor=text_color, leftIndent=14, firstLineIndent=-10, spaceAfter=7)
-
-    # ── Clean all inputs from AI reasoning artifacts ──────────────────────────
-    raw_insights = _clean_ai_artifacts(result.get("insights", "")).strip()
-    cleaning_text = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
+    # ── Pull result data ──────────────────────────────────────────────────────
+    raw_insights   = _clean_ai_artifacts(result.get("insights", "")).strip()
+    cleaning_text  = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
     relations_text = _clean_ai_artifacts(result.get("relations", "")).strip()
-    report_title = _clean_ai_artifacts(result.get("report_title") or filename or "Executive Analysis Report").strip()
-    report_goal  = _clean_ai_artifacts(result.get("goal") or "").strip()
-    timestamp    = datetime.now().strftime("%B %d, %Y at %I:%M %p")
+    report_title   = _clean_ai_artifacts(result.get("report_title") or filename or "Executive Analysis").strip()
+    report_goal    = _clean_ai_artifacts(result.get("goal", "")).strip()
+    timestamp      = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
+    df             = result.get("dataframe")
+    output_dir     = result.get("output_dir", Path("outputs"))
+    png_files      = list(Path(output_dir).glob("*.png"))
+    placed_charts  = set()
 
-    # ── 1. TITLE PAGE (Page 1) ────────────────────────────────────────────────
-    title_center_style = ParagraphStyle("TitleCenter", parent=title_style, alignment=1, fontSize=26, leading=32)
-    subtitle_center_style = ParagraphStyle("SubCenter", parent=subtitle_style, alignment=1, fontSize=12, leading=16)
-    meta_center_style = ParagraphStyle("MetaCenter", parent=meta_style, alignment=1, fontSize=10, leading=14)
-
-    story.append(Spacer(1, 140))
-    story.append(Paragraph(f"<b>{report_title.upper()}</b>", title_center_style))
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("Autonomous Business Intelligence &amp; Executive Analysis Suite", subtitle_center_style))
-    story.append(Spacer(1, 40))
-    
-    story.append(Paragraph(f"Dataset Analyzed: <b>{filename or 'dataset.csv'}</b>", meta_center_style))
-    story.append(Paragraph(f"Generated On: {timestamp}", meta_center_style))
-    
-    if report_goal:
-        story.append(Spacer(1, 30))
-        story.append(Paragraph(f"<b>Core Objective:</b> {report_goal}", ParagraphStyle("GoalStyleCenter", parent=body_style, fontName="Helvetica-Oblique", fontSize=9.5, textColor=muted_color, alignment=1)))
-
-    story.append(PageBreak())
-
-    # Parse sections from structured insights
-    objectives_text = ""
-    stats_text = ""
-    strategic_text = ""
-    warnings_text = ""
-
+    # ── Parse insight subsections ─────────────────────────────────────────────
+    objectives_text = stats_text = strategic_text = warnings_text = ""
     if raw_insights:
-        sections = re.split(r"###\s+", raw_insights)
-        for sec in sections:
+        for sec in re.split(r"###\s+", raw_insights):
             lines = sec.split("\n")
             if not lines or not lines[0].strip():
                 continue
-            header = lines[0].strip().lower()
+            hdr     = lines[0].strip().lower()
             content = "\n".join(lines[1:]).strip()
-
-            if "objective" in header or "goal" in header:
-                objectives_text = content
-            elif "stat" in header:
-                stats_text = content
-            elif "insight" in header:
-                strategic_text = content
-            elif "warning" in header or "alert" in header:
-                warnings_text = content
-
+            if   "objective" in hdr or "goal" in hdr: objectives_text = content
+            elif "stat"      in hdr:                   stats_text      = content
+            elif "insight"   in hdr:                   strategic_text  = content
+            elif "warning"   in hdr or "alert" in hdr: warnings_text   = content
         if not strategic_text and not objectives_text:
             strategic_text = raw_insights
 
-    # ── 2. EXECUTIVE SUMMARY & DATASET OVERVIEW (Page 2) ──────────────────────
-    story.append(Paragraph("Executive Summary &amp; Dataset Overview", h1_style))
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 1 — COVER
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    # Top coloured band (full-width table trick)
+    band_data = [[Paragraph(
+        "EXECUTIVE BUSINESS INTELLIGENCE REPORT",
+        ParagraphStyle("BandText", fontName="Helvetica-Bold", fontSize=8.5,
+                       textColor=C_WHITE, alignment=1, leading=11)
+    )]]
+    band = Table(band_data, colWidths=[504], rowHeights=[22])
+    band.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), C_COVER_BAND),
+        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING",    (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+
+    # Thick crimson divider
+    def _divider(thick=3, color=C_CRIMSON):
+        t = Table([[""]], colWidths=[504], rowHeights=[thick])
+        t.setStyle(TableStyle([("BACKGROUND", (0,0),(-1,-1), color),
+                                ("TOPPADDING",(0,0),(-1,-1),0),
+                                ("BOTTOMPADDING",(0,0),(-1,-1),0)]))
+        return t
+
+    story.append(Spacer(1, 60))
+    story.append(band)
+    story.append(Spacer(1, 6))
+    story.append(_divider(2))
+    story.append(Spacer(1, 32))
+
+    # Title
     story.append(Paragraph(
-        "This autonomous executive analysis report presents high-value strategic recommendations, "
-        "data quality cleaning trails, and key visualizations derived from the uploaded dataset.",
-        body_style,
+        f"<b>{_escape(report_title.upper())}</b>",
+        ParagraphStyle("CoverTitle", fontName="Helvetica-Bold", fontSize=30,
+                       leading=36, textColor=C_CRIMSON_DARK, spaceAfter=4)
     ))
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 6))
+    story.append(_divider(4))
+    story.append(Spacer(1, 14))
+    story.append(Paragraph(
+        "Autonomous Multi-Agent Data Analysis &amp; Strategic Intelligence Suite",
+        ParagraphStyle("CoverSub", fontName="Helvetica", fontSize=11,
+                       leading=15, textColor=C_MUTED)
+    ))
+    story.append(Spacer(1, 80))
 
-    df = result.get("dataframe")
+    # Specifications grid
+    story.append(Paragraph(
+        "<b>REPORT SPECIFICATIONS</b>",
+        ParagraphStyle("SpecHdr", fontName="Helvetica-Bold", fontSize=8,
+                       textColor=C_CRIMSON, spaceAfter=6, leading=11)
+    ))
+
+    spec_label = ParagraphStyle("SL", fontName="Helvetica-Bold", fontSize=8.5,
+                                textColor=C_MUTED, leading=12)
+    spec_value = ParagraphStyle("SV", fontName="Helvetica", fontSize=9,
+                                textColor=C_INK, leading=13)
+
+    spec_rows = [
+        [Paragraph("<b>Dataset Analyzed</b>", spec_label), Paragraph(_escape(filename or "—"), spec_value)],
+        [Paragraph("<b>Generated On</b>",      spec_label), Paragraph(timestamp,                spec_value)],
+        [Paragraph("<b>Core Objective</b>",    spec_label), Paragraph(_escape(report_goal or "Not specified"), spec_value)],
+        [Paragraph("<b>Engine</b>",            spec_label), Paragraph("CrewAI Multi-Agent Pipeline",           spec_value)],
+    ]
     if df is not None and isinstance(df, pd.DataFrame):
-        cols_preview = f"{', '.join(str(c) for c in df.columns[:6])}{'...' if len(df.columns) > 6 else ''}"
-        numeric_count = len(df.select_dtypes(include=["number"]).columns)
-        cat_count     = len(df.select_dtypes(include=["object", "category"]).columns)
-
-        box_data = [
-            [Paragraph("<b>Dataset Summary Metrics</b>", h2_style), Paragraph("", body_style)],
-            [Paragraph("Total Records Analyzed",   body_style), Paragraph(f"<b>{df.shape[0]:,}</b>", body_style)],
-            [Paragraph("Total Columns",            body_style), Paragraph(f"<b>{df.shape[1]}</b>", body_style)],
-            [Paragraph("Numeric Columns",          body_style), Paragraph(f"<b>{numeric_count}</b>", body_style)],
-            [Paragraph("Categorical Columns",      body_style), Paragraph(f"<b>{cat_count}</b>", body_style)],
-            [Paragraph("Columns Sampled",          body_style), Paragraph(cols_preview, body_style)],
+        spec_rows += [
+            [Paragraph("<b>Records Analyzed</b>", spec_label), Paragraph(f"{df.shape[0]:,} rows × {df.shape[1]} columns", spec_value)],
         ]
-        summary_box = Table(box_data, colWidths=[160, 344])
-        summary_box.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
-            ("BOX",           (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
-            ("LINEBELOW",     (0, 0), (-1, 0),  1.5, secondary_color),
-            ("TOPPADDING",    (0, 0), (-1, -1), 6),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 12),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
+
+    spec_tbl = Table(spec_rows, colWidths=[130, 374])
+    spec_tbl.setStyle(TableStyle([
+        ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+        ("LINEBELOW",     (0, 0), (-1, -2), 0.5, C_LIGHT_GRID),
+        ("TOPPADDING",    (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
+    ]))
+    story.append(spec_tbl)
+    story.append(Spacer(1, 30))
+    story.append(_divider(1, C_BORDER))
+    story.append(Spacer(1, 8))
+    story.append(Paragraph(
+        "This report is generated automatically by the Crewlyze autonomous intelligence platform.",
+        ParagraphStyle("Disc", fontName="Helvetica-Oblique", fontSize=7.5, textColor=C_MUTED)
+    ))
+    story.append(PageBreak())
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 2 — EXECUTIVE SUMMARY & DATASET OVERVIEW
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    story.append(KeepTogether([
+        _section_header("01", "Executive Summary & Dataset Overview", body_style),
+        Spacer(1, 12)
+    ]))
+
+    story.append(Paragraph(
+        "This report presents high-value strategic recommendations, data quality audit trails, "
+        "correlation mappings, and chart-backed insights generated autonomously from the uploaded dataset.",
+        body_style
+    ))
+    story.append(Spacer(1, 10))
+
+    if df is not None and isinstance(df, pd.DataFrame):
+        ncol = len(df.select_dtypes(include=["number"]).columns)
+        ccol = len(df.select_dtypes(include=["object", "category"]).columns)
+        cols_preview = ", ".join(str(c) for c in df.columns[:7])
+        if len(df.columns) > 7:
+            cols_preview += "  …"
+
+        kv_rows = [
+            [Paragraph("<b>Total Records</b>",    label_style), Paragraph(f"<b>{df.shape[0]:,}</b>", value_style),
+             Paragraph("<b>Total Columns</b>",    label_style), Paragraph(f"<b>{df.shape[1]}</b>",   value_style)],
+            [Paragraph("<b>Numeric Columns</b>",  label_style), Paragraph(f"<b>{ncol}</b>",           value_style),
+             Paragraph("<b>Categorical Cols</b>", label_style), Paragraph(f"<b>{ccol}</b>",           value_style)],
+            [Paragraph("<b>Column Preview</b>",   label_style), Paragraph(_escape(cols_preview),      value_style),
+             Paragraph("", label_style), Paragraph("", value_style)],
+        ]
+        kv_tbl = Table(kv_rows, colWidths=[100, 152, 100, 152])
+        kv_tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), C_ROW_ALT),
+            ("BOX",           (0, 0), (-1, -1), 1, C_BORDER),
+            ("LINEBELOW",     (0, 0), (-1, 0),  1.5, C_CRIMSON),
+            ("INNERGRID",     (0, 0), (-1, -1), 0.25, C_LIGHT_GRID),
+            ("TOPPADDING",    (0, 0), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 10),
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ]))
-        story.append(summary_box)
-        story.append(Spacer(1, 15))
+        story.append(kv_tbl)
+        story.append(Spacer(1, 18))
 
-    story.append(Spacer(1, 15))
-
-    # ── 3. STRATEGIC BUSINESS INSIGHTS & PAIRED CHARTS (Page 3+) ──────────────
-    # Locate all saved visualization charts
-    output_dir = result.get("output_dir", Path("outputs"))
-    png_files  = list(Path(output_dir).glob("*.png"))
-    placed_charts = set()
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 3+ — STRATEGIC BUSINESS INSIGHTS
+    # ═══════════════════════════════════════════════════════════════════════════
 
     if strategic_text:
-        story.append(Paragraph("Strategic Business Insights", h1_style))
+        story.append(KeepTogether([
+            _section_header("02", "Strategic Business Insights", body_style),
+            Spacer(1, 12)
+        ]))
         story.append(Paragraph(
-            "Below are the critical business insights identified from the dataset, paired directly with "
-            "relevant charts indicating data correlations.",
-            body_style,
+            "Each insight card below contains three panels: the raw data <b>Observation</b>, "
+            "its derived <b>Business Implication</b>, and a concrete <b>Actionable Strategy</b>.",
+            body_style
         ))
-        story.append(Spacer(1, 8))
+        story.append(Spacer(1, 10))
+
+        hdr_obs   = ParagraphStyle("HObs",   fontName="Helvetica-Bold", fontSize=8.5, textColor=C_SAPPHIRE, leading=12)
+        hdr_imp   = ParagraphStyle("HImp",   fontName="Helvetica-Bold", fontSize=8.5, textColor=colors.HexColor("#6d28d9"), leading=12)
+        hdr_strat = ParagraphStyle("HStrat", fontName="Helvetica-Bold", fontSize=8.5, textColor=C_EMERALD,  leading=12)
+        cell_obs   = ParagraphStyle("CObs",  fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=13)
+        cell_imp   = ParagraphStyle("CImp",  fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=13)
+        cell_strat = ParagraphStyle("CStrt", fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=13)
 
         insight_items = re.split(r"\d+\.\s+", strategic_text)
         insight_count = 0
 
-        # Styles for table headers in the 3-column layout
-        obs_hdr_style = ParagraphStyle("ObsHdr", parent=header_style, textColor=colors.HexColor("#0c4a6e"))
-        imp_hdr_style = ParagraphStyle("ImpHdr", parent=header_style, textColor=colors.HexColor("#581c87"))
-        strat_hdr_style = ParagraphStyle("StratHdr", parent=header_style, textColor=colors.HexColor("#14532d"))
-
-        for item in insight_items:
-            item = item.strip()
+        for raw_item in insight_items:
+            item = raw_item.strip()
             if not item:
                 continue
             insight_count += 1
             fields = _parse_insight_fields(item)
 
-            # Try to extract insight title if it starts with bold text
+            # Extract title from first bold token
             title = ""
-            first_line = item.split("\n")[0].strip()
-            if first_line and not any(k in first_line for k in ("Observation", "Implication", "Strategy")):
-                title = first_line.replace("**", "").replace("<b>", "").replace("</b>", "").strip()
+            first = item.split("\n")[0].strip()
+            if first and not any(k in first for k in ("Observation", "Implication", "Strategy")):
+                title = first.replace("**", "").replace("<b>", "").replace("</b>", "").strip()
 
-            lbl_text = f"<b>Insight {insight_count}: {title}</b>" if title else f"<b>Insight {insight_count}</b>"
-            lbl_para = Paragraph(lbl_text, ParagraphStyle("InsLbl", parent=body_style, fontName="Helvetica-Bold", fontSize=11, textColor=primary_color, spaceBefore=10, spaceAfter=4, keepWithNext=True))
+            # ── Insight label ──────────────────────────────────────────────
+            lbl_text = f"<b>#{insight_count}  {_escape(title)}</b>" if title else f"<b>Insight #{insight_count}</b>"
+            lbl = Paragraph(
+                lbl_text,
+                ParagraphStyle("InsLbl", fontName="Helvetica-Bold", fontSize=10.5,
+                               textColor=C_CRIMSON_DARK, spaceBefore=12,
+                               spaceAfter=5, keepWithNext=True)
+            )
 
-            # Build 3-column table
-            cell_obs = Paragraph(_md_to_html(fields["observation"]), body_style)
-            cell_imp = Paragraph(_md_to_html(fields["implication"] or "N/A"), body_style)
-            cell_strat = Paragraph(_md_to_html(fields["strategy"] or "N/A"), body_style)
-
-            tbl_data = [
-                [Paragraph("<b>Observation</b>", obs_hdr_style), Paragraph("<b>Business Implication</b>", imp_hdr_style), Paragraph("<b>Actionable Strategy</b>", strat_hdr_style)],
-                [cell_obs, cell_imp, cell_strat]
+            # ── Three-panel card ───────────────────────────────────────────
+            card_data = [
+                [
+                    Paragraph("<b>📊  Observation</b>",        hdr_obs),
+                    Paragraph("<b>💡  Business Implication</b>", hdr_imp),
+                    Paragraph("<b>🎯  Actionable Strategy</b>",  hdr_strat),
+                ],
+                [
+                    Paragraph(_md_to_html(fields["observation"]),              cell_obs),
+                    Paragraph(_md_to_html(fields["implication"] or "—"),       cell_imp),
+                    Paragraph(_md_to_html(fields["strategy"]    or "—"),       cell_strat),
+                ],
             ]
-            
-            card_table = Table(tbl_data, colWidths=[160, 172, 172])
-            card_table.setStyle(TableStyle([
-                ("BACKGROUND",    (0, 0), (0, 0),  colors.HexColor("#f0f9ff")), # sky blue
-                ("BACKGROUND",    (1, 0), (1, 0),  colors.HexColor("#faf5ff")), # purple
-                ("BACKGROUND",    (2, 0), (2, 0),  colors.HexColor("#f0fdf4")), # green
-                ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                ("INNERGRID",     (0, 0), (-1, -1), 0.3, colors.HexColor("#e2e8f0")),
+            card = Table(card_data, colWidths=[160, 172, 172])
+            card.setStyle(TableStyle([
+                # Header row backgrounds
+                ("BACKGROUND",    (0, 0), (0, 0), C_SAPPHIRE_PALE),
+                ("BACKGROUND",    (1, 0), (1, 0), colors.HexColor("#f5f3ff")),
+                ("BACKGROUND",    (2, 0), (2, 0), C_EMERALD_PALE),
+                # Data row backgrounds
+                ("BACKGROUND",    (0, 1), (0, 1), colors.HexColor("#f0f8ff")),
+                ("BACKGROUND",    (1, 1), (1, 1), colors.HexColor("#fdfaff")),
+                ("BACKGROUND",    (2, 1), (2, 1), colors.HexColor("#f0fff8")),
+                # Borders
+                ("BOX",           (0, 0), (-1, -1), 0.75, C_BORDER),
+                ("INNERGRID",     (0, 0), (-1, -1), 0.4,  C_LIGHT_GRID),
+                ("LINEBELOW",     (0, 0), (-1, 0),  1.2,  C_BORDER),
+                ("VALIGN",        (0, 0), (-1, -1), "TOP"),
+                ("TOPPADDING",    (0, 0), (-1, -1), 7),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                ("LEFTPADDING",   (0, 0), (-1, -1), 9),
+                ("RIGHTPADDING",  (0, 0), (-1, -1), 9),
+            ]))
+
+            story.append(KeepTogether([lbl, card]))
+
+            # ── Paired chart ───────────────────────────────────────────────
+            matched = _find_matching_chart(item, png_files, placed_charts)
+            if matched:
+                img_tbl, fig_cap = _img_flowable(matched)
+                if img_tbl:
+                    story.append(Spacer(1, 5))
+                    story.append(KeepTogether([img_tbl, fig_cap]))
+                    placed_charts.add(matched)
+            story.append(Spacer(1, 14))
+
+        story.append(Spacer(1, 8))
+
+    # ── Risk alerts ────────────────────────────────────────────────────────────
+    if warnings_text and "no warnings" not in warnings_text.lower() and "none" not in warnings_text.lower():
+        story.append(KeepTogether([
+            _section_header("03", "Business Risks & Critical Alerts", body_style),
+            Spacer(1, 10)
+        ]))
+        warn_content = [Paragraph(
+            _md_to_html(warnings_text).replace("\n", "<br/>"),
+            ParagraphStyle("WarnBody", fontName="Helvetica", fontSize=9.5,
+                           textColor=colors.HexColor("#7f1d1d"), leading=14)
+        )]
+        warn_tbl = Table([warn_content], colWidths=[504])
+        warn_tbl.setStyle(TableStyle([
+            ("BACKGROUND",    (0, 0), (-1, -1), C_CRIMSON_PALE),
+            ("LINELEFT",      (0, 0), (0, -1),  5, C_CRIMSON),
+            ("BOX",           (0, 0), (-1, -1), 0.75, colors.HexColor("#fecaca")),
+            ("LEFTPADDING",   (0, 0), (-1, -1), 14),
+            ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
+            ("TOPPADDING",    (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ]))
+        story.append(KeepTogether([warn_tbl, Spacer(1, 14)]))
+        story.append(Spacer(1, 8))
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 4+ — DATA SUMMARY & METHODOLOGY
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    sec_num = "04" if (strategic_text or warnings_text) else "03"
+    story.append(KeepTogether([
+        _section_header(sec_num, "Data Summary & Methodology", body_style),
+        Spacer(1, 12)
+    ]))
+
+    if objectives_text:
+        story.append(Paragraph("Project Objectives &amp; Scope", h2_style))
+        story.append(Paragraph(
+            _md_to_html(objectives_text).replace("\n", "<br/>"), body_style
+        ))
+        story.append(Spacer(1, 10))
+
+    if cleaning_text:
+        story.append(Paragraph("Data Cleaning Audit Trail", h2_style))
+        story.append(Paragraph(
+            "The following transformations were applied to the raw dataset during preprocessing:", body_style
+        ))
+        for raw in cleaning_text.split("\n"):
+            line = raw.strip().lstrip("-*• ").strip()
+            if line:
+                story.append(Paragraph(f"▸  {_md_to_html(line)}", bullet_style))
+        story.append(Spacer(1, 10))
+
+    if relations_text:
+        story.append(Paragraph("Key Correlation &amp; Relationship Map", h2_style))
+
+        hdr_style_tbl = ParagraphStyle("RelHdr", fontName="Helvetica-Bold", fontSize=8.5,
+                                       textColor=C_WHITE, leading=11)
+        cell_r = ParagraphStyle("RelCell", fontName="Helvetica", fontSize=8.5,
+                                textColor=C_INK, leading=12)
+
+        desc_lines = []
+        tbl_data = [[
+            Paragraph("<b>Variable X</b>",             hdr_style_tbl),
+            Paragraph("<b>Variable Y</b>",             hdr_style_tbl),
+            Paragraph("<b>Chart Type</b>",             hdr_style_tbl),
+            Paragraph("<b>Business Context</b>",       hdr_style_tbl),
+        ]]
+
+        for raw in relations_text.split("\n"):
+            line = raw.strip().lstrip("-*• ").strip()
+            if not line:
+                continue
+            if "|" in line or ("x:" in line.lower() and "y:" in line.lower()):
+                parsed = _parse_relation_line(line)
+                if parsed["x"] != "N/A" or parsed["y"] != "N/A":
+                    tbl_data.append([
+                        Paragraph(f"<b>{_escape(parsed['x'])}</b>", cell_r),
+                        Paragraph(f"<b>{_escape(parsed['y'])}</b>", cell_r),
+                        Paragraph(_escape(parsed["type"]),           cell_r),
+                        Paragraph(_escape(parsed["details"]),        cell_r),
+                    ])
+                    continue
+            if not any(line.lower().startswith(k) for k in ("strictly", "output nothing")):
+                desc_lines.append(line)
+
+        if desc_lines:
+            story.append(Paragraph(
+                "<br/>".join(_md_to_html(l) for l in desc_lines), body_style
+            ))
+            story.append(Spacer(1, 6))
+        else:
+            story.append(Paragraph(
+                "The following variable pairs were identified for targeted visualization:", body_style
+            ))
+            story.append(Spacer(1, 4))
+
+        if len(tbl_data) > 1:
+            rel_tbl = Table(tbl_data, colWidths=[100, 100, 90, 214])
+            rel_tbl.setStyle(TableStyle([
+                ("BACKGROUND",    (0, 0), (-1, 0),  C_CRIMSON_DARK),
+                ("BOX",           (0, 0), (-1, -1), 0.75, C_BORDER),
+                ("INNERGRID",     (0, 0), (-1, -1), 0.3,  C_LIGHT_GRID),
+                ("ROWBACKGROUNDS",(0, 1), (-1, -1), [C_WHITE, C_ROW_ALT]),
                 ("VALIGN",        (0, 0), (-1, -1), "TOP"),
                 ("TOPPADDING",    (0, 0), (-1, -1), 6),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                 ("LEFTPADDING",   (0, 0), (-1, -1), 8),
                 ("RIGHTPADDING",  (0, 0), (-1, -1), 8),
             ]))
+            story.append(KeepTogether([rel_tbl]))
+        story.append(Spacer(1, 14))
 
-            # Look for a matched chart
-            matched_png = _find_matching_chart(item, png_files, placed_charts)
-            fig_title = None
-            img_table = None
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 5+ — APPENDIX (Per-column stats + remaining charts)
+    # ═══════════════════════════════════════════════════════════════════════════
 
-            if matched_png:
-                try:
-                    with PILImage.open(matched_png) as img:
-                        orig_w, orig_h = img.size
-                    max_w, max_h = 440, 240
-                    aspect = orig_h / orig_w
-                    if aspect > (max_h / max_w):
-                        new_h = max_h
-                        new_w = new_h / aspect
-                    else:
-                        new_w = max_w
-                        new_h = new_w * aspect
+    app_num = str(int(sec_num) + 1).zfill(2)
+    story.append(KeepTogether([
+        _section_header(app_num, "Appendix", body_style),
+        Spacer(1, 12)
+    ]))
 
-                    img_flow  = Image(str(matched_png), width=new_w, height=new_h)
-                    img_table = Table([[img_flow]], colWidths=[504])
-                    img_table.setStyle(TableStyle([
-                        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-                        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-                        ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                        ("BACKGROUND",    (0, 0), (-1, -1), colors.white),
-                        ("TOPPADDING",    (0, 0), (-1, -1), 6),
-                        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                    ]))
-                    fig_title = Paragraph(
-                        f"<i>Supporting Figure: {matched_png.stem.replace('_', ' ').title()}</i>",
-                        ParagraphStyle("FigTitle", parent=body_style, fontName="Helvetica-Oblique", fontSize=8.5, textColor=muted_color, spaceBefore=4, spaceAfter=2)
-                    )
-                    placed_charts.add(matched_png)
-                except Exception as exc:
-                    img_table = Paragraph(f"Could not load matching image {matched_png.name}: {exc}", body_style)
-
-            story.append(KeepTogether([lbl_para, card_table]))
-            if matched_png:
-                story.append(Spacer(1, 4))
-                if fig_title and img_table:
-                    story.append(KeepTogether([fig_title, img_table]))
-                elif img_table:
-                    story.append(KeepTogether([img_table]))
-            story.append(Spacer(1, 14))
-        
-        story.append(Spacer(1, 10))
-
-    # ── Warnings & Alerts (if present) ────────────────────────────────────────
-    if warnings_text and not "no warnings" in warnings_text.lower() and not "none" in warnings_text.lower():
-        story.append(Paragraph("Business Risks &amp; Critical Alerts", h1_style))
-        warning_content = [
-            Paragraph(warnings_text.replace("\n", "<br/>"), ParagraphStyle("WarnStyle", parent=body_style, fontSize=9.5, textColor=colors.HexColor("#991b1b")))
-        ]
-        warning_table = Table([[warning_content]], colWidths=[504])
-        warning_table.setStyle(TableStyle([
-            ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#fef2f2")),
-            ("LINELEFT",      (0, 0), (0, -1),  4, colors.HexColor("#f43f5e")),
-            ("LEFTPADDING",   (0, 0), (-1, -1), 12),
-            ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
-            ("TOPPADDING",    (0, 0), (-1, -1), 8),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#fee2e2")),
-        ]))
-        story.append(KeepTogether([warning_table, Spacer(1, 12)]))
-
-    story.append(Spacer(1, 15))
-
-    # ── 4. DATA SUMMARY & METHODOLOGY (Page 4+) ───────────────────────────────
-    story.append(Paragraph("Data Summary &amp; Methodology", h1_style))
-    
-    # Project Objectives
-    if objectives_text:
-        story.append(Paragraph("Project Objectives &amp; Scope", h2_style))
-        story.append(Paragraph(objectives_text.replace("\n", "<br/>"), body_style))
-        story.append(Spacer(1, 8))
-
-    # Cleaning steps
-    if cleaning_text:
-        story.append(Paragraph("Data Cleaning Audit Trail", h2_style))
-        story.append(Paragraph("Automated type inference, value imputation, and formatting constraints applied to input records:", body_style))
-        for raw in cleaning_text.split("\n"):
-            line = raw.strip().lstrip("-*• ").strip()
-            if line:
-                story.append(Paragraph(f"• &nbsp; {_md_to_html(line)}", bullet_style))
-        story.append(Spacer(1, 8))
-
-    # Relations
-    if relations_text:
-        story.append(Paragraph("Key Correlation &amp; Relationship Map", h2_style))
-        story.append(Paragraph("Direct associations identified across columns for target visualization selection:", body_style))
-        story.append(Spacer(1, 4))
-        
-        tbl_data = [
-            [
-                Paragraph("<b>Variable X</b>", header_style), 
-                Paragraph("<b>Variable Y</b>", header_style), 
-                Paragraph("<b>Chart Type</b>", header_style), 
-                Paragraph("<b>Business Context &amp; Relevance</b>", header_style)
-            ]
-        ]
-        
-        for raw in relations_text.split("\n"):
-            line = raw.strip().lstrip("-*• ").strip()
-            if not line:
-                continue
-            parsed = _parse_relation_line(line)
-            tbl_data.append([
-                Paragraph(parsed["x"], body_style),
-                Paragraph(parsed["y"], body_style),
-                Paragraph(parsed["type"], body_style),
-                Paragraph(parsed["details"], body_style)
-            ])
-            
-        if len(tbl_data) > 1:
-            rel_table = Table(tbl_data, colWidths=[95, 95, 95, 219])
-            rel_table.setStyle(TableStyle([
-                ("BACKGROUND",    (0, 0), (-1, 0),  colors.HexColor("#f1f5f9")),
-                ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                ("INNERGRID",     (0, 0), (-1, -1), 0.3, colors.HexColor("#cbd5e1")),
-                ("VALIGN",        (0, 0), (-1, -1), "TOP"),
-                ("TOPPADDING",    (0, 0), (-1, -1), 5),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-                ("LEFTPADDING",   (0, 0), (-1, -1), 6),
-                ("RIGHTPADDING",  (0, 0), (-1, -1), 6),
-            ]))
-            story.append(rel_table)
-        story.append(Spacer(1, 10))
-
-    story.append(Spacer(1, 15))
-
-    # ── 5. APPENDIX (Page 5+) ─────────────────────────────────────────────────
-    story.append(Paragraph("Appendix", h1_style))
-    
-    # Per-column statistical summary
     if df is not None and isinstance(df, pd.DataFrame):
         story.append(Paragraph("Per-Column Statistical Summary", h2_style))
         story.append(Paragraph(
-            "Detailed metric breakdowns for numeric distributions and categorical frequencies:",
-            body_style,
+            "Numeric distributions and categorical frequency breakdowns for all dataset columns:",
+            body_style
         ))
-        story.append(Spacer(1, 4))
-        insight_flowables = _build_insights_table(df, body_style, header_style, primary_color, secondary_color)
-        if insight_flowables:
-            story.extend(insight_flowables)
-        story.append(Spacer(1, 10))
+        story.append(Spacer(1, 5))
+        stat_flowables = _build_stats_tables(df, body_style)
+        if stat_flowables:
+            story.extend(stat_flowables)
+        story.append(Spacer(1, 12))
 
-    # Remaining/Unmatched Visualizations
-    unplaced_charts = [png for png in png_files if png not in placed_charts]
-    if unplaced_charts:
+    unplaced = [p for p in png_files if p not in placed_charts]
+    if unplaced:
         story.append(Paragraph("Additional Analytical Visualizations", h2_style))
         story.append(Paragraph(
-            "Supplementary visual mappings of auxiliary data relationships:",
-            body_style,
+            "Supplementary visual mappings of auxiliary data relationships:", body_style
         ))
-        story.append(Spacer(1, 6))
-
-        for png_file in unplaced_charts:
-            try:
-                with PILImage.open(png_file) as img:
-                    orig_w, orig_h = img.size
-                max_w, max_h = 440, 240
-                aspect = orig_h / orig_w
-                if aspect > (max_h / max_w):
-                    new_h = max_h
-                    new_w = new_h / aspect
-                else:
-                    new_w = max_w
-                    new_h = new_w * aspect
-
-                fig_title = Paragraph(
-                    f"<b>Figure: {png_file.stem.replace('_', ' ').title()}</b>",
-                    ParagraphStyle("FigTitle", parent=body_style, fontName="Helvetica-Bold",
-                                   textColor=primary_color, spaceBefore=8, spaceAfter=4, keepWithNext=True),
+        story.append(Spacer(1, 8))
+        for png_file in unplaced:
+            img_tbl, fig_cap = _img_flowable(png_file)
+            if img_tbl:
+                fig_lbl = Paragraph(
+                    f"<b>Figure: {_escape(png_file.stem.replace('_', ' ').title())}</b>",
+                    ParagraphStyle("FigLbl", fontName="Helvetica-Bold", fontSize=9,
+                                   textColor=C_CRIMSON_DARK, spaceBefore=8, spaceAfter=4, keepWithNext=True)
                 )
-                img_flow  = Image(str(png_file), width=new_w, height=new_h)
-                img_table = Table([[img_flow]], colWidths=[504])
-                img_table.setStyle(TableStyle([
-                    ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-                    ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-                    ("BOX",           (0, 0), (-1, -1), 0.5, colors.HexColor("#cbd5e1")),
-                    ("BACKGROUND",    (0, 0), (-1, -1), colors.white),
-                    ("TOPPADDING",    (0, 0), (-1, -1), 6),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ]))
-                story.append(KeepTogether([fig_title, img_table, Spacer(1, 10)]))
-            except Exception as exc:
-                story.append(Paragraph(f"Could not load image {png_file.name}: {exc}", body_style))
+                story.append(KeepTogether([fig_lbl, img_tbl, fig_cap, Spacer(1, 12)]))
+            else:
+                story.append(Paragraph(f"(Could not load: {png_file.name})", small_style))
 
-    # Conclusion & Next steps styled box
-    conclusion_style = ParagraphStyle("ConclStyle", parent=body_style, fontSize=9.5, textColor=colors.HexColor("#1e293b"))
-    conclusion_content = [
-        Paragraph("<b>Executive Conclusion &amp; Next Steps</b>", ParagraphStyle("ConclHdr", parent=h2_style, fontSize=11, textColor=primary_color, spaceAfter=6)),
+    # ── Conclusion box ─────────────────────────────────────────────────────────
+    conclusion_items = [
         Paragraph(
-            "The automated data pipeline has successfully validated, cleaned, and evaluated the dataset "
-            "under the specified project guidelines. To maximize return on these insights, management is advised "
-            "to prioritize the Actionable Strategy recommendations outlined in the insights section, address the warnings "
-            "disclosed, and leverage the visual intelligence charts for stakeholder presentations.",
-            conclusion_style
-        )
+            "<b>Executive Conclusion &amp; Recommended Next Steps</b>",
+            ParagraphStyle("ConclHdr", fontName="Helvetica-Bold", fontSize=11,
+                           textColor=C_CRIMSON_DARK, spaceAfter=6, leading=14)
+        ),
+        Paragraph(
+            "The autonomous data pipeline has successfully validated, cleaned, and evaluated the uploaded dataset. "
+            "To maximise return on these insights: "
+            "(1) prioritise the Actionable Strategy recommendations in the Insights section, "
+            "(2) address any Business Risks disclosed above, "
+            "(3) leverage the embedded charts in stakeholder presentations, and "
+            "(4) schedule a follow-up analysis cycle after implementing recommended changes.",
+            ParagraphStyle("ConclBody", fontName="Helvetica", fontSize=9.5,
+                           textColor=C_INK, leading=14.5)
+        ),
     ]
-    conclusion_table = Table([[conclusion_content]], colWidths=[504])
-    conclusion_table.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), colors.HexColor("#f8fafc")), # light slate gray background
-        ("BOX",           (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
-        ("LINELEFT",      (0, 0), (0, -1),  4, primary_color), # accent left border
-        ("LEFTPADDING",   (0, 0), (-1, -1), 14),
-        ("RIGHTPADDING",  (0, 0), (-1, -1), 14),
-        ("TOPPADDING",    (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+    concl_tbl = Table([conclusion_items], colWidths=[504])
+    concl_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), C_ROW_ALT),
+        ("BOX",           (0, 0), (-1, -1), 1,  C_BORDER),
+        ("LINELEFT",      (0, 0), (0, -1),  5,  C_CRIMSON_DARK),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 16),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 16),
+        ("TOPPADDING",    (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
     ]))
-    story.append(Spacer(1, 15))
-    story.append(KeepTogether([conclusion_table]))
+    story.append(Spacer(1, 18))
+    story.append(KeepTogether([concl_tbl]))
 
     doc.build(story, canvasmaker=NumberedCanvas)
     pdf_bytes = buffer.getvalue()
@@ -753,32 +897,26 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     return pdf_bytes
 
 
-# ---------------------------------------------------------------------------
-# Cached wrapper (used by app.py)
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+# Cached wrapper
+# ─────────────────────────────────────────────────────────────────────────────
 
 _pdf_cache: dict = {}
 
 
 def export_pdf_cached(
-    cache_key: str,
-    filename: str = "",
-    result_cleaning:  str = "",
-    result_relations: str = "",
-    result_insights:  str = "",
-    result_code:      str = "",
-    output_dir_str:   str = "outputs",
-    df_csv:           str = "",
+    cache_key:       str,
+    filename:        str = "",
+    result_cleaning: str = "",
+    result_relations:str = "",
+    result_insights: str = "",
+    result_code:     str = "",
+    output_dir_str:  str = "outputs",
+    df_csv:          str = "",
 ) -> bytes:
-    """
-    Build (or return cached) PDF bytes from serialized result components.
-    Uses an in-process dict cache keyed by content hash to avoid rebuilding
-    identical PDFs on every Streamlit rerun.
-    """
     if cache_key in _pdf_cache:
         return _pdf_cache[cache_key]
 
-    # Reconstruct DataFrame from CSV string
     df = None
     if df_csv:
         try:
@@ -794,7 +932,157 @@ def export_pdf_cached(
         "code":           result_code,
         "output_dir":     output_dir_str,
     }
-
     pdf_bytes = export_pdf(result, filename=filename)
     _pdf_cache[cache_key] = pdf_bytes
+    return pdf_bytes
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat log helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _clean_chat_content(text: str) -> str:
+    if not text:
+        return ""
+    cleaned = re.sub(r'\[Auto-Healing system resolved a code error!\][\s\S]*?(?:Successful Execution Output:\s*(?:\(no output\)|\S+)?\s*)', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\[Auto-Healing system installed missing package[\s\S]*?(?:Output:\s*\S*\s*)?', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Original Error:[\s\S]*?(?=(?:Successful Execution Output|$))', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Successful Execution Output:\s*\(no output\)', '', cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r'Successful Execution Output:', '', cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Chat PDF generator — premium format
+# ─────────────────────────────────────────────────────────────────────────────
+
+def export_chat_pdf(messages: list, session_id: str) -> bytes:
+    """Generate a premium styled PDF from a Crew Chat conversation."""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=letter,
+        rightMargin=54, leftMargin=54,
+        topMargin=82, bottomMargin=82,
+    )
+    styles = getSampleStyleSheet()
+
+    P_RED      = colors.HexColor("#c0392b")
+    P_DARK     = colors.HexColor("#7b1d1d")
+    P_BLUE     = colors.HexColor("#1d4ed8")
+    P_MUTED    = colors.HexColor("#475569")
+    P_INK      = colors.HexColor("#0f172a")
+    P_PALE_U   = colors.HexColor("#f0f4ff")
+    P_PALE_A   = colors.HexColor("#fff5f5")
+    P_BORDER   = colors.HexColor("#cbd5e1")
+
+    title_style = ParagraphStyle("ChatTitle", fontName="Helvetica-Bold", fontSize=22,
+                                  leading=26, textColor=P_DARK, spaceAfter=4)
+    meta_style  = ParagraphStyle("ChatMeta",  fontName="Helvetica", fontSize=8.5,
+                                  leading=12, textColor=P_MUTED, spaceAfter=8)
+    user_style  = ParagraphStyle("UserMsg",   fontName="Helvetica", fontSize=9.5,
+                                  leading=14.5, textColor=P_INK)
+    asst_style  = ParagraphStyle("AsstMsg",   fontName="Helvetica", fontSize=9.5,
+                                  leading=14.5, textColor=P_INK)
+    role_u_style= ParagraphStyle("RoleU", fontName="Helvetica-Bold", fontSize=8,
+                                  textColor=P_BLUE, leading=11)
+    role_a_style= ParagraphStyle("RoleA", fontName="Helvetica-Bold", fontSize=8,
+                                  textColor=P_RED,  leading=11)
+
+    # Cover strip
+    def _band(text, bg, fg):
+        t = Table([[Paragraph(text, ParagraphStyle("B", fontName="Helvetica-Bold",
+                               fontSize=8.5, textColor=fg, alignment=1, leading=11))]],
+                  colWidths=[504], rowHeights=[20])
+        t.setStyle(TableStyle([
+            ("BACKGROUND",    (0,0),(-1,-1), bg),
+            ("ALIGN",         (0,0),(-1,-1), "CENTER"),
+            ("VALIGN",        (0,0),(-1,-1), "MIDDLE"),
+            ("TOPPADDING",    (0,0),(-1,-1), 2),
+            ("BOTTOMPADDING", (0,0),(-1,-1), 2),
+        ]))
+        return t
+
+    def _divider_c(thick=2, color=P_RED):
+        t = Table([[""]], colWidths=[504], rowHeights=[thick])
+        t.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,-1),color),
+                                ("TOPPADDING",(0,0),(-1,-1),0),
+                                ("BOTTOMPADDING",(0,0),(-1,-1),0)]))
+        return t
+
+    story = [
+        Spacer(1, 30),
+        _band("CREW CHAT  ·  CONVERSATION EXPORT", P_DARK, colors.white),
+        Spacer(1, 5),
+        _divider_c(3),
+        Spacer(1, 14),
+        Paragraph("<b>Crew Chat Log</b>", title_style),
+        Paragraph(
+            f"Session ID: {session_id}  ·  Exported on {datetime.now().strftime('%d %B %Y at %I:%M %p')}",
+            meta_style
+        ),
+        Spacer(1, 4),
+        _divider_c(1, colors.HexColor("#e2e8f0")),
+        Spacer(1, 16),
+    ]
+
+    for idx, msg in enumerate(messages, start=1):
+        role      = msg.get("role", "user")
+        content   = _clean_chat_content(msg.get("content", ""))
+        plot_url  = msg.get("plot_url")
+        is_user   = (role == "user")
+
+        formatted = _md_to_html(content).replace("\n", "<br/>")
+
+        if is_user:
+            role_label = Paragraph("YOU", role_u_style)
+            msg_para   = Paragraph(formatted, user_style)
+            msg_tbl    = Table([[msg_para]], colWidths=[450])
+            msg_tbl.setStyle(TableStyle([
+                ("BACKGROUND",    (0,0),(-1,-1), P_PALE_U),
+                ("BOX",           (0,0),(-1,-1), 0.5, P_BORDER),
+                ("LINERIGHT",     (0,0),(-1,-1), 3,  P_BLUE),
+                ("LEFTPADDING",   (0,0),(-1,-1), 12),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 12),
+                ("TOPPADDING",    (0,0),(-1,-1), 9),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 9),
+            ]))
+            wrapper = Table([[role_label, ""], [msg_tbl, ""]], colWidths=[450, 54])
+        else:
+            role_label = Paragraph("CREW CHAT", role_a_style)
+            msg_para   = Paragraph(formatted, asst_style)
+            msg_tbl    = Table([[msg_para]], colWidths=[450])
+            msg_tbl.setStyle(TableStyle([
+                ("BACKGROUND",    (0,0),(-1,-1), P_PALE_A),
+                ("BOX",           (0,0),(-1,-1), 0.5, P_BORDER),
+                ("LINELEFT",      (0,0),(0,-1),  3,  P_RED),
+                ("LEFTPADDING",   (0,0),(-1,-1), 12),
+                ("RIGHTPADDING",  (0,0),(-1,-1), 12),
+                ("TOPPADDING",    (0,0),(-1,-1), 9),
+                ("BOTTOMPADDING", (0,0),(-1,-1), 9),
+            ]))
+            wrapper = Table([["", role_label], ["", msg_tbl]], colWidths=[54, 450])
+
+        story.append(KeepTogether([wrapper]))
+
+        # Embedded chart
+        if plot_url:
+            try:
+                fname = urllib.parse.unquote(plot_url.split("/")[-1])
+                user_home   = Path.home() / ".crewlyze"
+                outputs_base = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(user_home / "outputs")))
+                png_file = outputs_base / session_id / fname
+
+                if png_file.exists():
+                    img_tbl, fig_cap = _img_flowable(png_file, max_w=380, max_h=260)
+                    if img_tbl:
+                        story.append(Spacer(1, 4))
+                        story.append(KeepTogether([img_tbl, fig_cap]))
+            except Exception as exc:
+                print(f"Chat PDF image embed failed: {exc}")
+
+        story.append(Spacer(1, 10))
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
     return pdf_bytes
