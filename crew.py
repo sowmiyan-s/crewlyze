@@ -811,6 +811,41 @@ def run_crew(
         print("[Stage 4/4] Skipping BI Analyst (user selection).\n")
         _progress("insights", insights_output)
 
+    # ════════════════════════════════════════════════════════════════════════
+    # STAGE 5 — Predictive Auto-ML (sequential, only if deep_analysis=True)
+    # ════════════════════════════════════════════════════════════════════════
+    predictive_output = "Predictive modeling was skipped (Deep Analysis OFF)."
+    if deep_analysis:
+        print("[Stage 5/5] Running Predictive Auto-ML ...")
+        start_pred_stage = time.time()
+        
+        pred_task = tasks[4]
+        pred_crew = Crew(
+            agents=[agents[4]],
+            tasks=[pred_task],
+            max_rpm=15,
+            cache=True,
+            verbose=True,
+        )
+        try:
+            pred_crew.kickoff()
+            predictive_output = _safe_output(pred_task)
+            try:
+                if hasattr(pred_crew, "usage_metrics") and pred_crew.usage_metrics:
+                    total_tokens += pred_crew.usage_metrics.get("total_tokens", 0)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Predictive Agent error: {e}")
+            traceback.print_exc()
+            predictive_output = "Predictive analysis encountered an error."
+
+        stage_times["predictive"] = time.time() - start_pred_stage
+        _progress("predictive", predictive_output)
+        print("[Stage 5/5] Predictive Analysis complete.\n")
+    else:
+        _progress("predictive", predictive_output)
+
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
     print("[Stage 4/4] Building interactive Plotly charts ...")
     start_plotly_stage = time.time()
@@ -852,6 +887,7 @@ def run_crew(
         "cleaning_steps": clean_output,
         "relations":      relation_output,
         "insights":       insights_output,
+        "predictive":     predictive_output,
         "code":           visualize_output,
         "output_dir":     str(session_output_dir),
         "plotly_charts":  plotly_charts,

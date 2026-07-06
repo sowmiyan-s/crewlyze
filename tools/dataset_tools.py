@@ -256,6 +256,13 @@ def _run_in_subprocess(script: str, timeout: int = 120, is_healed_attempt: bool 
 # Pure Python helpers — NOT CrewAI tools, called directly from run_crew()
 # ---------------------------------------------------------------------------
 
+def _mask_pii_column(col_name: str) -> str:
+    """Detect potential PII columns to redact them from LLM context."""
+    sensitive = ["email", "ssn", "password", "credit", "card", "phone", "address", "name"]
+    if any(s in col_name.lower() for s in sensitive):
+        return f"{col_name} [PII_MASKED]"
+    return col_name
+
 def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
     """Build a compact, token-efficient dataset profile string.
 
@@ -271,15 +278,21 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
         A markdown-formatted string safe for embedding in task descriptions.
     """
     try:
-        df = read_csv_robust(csv_path, nrows=max_rows)
+        try:
+            import duckdb
+            total_rows = duckdb.query(f"SELECT COUNT(*) FROM read_csv_auto('{csv_path}')").fetchone()[0]
+            df = duckdb.query(f"SELECT * FROM read_csv_auto('{csv_path}') LIMIT {max_rows}").df()
+            sampled = total_rows
+        except Exception:
+            df = read_csv_robust(csv_path, nrows=max_rows)
+            sampled = len(df)
     except Exception as exc:
         return f"[Profile unavailable: {exc}]"
 
     lines: list[str] = []
-    sampled = len(df)
 
     # Shape
-    note = " (sample — file is larger)" if sampled == max_rows else ""
+    note = " (sample — file is larger)" if sampled > max_rows else ""
     lines.append(
         f"**Dataset shape**: {sampled} rows × {len(df.columns)} columns{note}"
     )
@@ -288,9 +301,13 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
     # Column summary
     lines.append("**Columns** (name | dtype | missing% | stats/top values):")
     for col in df.columns:
+        masked_col = _mask_pii_column(col)
         dtype    = df[col].dtype
         miss_pct = round(df[col].isnull().sum() / max(len(df), 1) * 100, 1)
-        if pd.api.types.is_numeric_dtype(dtype):
+        
+        if "[PII_MASKED]" in masked_col:
+            desc = "[SENSITIVE DATA REDACTED]"
+        elif pd.api.types.is_numeric_dtype(dtype):
             desc = (
                 f"min={df[col].min():.4g}, "
                 f"mean={df[col].mean():.4g}, "
@@ -299,7 +316,7 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
         else:
             tops = df[col].dropna().value_counts().head(3).index.tolist()
             desc = ", ".join(str(v) for v in tops) or "—"
-        lines.append(f"  - {col}: {dtype} | missing={miss_pct}% | {desc}")
+        lines.append(f"  - {masked_col}: {dtype} | missing={miss_pct}% | {desc}")
     lines.append("")
 
     # Top correlations (numeric only)
@@ -711,6 +728,57 @@ class DatasetTools:
         if success:
             return f"Visualization executed successfully. Output:\n{output}"
         return f"Error executing visualization code:\n{output}"
+
+    @tool("Run Python Script")
+    def run_python_script(python_code: Optional[str] = None, **kwargs) -> str:
+        """Executes arbitrary Python code in a sandboxed subprocess for data analysis tasks.
+
+        The code runs in a pre-configured environment where:
+          - 'df' is a pre-loaded pandas DataFrame containing the cleaned dataset.
+          - 'FILE_PATH' is the path to the active session's CSV file.
+          - Libraries 'pandas', 'numpy', and 'sklearn' are available.
+
+        Use this tool to:
+          - Train machine-learning models (e.g. RandomForest) for feature importance.
+          - Compute advanced statistics or aggregations.
+          - Any general-purpose Python data analysis that isn't visualization.
+
+        Return your results via print() statements.
+        """
+        if not python_code:
+            for k, v in kwargs.items():
+                if v and isinstance(v, str) and ("import " in v or "df[" in v or "\n" in v):
+                    python_code = v
+                    break
+            if not python_code:
+                return "Error: python_code is required."
+
+        clean_code = _strip_markdown_fences(python_code)
+        from config.context import current_session_csv
+        csv_path = current_session_csv.get() or os.getenv("CURRENT_SESSION_CSV", "")
+
+        if not csv_path:
+            csv_path = "data/sessions/default/cleaned.csv"
+
+        script = textwrap.dedent(f"""\
+            import os
+            import pandas as pd
+            import numpy as np
+
+            FILE_PATH = {repr(csv_path)}
+            df = pd.read_csv(FILE_PATH)
+
+            # Safeguard: redirect all read_csv calls to the session CSV
+            _orig_read_csv = pd.read_csv
+            def custom_read_csv(*args, **kwargs):
+                return _orig_read_csv(FILE_PATH)
+            pd.read_csv = custom_read_csv
+        """) + "\n" + clean_code
+
+        success, output = _run_in_subprocess(script, timeout=180)
+        if success:
+            return f"Script executed successfully. Output:\n{output}"
+        return f"Error executing script:\n{output}"
 
 
 def auto_coerce_types(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:

@@ -26,8 +26,33 @@ const MODEL_OPTIONS = {
   nvidia:      [
     'nvidia_nim/meta/llama-3.1-8b-instruct',
     'nvidia_nim/meta/llama-3.1-70b-instruct',
+    'nvidia_nim/meta/llama-3.1-405b-instruct',
+    'nvidia_nim/meta/llama-3.2-1b-instruct',
+    'nvidia_nim/meta/llama-3.2-3b-instruct',
+    'nvidia_nim/meta/llama-3.3-70b-instruct',
+    'nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct',
+    'nvidia_nim/nvidia/llama-3.1-nemotron-51b-instruct',
     'nvidia_nim/nvidia/mistral-nemo-minitron-8b-8k-instruct',
+    'nvidia_nim/nvidia/nemotron-4-340b-instruct',
+    'nvidia_nim/nvidia/nemotron-mini-4b-instruct',
     'nvidia_nim/mistralai/mistral-large-2407',
+    'nvidia_nim/mistralai/mistral-7b-instruct-v0.3',
+    'nvidia_nim/mistralai/mixtral-8x7b-instruct-v01',
+    'nvidia_nim/mistralai/mixtral-8x22b-instruct-v01',
+    'nvidia_nim/google/gemma-2-9b-it',
+    'nvidia_nim/google/gemma-2-27b-it',
+    'nvidia_nim/microsoft/phi-3-mini-128k-instruct',
+    'nvidia_nim/microsoft/phi-3-medium-128k-instruct',
+    'nvidia_nim/microsoft/phi-3-small-128k-instruct',
+    'nvidia_nim/qwen/qwen2-7b-instruct',
+    'nvidia_nim/databricks/dbrx-instruct',
+    'nvidia_nim/01-ai/yi-large',
+    'nvidia_nim/aisingapore/sea-lion-7b-instruct',
+    'nvidia_nim/ibm/granite-34b-code-instruct',
+    'nvidia_nim/upstage/solar-10.7b-instruct',
+    'nvidia_nim/snowflake/arctic-instruct',
+    'nvidia_nim/writer/palmyra-med-70b-32k',
+    'nvidia_nim/writer/palmyra-fin-70b-32k',
   ],
   minimax:     ['minimaxai/minimax-m3'],
   groq:        ['groq/llama-3.1-8b-instant','groq/llama-3.3-70b-versatile','groq/mixtral-8x7b-32768','groq/gemma2-9b-it'],
@@ -37,7 +62,6 @@ const MODEL_OPTIONS = {
   mistral:     ['mistral/mistral-tiny','mistral/mistral-small','mistral/mistral-medium','mistral/mistral-large-latest'],
   huggingface: ['huggingface/HuggingFaceH4/zephyr-7b-beta','huggingface/meta-llama/Llama-2-7b-chat-hf'],
   ollama:      ['ollama/llama3','ollama/mistral','ollama/gemma2'],
-  custom:      ['custom/model'],
   custom:      ['gpt-3.5-turbo', 'gpt-4'],
   cohere:      ['cohere/command-r-plus', 'cohere/command-r', 'cohere/command-light'],
   together:    ['together_ai/meta-llama/Llama-3-70b-chat-hf', 'together_ai/meta-llama/Llama-3-8b-chat-hf', 'together_ai/mistralai/Mixtral-8x7B-Instruct-v0.1'],
@@ -428,43 +452,12 @@ async function fetchOllamaModels() {
 // ────────────────────────────────────────────────────────────────────────────
 // LLM settings persistence & Settings Modal logic
 // ────────────────────────────────────────────────────────────────────────────
-const ALL_PROVIDERS = [
-  { id: 'nvidia', name: 'NVIDIA NIM' },
-  { id: 'groq', name: 'Groq' },
-  { id: 'openai', name: 'OpenAI' },
-  { id: 'anthropic', name: 'Anthropic' },
-  { id: 'gemini', name: 'Google Gemini' },
-  { id: 'mistral', name: 'Mistral' },
-  { id: 'huggingface', name: 'HuggingFace' },
-  { id: 'cohere', name: 'Cohere' },
-  { id: 'together', name: 'TogetherAI' },
-  { id: 'openrouter', name: 'OpenRouter' },
-  { id: 'deepseek', name: 'DeepSeek' },
-  { id: 'perplexity', name: 'Perplexity' },
-  { id: 'ollama', name: 'Ollama (local)' },
-  { id: 'custom', name: 'Custom API' }
-];
-
-const PROVIDER_TEST_MODELS = {
-  nvidia: 'nvidia_nim/meta/llama-3.1-8b-instruct',
-  groq: 'groq/llama-3.1-8b-instant',
-  openai: 'gpt-4o-mini',
-  anthropic: 'claude-3-5-sonnet-20241022',
-  gemini: 'gemini/gemini-pro',
-  mistral: 'mistral/mistral-tiny',
-  huggingface: 'huggingface/HuggingFaceH4/zephyr-7b-beta',
-  ollama: 'ollama/llama3',
-  cohere: 'cohere/command-r-plus',
-  together: 'together_ai/meta-llama/Llama-3-70b-chat-hf',
-  openrouter: 'openrouter/google/gemma-2-9b-it',
-  deepseek: 'deepseek/deepseek-chat',
-  perplexity: 'perplexity/llama-3-sonar-large-32k-chat'
-};
+let ALL_PROVIDERS = [];
+let litellmProvidersList = [];
 
 function getSavedKey(provider) {
-  if (provider === 'ollama') {
-    return localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
-  }
+  if (provider === 'ollama') return localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
+  if (provider === 'custom') return localStorage.getItem('api_url_custom') || 'https://api.openai.com/v1';
   return localStorage.getItem(`api_key_${provider}`) || '';
 }
 
@@ -475,8 +468,8 @@ function syncActiveApiKey() {
   
   const statusEl = document.getElementById('sidebarApiKeyStatus');
   if (statusEl) {
-    if (provider === 'ollama') {
-      const url = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
+    if (provider === 'ollama' || provider === 'custom') {
+      const url = getSavedKey(provider);
       statusEl.innerHTML = `<i data-lucide="link" style="width: 14px; height: 14px; color: var(--cyan);"></i> <span style="color: var(--cyan); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 160px;">${url}</span>`;
     } else if (key) {
       statusEl.innerHTML = `<i data-lucide="check-circle" style="width: 14px; height: 14px; color: var(--emerald);"></i> <span style="color: var(--emerald);">API Key Set</span>`;
@@ -495,190 +488,213 @@ function saveLlmSettings() {
 }
 
 function populateProvidersDropdown() {
-  const currentVal = els.llmProvider.value;
+  const currentVal = els.llmProvider.value || localStorage.getItem('llm_provider');
   els.llmProvider.innerHTML = '';
   let selectedExists = false;
   
   ALL_PROVIDERS.forEach(p => {
-    const isShown = localStorage.getItem(`show_provider_${p.id}`) !== 'false'; // defaults to true
+    const isShown = localStorage.getItem(`show_provider_${p}`) !== 'false';
     if (isShown) {
       const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.name;
+      opt.value = p; opt.textContent = p.toUpperCase();
       els.llmProvider.appendChild(opt);
-      if (p.id === currentVal) selectedExists = true;
+      if (p === currentVal) selectedExists = true;
     }
   });
 
-  if (selectedExists) {
-    els.llmProvider.value = currentVal;
-  } else if (els.llmProvider.options.length > 0) {
-    els.llmProvider.selectedIndex = 0;
-  }
+  if (selectedExists) els.llmProvider.value = currentVal;
+  else if (els.llmProvider.options.length > 0) els.llmProvider.selectedIndex = 0;
 }
 
 async function loadLlmSettings() {
   try {
+    const res = await fetch('/api/llm/providers');
+    if (res.ok) {
+      const data = await res.json();
+      litellmProvidersList = data.providers || [];
+      const datalist = $('providerList');
+      if (datalist) {
+        datalist.innerHTML = '';
+        litellmProvidersList.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p;
+          datalist.appendChild(opt);
+        });
+      }
+    }
+  } catch (e) { console.error('Failed to fetch litellm providers', e); }
+
+  try {
     const res = await fetch('/api/config');
     if (res.ok) {
       const backendCfg = await res.json();
-      if (backendCfg.NVIDIA_API_KEY) localStorage.setItem('api_key_nvidia', backendCfg.NVIDIA_API_KEY);
-      if (backendCfg.GROQ_API_KEY) localStorage.setItem('api_key_groq', backendCfg.GROQ_API_KEY);
-      if (backendCfg.OPENAI_API_KEY) localStorage.setItem('api_key_openai', backendCfg.OPENAI_API_KEY);
-      if (backendCfg.ANTHROPIC_API_KEY) localStorage.setItem('api_key_anthropic', backendCfg.ANTHROPIC_API_KEY);
-      if (backendCfg.GEMINI_API_KEY) localStorage.setItem('api_key_gemini', backendCfg.GEMINI_API_KEY);
-      if (backendCfg.MISTRAL_API_KEY) localStorage.setItem('api_key_mistral', backendCfg.MISTRAL_API_KEY);
-      if (backendCfg.HUGGINGFACE_API_KEY) localStorage.setItem('api_key_huggingface', backendCfg.HUGGINGFACE_API_KEY);
-      if (backendCfg.COHERE_API_KEY) localStorage.setItem('api_key_cohere', backendCfg.COHERE_API_KEY);
-      if (backendCfg.TOGETHER_API_KEY) localStorage.setItem('api_key_together', backendCfg.TOGETHER_API_KEY);
-      if (backendCfg.OPENROUTER_API_KEY) localStorage.setItem('api_key_openrouter', backendCfg.OPENROUTER_API_KEY);
-      if (backendCfg.DEEPSEEK_API_KEY) localStorage.setItem('api_key_deepseek', backendCfg.DEEPSEEK_API_KEY);
-      if (backendCfg.PERPLEXITY_API_KEY) localStorage.setItem('api_key_perplexity', backendCfg.PERPLEXITY_API_KEY);
-      if (backendCfg.OLLAMA_BASE_URL) localStorage.setItem('api_url_ollama', backendCfg.OLLAMA_BASE_URL);
-      if (backendCfg.CUSTOM_BASE_URL) localStorage.setItem('api_url_custom', backendCfg.CUSTOM_BASE_URL);
-      if (backendCfg.CUSTOM_API_KEY) localStorage.setItem('api_key_custom', backendCfg.CUSTOM_API_KEY);
+      Object.keys(backendCfg).forEach(k => {
+        if (k.endsWith('_API_KEY')) {
+          const prov = k.replace('_API_KEY', '').toLowerCase();
+          localStorage.setItem(`api_key_${prov}`, backendCfg[k]);
+          if (!ALL_PROVIDERS.includes(prov)) ALL_PROVIDERS.push(prov);
+        }
+      });
+      if (backendCfg.OLLAMA_BASE_URL) {
+        localStorage.setItem('api_url_ollama', backendCfg.OLLAMA_BASE_URL);
+        if (!ALL_PROVIDERS.includes('ollama')) ALL_PROVIDERS.push('ollama');
+      }
+      if (backendCfg.CUSTOM_BASE_URL) {
+        localStorage.setItem('api_url_custom', backendCfg.CUSTOM_BASE_URL);
+        if (!ALL_PROVIDERS.includes('custom')) ALL_PROVIDERS.push('custom');
+      }
     }
-  } catch (err) {
-    console.warn('Failed to load credentials from backend config:', err);
+  } catch (err) { console.warn('Failed to load config:', err); }
+
+  if (ALL_PROVIDERS.length === 0) {
+    ALL_PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'nvidia'];
   }
 
-  const savedProvider = localStorage.getItem('llm_provider');
   const savedCooldown = localStorage.getItem('llm_cooldown') || '5';
-
   populateProvidersDropdown();
-
-  if (savedProvider && Array.from(els.llmProvider.options).some(opt => opt.value === savedProvider)) {
-    els.llmProvider.value = savedProvider;
-  } else if (els.llmProvider.options.length > 0) {
-    els.llmProvider.selectedIndex = 0;
-  }
-  
   await populateModels(els.llmProvider.value);
-
   els.cooldown.value = savedCooldown;
   els.cooldownVal.textContent = savedCooldown;
-
   syncActiveApiKey();
 }
 
-// Populate Settings Modal text boxes
 function populateSettingsModal() {
-  // Checkbox show states
-  ALL_PROVIDERS.forEach(p => {
-    const showCheck = els[`show${p.id.charAt(0).toUpperCase() + p.id.slice(1)}`];
-    if (showCheck) {
-      showCheck.checked = localStorage.getItem(`show_provider_${p.id}`) !== 'false';
-    }
-  });
+  const container = $('dynamicProvidersList');
+  if (!container) return;
+  container.innerHTML = '';
 
-  // Keys
-  els.keyNvidia.value = localStorage.getItem('api_key_nvidia') || '';
-  els.keyGroq.value = localStorage.getItem('api_key_groq') || '';
-  els.keyOpenai.value = localStorage.getItem('api_key_openai') || '';
-  els.keyAnthropic.value = localStorage.getItem('api_key_anthropic') || '';
-  els.keyGemini.value = localStorage.getItem('api_key_gemini') || '';
-  els.keyMistral.value = localStorage.getItem('api_key_mistral') || '';
-  els.keyHuggingface.value = localStorage.getItem('api_key_huggingface') || '';
-  els.keyCohere.value = localStorage.getItem('api_key_cohere') || '';
-  els.keyTogether.value = localStorage.getItem('api_key_together') || '';
-  els.keyOpenrouter.value = localStorage.getItem('api_key_openrouter') || '';
-  els.keyDeepseek.value = localStorage.getItem('api_key_deepseek') || '';
-  els.keyPerplexity.value = localStorage.getItem('api_key_perplexity') || '';
-  els.urlOllama.value = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
-  els.urlCustom.value = localStorage.getItem('api_url_custom') || 'https://api.openai.com/v1';
-  els.keyCustom.value = localStorage.getItem('api_key_custom') || '';
-  // 'http://localhost:11434';
+  ALL_PROVIDERS.forEach(p => {
+    const isOllama = (p === 'ollama');
+    const isCustom = (p === 'custom');
+    
+    let inputHtml = '';
+    if (isOllama) {
+      const url = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
+      inputHtml = `<input type="text" id="url_${p}" class="field-input setting-key" placeholder="http://localhost:11434" value="${url}" style="flex: 1;" />`;
+    } else if (isCustom) {
+      const url = localStorage.getItem('api_url_custom') || 'https://api.openai.com/v1';
+      const key = localStorage.getItem('api_key_custom') || '';
+      inputHtml = `
+        <input type="text" id="url_${p}" class="field-input setting-key" placeholder="Base URL" value="${url}" style="flex: 1;" />
+        <input type="password" id="key_${p}" class="field-input setting-key" placeholder="API Key" value="${key}" style="flex: 1;" />
+      `;
+    } else {
+      const key = localStorage.getItem(`api_key_${p}`) || '';
+      inputHtml = `
+        <input type="password" id="key_${p}" class="field-input setting-key" placeholder="Enter key..." value="${key}" style="flex: 1;" />
+        <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+      `;
+    }
+
+    const isShown = localStorage.getItem(`show_provider_${p}`) !== 'false';
+    const row = document.createElement('div');
+    row.className = 'setting-row';
+    row.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <label class="field-label" style="margin-bottom: 0; font-weight: 600;">${p.toUpperCase()} ${isOllama ? 'URL' : 'API Key'}</label>
+        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+          <input type="checkbox" id="show_${p}" class="setting-show-checkbox" ${isShown ? 'checked' : ''} /> Show in sidebar
+        </label>
+      </div>
+      <div class="key-input-wrap" style="display: flex; gap: 8px;">
+        ${inputHtml}
+      </div>
+      <div class="individual-status" id="status_${p}" style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
+    `;
+    container.appendChild(row);
+  });
+  
+  container.querySelectorAll('.toggle-setting-key').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      const input = btn.previousElementSibling;
+      if (input) input.type = input.type === 'password' ? 'text' : 'password';
+    });
+  });
 
   const cooldown = localStorage.getItem('llm_cooldown') || '5';
   els.settingsCooldown.value = cooldown;
   els.settingsCooldownVal.textContent = cooldown;
+}
 
-  // Clear all individual statuses
-  document.querySelectorAll('.individual-status').forEach(el => {
-    el.textContent = '';
-    el.className = 'individual-status';
-    el.style.color = '';
+if ($('addProviderBtn')) {
+  $('addProviderBtn').addEventListener('click', () => {
+    const input = $('providerSearchInput');
+    if (!input) return;
+    const p = input.value.trim().toLowerCase();
+    if (!p) return;
+    if (!ALL_PROVIDERS.includes(p)) {
+      ALL_PROVIDERS.push(p);
+      localStorage.setItem(`show_provider_${p}`, 'true');
+      populateSettingsModal();
+      input.value = '';
+    } else {
+      toast('Provider already in list', 'info');
+    }
   });
 }
 
-// Save Settings Modal inputs
-function saveSettingsModal() {
-  // Checkbox show states
+async function saveSettingsModal() {
+  const promises = [];
+  
   ALL_PROVIDERS.forEach(p => {
-    const showCheck = els[`show${p.id.charAt(0).toUpperCase() + p.id.slice(1)}`];
-    if (showCheck) {
-      localStorage.setItem(`show_provider_${p.id}`, showCheck.checked ? 'true' : 'false');
-    }
-  });
-
-  // Keys
-  localStorage.setItem('api_key_nvidia', els.keyNvidia.value.trim());
-  localStorage.setItem('api_key_groq', els.keyGroq.value.trim());
-  localStorage.setItem('api_key_openai', els.keyOpenai.value.trim());
-  localStorage.setItem('api_key_anthropic', els.keyAnthropic.value.trim());
-  localStorage.setItem('api_key_gemini', els.keyGemini.value.trim());
-  localStorage.setItem('api_key_mistral', els.keyMistral.value.trim());
-  localStorage.setItem('api_key_huggingface', els.keyHuggingface.value.trim());
-  localStorage.setItem('api_key_cohere', els.keyCohere.value.trim());
-  localStorage.setItem('api_key_together', els.keyTogether.value.trim());
-  localStorage.setItem('api_key_openrouter', els.keyOpenrouter.value.trim());
-  localStorage.setItem('api_key_deepseek', els.keyDeepseek.value.trim());
-  localStorage.setItem('api_key_perplexity', els.keyPerplexity.value.trim());
-  localStorage.setItem('api_url_ollama', els.urlOllama.value.trim());
-  localStorage.setItem('api_url_custom', els.urlCustom.value.trim());
-  localStorage.setItem('api_key_custom', els.keyCustom.value.trim());
-
-  // Save to backend configuration
-  const providers_to_save = ['nvidia', 'groq', 'openai', 'anthropic', 'gemini', 'mistral', 'huggingface', 'cohere', 'together', 'openrouter', 'deepseek', 'perplexity', 'ollama', 'custom'];
-  providers_to_save.forEach(async (prov) => {
+    const showCheck = $('show_' + p);
+    if (showCheck) localStorage.setItem(`show_provider_${p}`, showCheck.checked ? 'true' : 'false');
+    
     const fd = new FormData();
-    fd.append('provider', prov);
-    if (prov === 'ollama') {
-      fd.append('base_url', els.urlOllama.value.trim());
-    } else if (prov === 'custom') {
-      fd.append('base_url', els.urlCustom.value.trim());
-      fd.append('api_key', els.keyCustom.value.trim());
+    fd.append('provider', p);
+    
+    if (p === 'ollama') {
+      const url = $('url_' + p)?.value.trim() || '';
+      localStorage.setItem('api_url_ollama', url);
+      fd.append('base_url', url);
+    } else if (p === 'custom') {
+      const url = $('url_' + p)?.value.trim() || '';
+      const key = $('key_' + p)?.value.trim() || '';
+      localStorage.setItem('api_url_custom', url);
+      localStorage.setItem('api_key_custom', key);
+      fd.append('base_url', url);
+      fd.append('api_key', key);
     } else {
-      const capId = prov.charAt(0).toUpperCase() + prov.slice(1);
-      const val = (els[`key${capId}`] ? els[`key${capId}`].value.trim() : '');
-      fd.append('api_key', val);
+      const key = $('key_' + p)?.value.trim() || '';
+      localStorage.setItem(`api_key_${p}`, key);
+      fd.append('api_key', key);
     }
-    try {
-      await fetch('/api/config', { method: 'POST', body: fd });
-    } catch (err) {
-      console.error('Failed to sync settings to backend for', prov, err);
-    }
+    promises.push(fetch('/api/config', { method: 'POST', body: fd }));
   });
 
+  await Promise.allSettled(promises);
+  
   const cooldown = els.settingsCooldown.value;
   localStorage.setItem('llm_cooldown', cooldown);
   els.cooldown.value = cooldown;
   els.cooldownVal.textContent = cooldown;
 
-  // Re-populate sidebar provider list
   populateProvidersDropdown();
   syncActiveApiKey();
-  
   toast('Settings saved permanently!', 'success');
   els.settingsModal.classList.add('hidden');
 }
 
-// Wire Settings Modal Buttons & Navigation
 if (els.sidebarSettingsBtn) {
   els.sidebarSettingsBtn.addEventListener('click', () => {
-    populateSettingsModal();
+    try {
+      populateSettingsModal();
+    } catch (e) {
+      if (typeof toast === 'function') {
+        toast('Error in settings: ' + e.message, 'error');
+      } else {
+        alert('Error: ' + e.message);
+      }
+    }
     els.settingsModal.classList.remove('hidden');
   });
 }
 if (els.closeSettingsModal) {
-  els.closeSettingsModal.addEventListener('click', () => {
-    els.settingsModal.classList.add('hidden');
-  });
+  els.closeSettingsModal.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
 }
 if (els.cancelSettingsBtn) {
-  els.cancelSettingsBtn.addEventListener('click', () => {
-    els.settingsModal.classList.add('hidden');
-  });
+  els.cancelSettingsBtn.addEventListener('click', () => els.settingsModal.classList.add('hidden'));
 }
 if (els.settingsModal) {
   els.settingsModal.addEventListener('click', e => {
@@ -694,108 +710,72 @@ if (els.settingsCooldown) {
   });
 }
 
-// Eye button toggle for Settings modal
-document.querySelectorAll('.toggle-setting-key').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.preventDefault();
-    const input = btn.previousElementSibling;
-    if (input) {
-      input.type = input.type === 'password' ? 'text' : 'password';
-    }
-  });
-});
-
-// Test Connection individually inside Settings Modal
-document.querySelectorAll('.test-individual-btn').forEach(btn => {
-  btn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const provider = btn.dataset.provider;
-    const model = PROVIDER_TEST_MODELS[provider];
-    
-    // Find the input element and status element for this provider
-    let apiKey = '';
-    const capId = provider.charAt(0).toUpperCase() + provider.slice(1);
-    const inputEl = els[`key${capId}`] || els[`url${capId}`] || document.getElementById(`key${capId}`) || document.getElementById(`url${capId}`);
-    const statusEl = document.getElementById(`status${capId}`);
-
-    if (inputEl) {
-      apiKey = inputEl.value.trim();
-    }
-
-    if (statusEl) {
-      statusEl.className = 'individual-status loading';
-      statusEl.textContent = 'Testing connection...';
-      statusEl.style.color = 'var(--text-secondary)';
-    }
-
-    const fd = new FormData();
-    fd.append('provider', provider);
-    fd.append('model', model);
-    fd.append('api_key', apiKey);
-
-    try {
-      const res = await fetch('/api/validate-key', { method: 'POST', body: fd });
-      if (res.ok) {
-        if (statusEl) {
-          statusEl.className = 'individual-status ok';
-          statusEl.textContent = '✓ Connection successful';
-          statusEl.style.color = 'var(--emerald)';
-        }
-        toast(`${provider.toUpperCase()} connection verified!`, 'success');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        if (statusEl) {
-          statusEl.className = 'individual-status error';
-          statusEl.textContent = '✗ ' + (data.detail || 'Connection failed');
-          statusEl.style.color = 'var(--rose)';
-        }
-      }
-    } catch (err) {
-      if (statusEl) {
-        statusEl.className = 'individual-status error';
-        statusEl.textContent = '✗ Network error';
-        statusEl.style.color = 'var(--rose)';
-      }
-    }
-  });
-});
-
 // ────────────────────────────────────────────────────────────────────────────
 // LLM Provider & Model selector
 // ────────────────────────────────────────────────────────────────────────────
+// Substrings that identify non-text models (voice, image, embedding, etc.)
+const _EXCLUDE_MODEL_PATTERNS = [
+  'tts', 'whisper', 'audio', 'speech', 'realtime',
+  'dall-e', 'stable-diffusion', 'imagen', 'image-generation',
+  'embed', 'ada-002', 'text-embedding', 'search-',
+  'moderation', 'content-filter', 'shield',
+  'code-davinci', 'code-cushman', 'davinci-edit', 'text-davinci-edit',
+  'text-ada', 'text-babbage', 'text-curie',
+  'babbage-002', 'davinci-002',
+  'text-davinci-001', 'text-davinci-002', 'text-davinci-003',
+  'computer-use', 'ft:davinci', 'ft:babbage', 'ft:curie', 'ft:ada',
+  'transcription', 'translation',
+];
+function _isTextModel(name) {
+  const low = name.toLowerCase();
+  return !_EXCLUDE_MODEL_PATTERNS.some(pat => low.includes(pat));
+}
+
 async function populateModels(provider) {
-  let models = MODEL_OPTIONS[provider] || [];
-
-  if (provider === 'ollama') {
-    const sel = els.llmModel;
-    sel.innerHTML = '<option value="">🔄 Loading Ollama models...</option>';
-    models = await fetchOllamaModels();
-  }
-
-  const sel = els.llmModel;
-  sel.innerHTML = '';
-  models.forEach(m => {
-    const opt = document.createElement('option');
-    opt.value = m; opt.textContent = m;
-    sel.appendChild(opt);
-  });
-  // Add custom option
-  const customOpt = document.createElement('option');
-  customOpt.value = '__custom__';
-  customOpt.textContent = '✏️ Custom model…';
-  sel.appendChild(customOpt);
-
-  // Restore saved model selection if applicable
-  const savedModel = localStorage.getItem('llm_model');
-  if (savedModel && provider === localStorage.getItem('llm_provider')) {
-    const modelOptions = Array.from(sel.options).map(opt => opt.value);
-    if (!modelOptions.includes(savedModel) && savedModel !== '__custom__') {
-      const opt = document.createElement('option');
-      opt.value = savedModel;
-      opt.textContent = savedModel;
-      sel.insertBefore(opt, sel.lastElementChild);
+  if (!provider) return;
+  const listEl = $('modelList');
+  if (!listEl) return;
+  
+  listEl.innerHTML = '';
+  els.llmModel.value = 'Fetching...';
+  
+  try {
+    const res = await fetch(`/api/llm/providers/${provider}/models`);
+    let models = [];
+    if (res.ok) {
+      const data = await res.json();
+      models = data.models || [];
     }
-    sel.value = savedModel;
+    
+    // Merge with hardcoded MODEL_OPTIONS to ensure robust model lists (e.g. nvidia text models)
+    if (typeof MODEL_OPTIONS !== 'undefined' && MODEL_OPTIONS[provider]) {
+      models = [...new Set([...MODEL_OPTIONS[provider], ...models])];
+    }
+
+    // Filter: keep only text-to-text chat/completion models
+    models = models.filter(_isTextModel);
+    
+    // Allow custom models typed by user to be saved locally
+    const saved = localStorage.getItem('llm_model');
+    if (saved && provider === localStorage.getItem('llm_provider')) {
+      if (!models.includes(saved)) {
+        models.unshift(saved); // Make sure the user's custom saved model is in the list
+      }
+    }
+    
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m;
+      listEl.appendChild(opt);
+    });
+    
+    if (saved && provider === localStorage.getItem('llm_provider')) {
+      els.llmModel.value = saved;
+    } else {
+      els.llmModel.value = models.length ? models[0] : '';
+    }
+  } catch (e) {
+    els.llmModel.value = '';
   }
 }
 
@@ -804,16 +784,10 @@ els.llmProvider.addEventListener('change', async () => {
   syncActiveApiKey();
   saveLlmSettings();
 });
-els.llmModel.addEventListener('change', async () => {
-  if (els.llmModel.value === '__custom__') {
-    const custom = await customPrompt('Enter full model identifier:', '', 'e.g. gpt-4o-mini', 'Custom Model');
-    if (custom) {
-      const opt = document.createElement('option');
-      opt.value = custom; opt.textContent = custom; opt.selected = true;
-      els.llmModel.insertBefore(opt, els.llmModel.lastElementChild);
-      els.llmModel.value = custom;
-    }
-  }
+els.llmModel.addEventListener('change', () => {
+  saveLlmSettings();
+});
+els.llmModel.addEventListener('input', () => {
   saveLlmSettings();
 });
 
@@ -1680,6 +1654,28 @@ function appendLog(line) {
   els.logOutput.scrollTop = els.logOutput.scrollHeight;
 }
 
+function copyLogsToResults() {
+  const resultsLog = $('resultsLogOutput');
+  const resultsCount = $('resultsLogCount');
+  if (!resultsLog) return;
+  
+  // Clone all log lines from the running screen
+  resultsLog.innerHTML = '';
+  const logLines = els.logOutput.querySelectorAll('.log-line');
+  logLines.forEach(line => {
+    resultsLog.appendChild(line.cloneNode(true));
+  });
+  
+  // Update the count badge
+  if (resultsCount) {
+    const count = logLines.length;
+    resultsCount.textContent = count > 0 ? `${count} entries` : '';
+  }
+  
+  // Re-init lucide icons in the new panel
+  if (window.lucide) lucide.createIcons();
+}
+
 let povInterval = null;
 
 function renderStagePov(stage) {
@@ -1786,17 +1782,18 @@ function renderStagePov(stage) {
         <div class="pov-desc">Writing corporate Seaborn/Matplotlib visualization scripts and compiling high-resolution PNG plots...</div>
       </div>
       <div class="pov-content">
-        <svg class="pov-compiler-svg" viewBox="0 0 150 90">
-          <line x1="20" y1="10" x2="20" y2="80" class="pov-axis"></line>
-          <line x1="20" y1="80" x2="140" y2="80" class="pov-axis"></line>
-          
-          <path d="M20 70 Q 50 20, 80 50 T 140 15" class="pov-compiler-path"></path>
-          
-          <circle cx="50" cy="38" r="3" class="pov-dot" style="animation-delay: 0.8s;"></circle>
-          <circle cx="80" cy="50" r="3" class="pov-dot" style="animation-delay: 1.4s;"></circle>
-          <circle cx="110" cy="28" r="3" class="pov-dot" style="animation-delay: 2s;"></circle>
-          <circle cx="130" cy="20" r="3" class="pov-dot" style="animation-delay: 2.6s;"></circle>
-        </svg>
+        <div class="pov-futuristic-dashboard">
+          <div class="futuristic-stream stream-1"></div>
+          <div class="futuristic-stream stream-2"></div>
+          <div class="futuristic-skeleton">
+            <div class="futuristic-header"></div>
+            <div class="futuristic-grid">
+              <div class="futuristic-card"></div>
+              <div class="futuristic-card"></div>
+              <div class="futuristic-card wide"></div>
+            </div>
+          </div>
+        </div>
       </div>`;
 
   } else if (stage === 'plotly') {
@@ -2062,6 +2059,7 @@ async function loadResults(sessionId, retryCount = 0) {
     if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
     if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
     renderDashboard(data, sessionId);
+    copyLogsToResults();
     showScreen('results');
     return;
   }
@@ -2108,6 +2106,9 @@ async function loadResults(sessionId, retryCount = 0) {
     if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
 
     renderDashboard(data, sessionId);
+    
+    // Copy live agent logs to the results screen
+    copyLogsToResults();
     
     if (wasRunning) {
       switchSection('agentic');

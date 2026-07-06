@@ -73,10 +73,11 @@ try:
 except Exception as e:
     print(f"Failed to auto-copy assets or convert line endings: {e}")
 
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
-from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # regex to find ANSI terminal escape patterns
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -221,6 +222,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Optional Enterprise Auth
+# ---------------------------------------------------------------------------
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
+AUTH_TOKEN = os.getenv("AUTH_TOKEN", "enterprise-secret-key")
+
+class OptionalAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if AUTH_ENABLED:
+            if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/validate-key"):
+                auth_header = request.headers.get("Authorization")
+                if not auth_header or not auth_header.startswith("Bearer ") or auth_header.split(" ")[1] != AUTH_TOKEN:
+                    return JSONResponse(status_code=401, content={"detail": "Unauthorized: Invalid or missing Enterprise Token"})
+        response = await call_next(request)
+        return response
+
+app.add_middleware(OptionalAuthMiddleware)
 
 # ---------------------------------------------------------------------------
 # State & Directory Setup
@@ -880,6 +899,30 @@ async def export_chat_history_pdf(
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
 
 
+@app.post("/api/export/webhook")
+async def export_webhook(
+    session_id: str = Form(...),
+    webhook_url: str = Form(...)
+):
+    """(Enterprise) Export PDF report directly to a Slack/Discord webhook."""
+    import requests
+    output_dir = get_safe_output_dir(session_id)
+    pdf_path = output_dir / f"{session_id}_report.pdf"
+    
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="PDF report not found. Run analysis first.")
+    
+    try:
+        with open(pdf_path, 'rb') as f:
+            files = {'file': (f"report_{session_id}.pdf", f, 'application/pdf')}
+            payload = {'content': f"📈 **Crewlyze AI Analysis Complete!**\nNew business insights are ready for session: `{session_id}`"}
+            response = requests.post(webhook_url, data=payload, files=files, timeout=10)
+            response.raise_for_status()
+        return {"status": "success", "message": "Report successfully dispatched to webhook!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Webhook dispatch failed: {str(e)}")
+
+
 @app.get("/api/charts/{session_id}/{filename}")
 async def serve_chart(session_id: str, filename: str):
     """Serves the generated PNG visual charts."""
@@ -999,6 +1042,71 @@ async def save_local_config(
             os.environ[k] = str(v)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
+    return {"status": "success"}
+
+@app.get("/api/llm/providers")
+async def get_llm_providers():
+    try:
+        import litellm
+        # Filter out extremely esoteric or broken prefixes if needed, but we return all.
+        providers = sorted(list(litellm.models_by_provider.keys()))
+        return {"providers": providers}
+    except Exception as e:
+        return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama"], "error": str(e)}
+
+@app.get("/api/llm/providers/{provider}/models")
+async def get_llm_models(provider: str):
+    """Returns only text-to-text (chat/completion) models for a provider.
+    Filters out voice, image, embedding, moderation, realtime, and other
+    non-text-generation models that this project cannot use."""
+    
+    # Substrings that indicate a model is NOT a text-to-text chat model.
+    _EXCLUDE_PATTERNS = (
+        # Audio / voice / speech
+        "tts", "whisper", "audio", "speech", "realtime",
+        # Image generation / vision-only
+        "dall-e", "stable-diffusion", "imagen", "image-generation",
+        # Embeddings
+        "embed", "ada-002", "text-embedding", "search-",
+        # Moderation / safety
+        "moderation", "content-filter", "shield",
+        # Code-only non-chat (old Codex completions API)
+        "code-davinci", "code-cushman", "davinci-edit", "text-davinci-edit",
+        "text-ada", "text-babbage", "text-curie",
+        # Deprecated / legacy completions-only
+        "babbage-002", "davinci-002",
+        "text-davinci-001", "text-davinci-002", "text-davinci-003",
+        # Computer-use / tool-only
+        "computer-use",
+        # Fine-tune helper models
+        "ft:davinci", "ft:babbage", "ft:curie", "ft:ada",
+        # Transcription / translation
+        "transcription", "translation",
+    )
+
+    def _is_text_model(name: str) -> bool:
+        low = name.lower()
+        return not any(pat in low for pat in _EXCLUDE_PATTERNS)
+
+    try:
+        import litellm
+        models = list(litellm.models_by_provider.get(provider, []))
+
+        # Also grab models from the global model_list if they match the provider
+        if hasattr(litellm, "model_list"):
+            extra = [m for m in litellm.model_list if m.startswith(f"{provider}/")]
+            if provider == "openai":
+                extra.extend([m for m in litellm.model_list if "gpt-" in m and "/" not in m])
+            models.extend(extra)
+
+        # Deduplicate, filter, sort
+        models = sorted(set(m for m in models if _is_text_model(m)))
+        return {"models": models}
+    except Exception as e:
+        return {"models": [], "error": str(e)}
+
+@app.post("/api/validate-key")
+async def validate_key():
     return {"status": "success"}
 
 

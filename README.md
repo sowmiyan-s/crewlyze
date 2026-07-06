@@ -20,6 +20,11 @@ app_port: 7860
   <img src="assets/badge_seaborn.svg" alt="seaborn" height="28" />
   <img src="assets/badge_ollama.svg" alt="ollama" height="28" />
 </p>
+<p align="center">
+  <a href="https://render.com/deploy?repo=https://github.com/your-username/Multi-Agent-Data-Analysis-System-with-CrewAI">
+    <img src="https://render.com/images/deploy-to-render-button.svg" alt="Deploy to Render">
+  </a>
+</p>
 
 
 ## Overview
@@ -59,7 +64,12 @@ You can easily install Crewlyze globally via `npm`. The installation process wil
    cd Multi-Agent-Data-Analysis-System-with-CrewAI
    ```
 
-2. **Run Python Setup & Launch**:
+2. **Run with Docker (Recommended for Enterprise/Cloud)**:
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Run Python Setup & Launch (Local)**:
    ```bash
    npm install
    npm start

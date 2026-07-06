@@ -40,19 +40,12 @@
 
       <label class="field-label">Provider</label>
       <select id="llmProvider" class="field-select">
-        <option value="nvidia">NVIDIA NIM</option>
-        <option value="groq">Groq</option>
-        <option value="openai">OpenAI</option>
-        <option value="anthropic">Anthropic</option>
-        <option value="gemini">Google Gemini</option>
-        <option value="mistral">Mistral</option>
-        <option value="huggingface">HuggingFace</option>
-        <option value="ollama">Ollama (local)</option>
-        <option value="custom">Custom API (OpenAI Compatible)</option>
+        <!-- Dynamically populated -->
       </select>
 
       <label class="field-label">Model</label>
-      <select id="llmModel" class="field-select"></select>
+      <input type="text" id="llmModel" class="field-input" list="modelList" placeholder="Select or type model..." />
+      <datalist id="modelList"></datalist>
       <div id="sidebarApiKeyStatus"
         style="font-size: 0.75rem; margin-top: 10px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
       </div>
@@ -591,6 +584,34 @@
           Re-run Agentic Analysis</button>
       </div>
 
+      <!-- Agent Execution Logs (carried over from running screen) -->
+      <details class="agent-logs-details" id="resultsAgentLogs" style="margin-top: 28px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-card); overflow: hidden;">
+        <summary style="padding: 14px 20px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600; color: var(--text-primary); user-select: none; background: rgba(255,37,42,0.04); border-bottom: 1px solid var(--border);">
+          <i data-lucide="clipboard-list" style="width: 16px; height: 16px; color: var(--violet-light);"></i>
+          Agent Execution Logs
+          <span id="resultsLogCount" style="margin-left: auto; font-size: 0.72rem; font-weight: 500; color: var(--text-muted); background: var(--bg-elevated); padding: 2px 8px; border-radius: 10px;"></span>
+        </summary>
+        <div id="resultsLogOutput" class="log-output" style="max-height: 400px; overflow-y: auto; padding: 12px 16px; font-family: var(--font-mono); font-size: 0.76rem; line-height: 1.6;"></div>
+      </details>
+
+      <!-- Agent Logos / Powered-by strip -->
+      <div class="powered-by-strip" style="margin-top: 32px; padding: 20px 0 8px 0; border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <img src="/assets/logo.png" alt="Crewlyze" style="height: 32px; object-fit: contain; filter: drop-shadow(0 0 8px rgba(255,37,42,0.25));" />
+          <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px;">Powered by Autonomous AI Agents</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: center;">
+          <img src="/assets/badge_crewai.svg" alt="CrewAI" title="CrewAI Multi-Agent Framework" style="height: 26px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" />
+          <img src="/assets/badge_pandas.svg" alt="Pandas" title="Pandas Data Processing" style="height: 26px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" />
+          <img src="/assets/badge_matplotlib.svg" alt="Matplotlib" title="Matplotlib Visualization" style="height: 26px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" />
+          <img src="/assets/badge_seaborn.svg" alt="Seaborn" title="Seaborn Statistical Viz" style="height: 26px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" />
+          <img src="/assets/badge_ollama.svg" alt="Ollama" title="Ollama Local LLM" style="height: 26px; opacity: 0.7; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" />
+        </div>
+        <div style="font-size: 0.68rem; color: var(--text-muted); text-align: center; margin-top: 2px;">
+          Crewlyze v3.1 &mdash; Autonomous Multi-Agent Business Intelligence Platform
+        </div>
+      </div>
+
     </section><!-- /results screen -->
 
   </main><!-- /main-area -->
@@ -731,287 +752,15 @@
         <p class="modal-hint">Configure API keys for each LLM provider. Keys are saved securely in your browser.
           Check/uncheck "Show in sidebar" to filter the options on your dashboard.</p>
 
-        <!-- Provider Key inputs -->
-        <div style="display: flex; flex-direction: column; gap: 14px;">
-          <!-- NVIDIA -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">NVIDIA NIM API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showNvidia" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyNvidia" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="nvidia"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusNvidia"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Groq -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Groq API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showGroq" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyGroq" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="groq"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusGroq"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- OpenAI -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenAI API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showOpenai" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyOpenai" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="openai"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusOpenai"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Anthropic -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Anthropic API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showAnthropic" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyAnthropic" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="anthropic"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusAnthropic"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Google Gemini -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Google Gemini API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showGemini" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyGemini" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="gemini"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusGemini"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Mistral -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Mistral API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showMistral" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyMistral" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="mistral"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusMistral"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- HuggingFace -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">HuggingFace API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showHuggingface" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyHuggingface" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="huggingface"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusHuggingface"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Cohere -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Cohere API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showCohere" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyCohere" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="cohere"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusCohere"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- TogetherAI -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">TogetherAI API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showTogether" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyTogether" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="together"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusTogether"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- OpenRouter -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">OpenRouter API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showOpenrouter" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyOpenrouter" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="openrouter"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusOpenrouter"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- DeepSeek -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">DeepSeek API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showDeepseek" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyDeepseek" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="deepseek"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusDeepseek"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Perplexity -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Perplexity API Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showPerplexity" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="password" id="keyPerplexity" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
-              <button class="btn-secondary test-individual-btn" data-provider="perplexity"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusPerplexity"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Ollama Base URL -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Ollama Base URL</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showOllama" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="text" id="urlOllama" class="field-input setting-key" placeholder="http://localhost:11434"
-                style="flex: 1;" />
-              <button class="btn-secondary test-individual-btn" data-provider="ollama"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusOllama"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
-
-          <!-- Custom API URL & Key -->
-          <div class="setting-row">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-              <label class="field-label" style="margin-bottom: 0; font-weight: 600;">Custom Base URL & Key</label>
-              <label
-                style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-                <input type="checkbox" id="showCustom" class="setting-show-checkbox" checked /> Show in sidebar
-              </label>
-            </div>
-            <div class="key-input-wrap" style="display: flex; gap: 8px;">
-              <input type="text" id="urlCustom" class="field-input setting-key" placeholder="https://api.your-provider.com/v1"
-                style="flex: 1;" />
-              <input type="password" id="keyCustom" class="field-input setting-key" placeholder="Enter key…"
-                style="flex: 1;" />
-              <button class="btn-secondary test-individual-btn" data-provider="custom"
-                style="padding: 0 12px; font-size: 0.75rem; white-space: nowrap;">🔌 Test</button>
-            </div>
-            <div class="individual-status" id="statusCustom"
-              style="font-size: 0.72rem; margin-top: 4px; min-height: 14px;"></div>
-          </div>
+        <!-- Dynamic Provider Key inputs -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+          <input type="text" id="providerSearchInput" list="providerList" class="field-input" placeholder="Search 100+ litellm providers (e.g. bedrock, vertex_ai)..." style="flex: 1;" />
+          <datalist id="providerList"></datalist>
+          <button id="addProviderBtn" class="btn-primary" style="padding: 0 16px; font-size: 0.8rem; white-space: nowrap;">Add Provider</button>
+        </div>
+        
+        <div id="dynamicProvidersList" style="display: flex; flex-direction: column; gap: 14px;">
+          <!-- Dynamically populated via JS -->
         </div>
 
         <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;" />

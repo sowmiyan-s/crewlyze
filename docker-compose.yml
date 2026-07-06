@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  crewlyze-app:
+    build: .
+    container_name: crewlyze-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    restart: unless-stopped
