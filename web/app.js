@@ -794,9 +794,19 @@ const _EXCLUDE_MODEL_PATTERNS = [
   'computer-use', 'ft:davinci', 'ft:babbage', 'ft:curie', 'ft:ada',
   'transcription', 'translation',
   'rerank', 'clip', 'vit', 'siglip',
+  
+  // Legacy / Date-suffixed models
+  '-0301', '-0613', '-1106', '-0125', '-0518', '-0829', '-0913',
+  'gpt-4-0', 'gpt-4-32k', 'gpt-3.5-turbo-16k',
+  'claude-2', 'claude-instant',
+  'llama-2', 'llama3-8b', 'llama3-70b',
+  'gemini-1.0', 'mistral-tiny', 'mistral-medium'
 ];
 function _isTextModel(name) {
   const low = name.toLowerCase();
+  if (low === 'nvidia_nim/mistralai/mistral-large' || low === 'mistralai/mistral-large') {
+    return false;
+  }
   return !_EXCLUDE_MODEL_PATTERNS.some(pat => low.includes(pat));
 }
 
@@ -817,9 +827,9 @@ async function populateModels(provider) {
       models = data.models || [];
     }
     
-    // Merge with hardcoded MODEL_OPTIONS to ensure robust model lists (e.g. nvidia text models)
-    if (typeof MODEL_OPTIONS !== 'undefined' && MODEL_OPTIONS[provider]) {
-      models = [...new Set([...MODEL_OPTIONS[provider], ...models])];
+    // Use hardcoded MODEL_OPTIONS only as a fallback if the server query returned no models
+    if (models.length === 0 && typeof MODEL_OPTIONS !== 'undefined' && MODEL_OPTIONS[provider]) {
+      models = MODEL_OPTIONS[provider];
     }
 
     // Filter: keep only text-to-text chat/completion models

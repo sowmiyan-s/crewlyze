@@ -970,14 +970,7 @@ async def get_local_config():
         return {}
     try:
         with open(cfg_path, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-            masked = {}
-            for k, v in cfg.items():
-                if v and any(keyword in k.lower() for keyword in ("key", "secret", "token")):
-                    masked[k] = v[:4] + "..." + v[-4:] if len(v) > 8 else "********"
-                else:
-                    masked[k] = v
-            return masked
+            return json.load(f)
     except Exception:
         return {}
 
@@ -1065,10 +1058,19 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
         "transcription", "translation",
         # Rerankers & Vision-specific
         "rerank", "clip", "vit", "siglip",
+        # Legacy / Date-suffixed models
+        "-0301", "-0613", "-1106", "-0125", "-0518", "-0829", "-0913",
+        "gpt-4-0", "gpt-4-32k", "gpt-3.5-turbo-16k",
+        "claude-2", "claude-instant",
+        "llama-2", "llama3-8b", "llama3-70b",
+        "gemini-1.0", "mistral-tiny", "mistral-medium"
     )
 
     def _is_text_model(name: str) -> bool:
         low = name.lower()
+        # Exclude exact legacy model name that fails validation
+        if low in ("nvidia_nim/mistralai/mistral-large", "mistralai/mistral-large"):
+            return False
         return not any(pat in low for pat in _EXCLUDE_PATTERNS)
 
     models = []

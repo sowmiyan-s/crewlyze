@@ -248,7 +248,9 @@ def validate_llm_connection(provider: str, model: str, api_key: str = "") -> dic
             }
         except requests.RequestException as exc:
             detail = str(exc)
-            if hasattr(exc, "response") and exc.response is not None:
+            if isinstance(exc, requests.exceptions.ConnectionError):
+                detail = "Failed to resolve API domain. Please check your internet connection and DNS settings."
+            elif hasattr(exc, "response") and exc.response is not None:
                 try:
                     detail = exc.response.json().get("detail", detail)
                 except Exception:

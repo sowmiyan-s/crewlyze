@@ -118,7 +118,10 @@ def _df_to_markdown(df: "pd.DataFrame", index: bool = True) -> str:
             if cell is None or pd.isna(cell):
                 formatted_row.append("")
             else:
-                formatted_row.append(str(cell))
+                val_str = str(cell)
+                if len(val_str) > 50:
+                    val_str = val_str[:47] + "..."
+                formatted_row.append(val_str)
         rows.append(formatted_row)
 
     # Column widths — at least as wide as the header
@@ -336,8 +339,12 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
             pass  # silently skip if corr fails (e.g. all NaN numeric cols)
 
     # Sample rows
-    lines.append("**Sample rows (first 5)**:")
-    lines.append(_df_to_markdown(df.head(5), index=False))
+    sample_cols = df.columns[:12].tolist()
+    note_cols = f" (first 12 of {len(df.columns)} columns)" if len(df.columns) > 12 else ""
+    lines.append(f"**Sample rows (first 5 rows){note_cols}**:")
+    lines.append(_df_to_markdown(df[sample_cols].head(5), index=False))
+    if len(df.columns) > 12:
+        lines.append(f"*(Note: only the first 12 columns are shown in this preview to conserve token limits)*")
 
     return "\n".join(lines)
 
