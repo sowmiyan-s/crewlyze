@@ -1055,10 +1055,11 @@ async def get_llm_providers():
         return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama"], "error": str(e)}
 
 @app.get("/api/llm/providers/{provider}/models")
-async def get_llm_models(provider: str):
+async def get_llm_models(provider: str, api_key: Optional[str] = None):
     """Returns only text-to-text (chat/completion) models for a provider.
     Filters out voice, image, embedding, moderation, realtime, and other
-    non-text-generation models that this project cannot use."""
+    non-text-generation models that this project cannot use.
+    If api_key is provided, dynamically queries the provider's active models list."""
     
     # Substrings that indicate a model is NOT a text-to-text chat model.
     _EXCLUDE_PATTERNS = (
@@ -1088,26 +1089,89 @@ async def get_llm_models(provider: str):
         low = name.lower()
         return not any(pat in low for pat in _EXCLUDE_PATTERNS)
 
-    try:
-        import litellm
-        models = list(litellm.models_by_provider.get(provider, []))
+    models = []
+    fetched_successfully = False
 
-        # Also grab models from the global model_list if they match the provider
-        if hasattr(litellm, "model_list"):
-            extra = [m for m in litellm.model_list if m.startswith(f"{provider}/")]
-            if provider == "openai":
-                extra.extend([m for m in litellm.model_list if "gpt-" in m and "/" not in m])
-            models.extend(extra)
+    # Dynamic fetching based on user's API Key (if provided)
+    if api_key and api_key.strip() and not api_key.endswith("..."):
+        import requests
+        clean_key = api_key.strip()
+        try:
+            if provider == "nvidia":
+                res = requests.get(
+                    "https://integrate.api.nvidia.com/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [f"nvidia_nim/{m['id']}" for m in res.json().get("data", [])]
+                    fetched_successfully = True
+            elif provider == "groq":
+                res = requests.get(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [f"groq/{m['id']}" for m in res.json().get("data", [])]
+                    fetched_successfully = True
+            elif provider == "openai":
+                res = requests.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [m['id'] for m in res.json().get("data", [])]
+                    fetched_successfully = True
+        except Exception:
+            pass # Fallback to litellm list if request fails
 
-        # Deduplicate, filter, sort
-        models = sorted(set(m for m in models if _is_text_model(m)))
-        return {"models": models}
-    except Exception as e:
-        return {"models": [], "error": str(e)}
+    if not fetched_successfully:
+        try:
+            import litellm
+            models = list(litellm.models_by_provider.get(provider, []))
+
+            # Also grab models from the global model_list if they match the provider
+            if hasattr(litellm, "model_list"):
+                extra = [m for m in litellm.model_list if m.startswith(f"{provider}/")]
+                if provider == "openai":
+                    extra.extend([m for m in litellm.model_list if "gpt-" in m and "/" not in m])
+                models.extend(extra)
+        except Exception as e:
+            return {"models": [], "error": str(e)}
+
+    # Deduplicate, filter, sort
+    models = sorted(set(m for m in models if _is_text_model(m)))
+    return {"models": models}
 
 @app.post("/api/validate-key")
-async def validate_key():
-    return {"status": "success"}
+async def validate_key(
+    provider: str = Form(...),
+    model: str = Form(...),
+    api_key: Optional[str] = Form(""),
+):
+    """Pings the LLM provider to validate the model identifier and API key."""
+    try:
+        # Load crew module functions lazily if needed
+        _load_crew()
+        
+        # Get actual env key name
+        if provider == "ollama":
+            env_key_name = "OLLAMA_BASE_URL"
+        elif provider in ("nvidia", "minimax"):
+            env_key_name = "NVIDIA_API_KEY"
+        else:
+            env_key_name = f"{provider.upper()}_API_KEY"
+            
+        result = _validate_llm_connection(provider, model, api_key)
+        if not result.get("valid"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Validation failed"))
+        return {"status": "success", "message": result.get("message")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Validation failed: {str(e)}")
 
 
 # ---------------------------------------------------------------------------

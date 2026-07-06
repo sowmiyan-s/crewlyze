@@ -740,7 +740,8 @@ async function populateModels(provider) {
   els.llmModel.value = 'Fetching...';
   
   try {
-    const res = await fetch(`/api/llm/providers/${provider}/models`);
+    const key = getSavedKey(provider);
+    const res = await fetch(`/api/llm/providers/${provider}/models?api_key=${encodeURIComponent(key)}`);
     let models = [];
     if (res.ok) {
       const data = await res.json();
@@ -1577,6 +1578,30 @@ els.runAnalysisBtn.addEventListener('click', async () => {
   const cooldown = parseInt(els.cooldown.value, 10);
   const title    = els.reportTitle.value.trim();
 
+  // 1. Pre-flight Validation
+  const origBtnText = els.runAnalysisBtn.innerHTML;
+  els.runAnalysisBtn.disabled = true;
+  els.runAnalysisBtn.innerHTML = '<span style="animation: pulse 1.2s infinite; display: inline-block;">Validating Model Connection...</span>';
+
+  try {
+    const valFd = new FormData();
+    valFd.append('provider', provider);
+    valFd.append('model', model);
+    valFd.append('api_key', apiKey);
+
+    const valRes = await fetch('/api/validate-key', { method: 'POST', body: valFd });
+    if (!valRes.ok) {
+      const errData = await valRes.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Model validation failed. Please check your model name and API key.');
+    }
+  } catch (err) {
+    els.runAnalysisBtn.disabled = false;
+    els.runAnalysisBtn.innerHTML = origBtnText;
+    toast('Pre-flight validation failed: ' + err.message, 'error');
+    return;
+  }
+
+  // 2. Start Analysis Run
   const fd = new FormData();
   fd.append('session_id',     state.uploadedSession);
   fd.append('provider',       provider);
@@ -1588,6 +1613,10 @@ els.runAnalysisBtn.addEventListener('click', async () => {
   fd.append('report_title',   title);
 
   closeConfigModal();
+
+  // Reset button state for next time modal is opened
+  els.runAnalysisBtn.disabled = false;
+  els.runAnalysisBtn.innerHTML = origBtnText;
 
   try {
     const res = await fetch('/api/analyze', { method: 'POST', body: fd });
@@ -1656,7 +1685,6 @@ function appendLog(line) {
 
 function copyLogsToResults() {
   const resultsLog = $('resultsLogOutput');
-  const resultsCount = $('resultsLogCount');
   if (!resultsLog) return;
   
   // Clone all log lines from the running screen
@@ -1665,12 +1693,6 @@ function copyLogsToResults() {
   logLines.forEach(line => {
     resultsLog.appendChild(line.cloneNode(true));
   });
-  
-  // Update the count badge
-  if (resultsCount) {
-    const count = logLines.length;
-    resultsCount.textContent = count > 0 ? `${count} entries` : '';
-  }
   
   // Re-init lucide icons in the new panel
   if (window.lucide) lucide.createIcons();
