@@ -187,8 +187,23 @@ html, body {
 }
 .key-input-wrap { display: flex; gap: 6px; align-items: center; }
 .key-input-wrap .field-input { flex: 1; }
-.btn-eye { background: none; border: 1px solid var(--border-mid); color: var(--text-secondary); border-radius: var(--r-sm); padding: 6px 8px; cursor: pointer; font-size: 14px; }
-.btn-eye:hover { background: var(--bg-hover); }
+.btn-eye {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-mid);
+  color: var(--text-secondary);
+  border-radius: var(--r-md);
+  height: 38px;
+  width: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.btn-eye:hover { background: var(--bg-hover); border-color: var(--border-mid); }
 
 .connection-status { font-size: 0.75rem; min-height: 18px; }
 .connection-status.ok    { color: var(--emerald); }
@@ -214,6 +229,8 @@ html, body {
   background: rgba(9,9,11,0.8);
   backdrop-filter: blur(12px);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1000;
 }
 .topbar-left { display: flex; align-items: center; gap: 14px; }
 .breadcrumb { display: flex; gap: 6px; align-items: center; font-size: 0.85rem; }
@@ -1481,7 +1498,7 @@ html, body {
   align-items: center;
   gap: 6px;
 }
-.btn-primary:hover { background: #6d28d9; box-shadow: var(--shadow-violet); transform: translateY(-1px); }
+.btn-primary:hover { background: var(--violet); filter: brightness(1.1); box-shadow: var(--shadow-violet); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 .btn-primary.btn-lg { padding: 13px 30px; font-size: 0.95rem; border-radius: var(--r-lg); }
 .btn-primary.btn-sm { padding: 6px 14px; font-size: 0.78rem; }
@@ -1568,6 +1585,14 @@ html, body {
 .toast.error   { border-left: 3px solid var(--rose); }
 .toast.info    { border-left: 3px solid var(--violet-light); }
 .toast.warning { border-left: 3px solid var(--amber); }
+.toast.hide {
+  animation: fadeOutShrink 0.25s forwards ease-in-out;
+}
+
+@keyframes fadeOutShrink {
+  0% { opacity: 1; transform: translateY(0) scale(1); max-height: 100px; padding: 12px 18px; margin-bottom: 0; }
+  100% { opacity: 0; transform: translateY(-10px) scale(0.95); max-height: 0; padding: 0 18px; margin-bottom: -8px; overflow: hidden; }
+}
 
 /* ── Utilities ───────────────────────────────────────── */
 .hidden { display: none !important; }

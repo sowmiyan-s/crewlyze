@@ -75,3 +75,7 @@ data/*
 # Local agent/tool files and pip cache
 .local/
 .pip_cache/
+
+# NPM packaging artifacts
+*.tgz
+README-GITHUB.md

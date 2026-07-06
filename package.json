@@ -1,6 +1,6 @@
 {
   "name": "crewlyze",
-  "version": "3.1.0",
+  "version": "1.0.0",
   "description": "Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
   "main": "index.js",
   "bin": {
@@ -10,7 +10,9 @@
   "scripts": {
     "start": "node ./bin/crewlyze.js",
     "postinstall": "node ./bin/install-python.js",
-    "install-python": "node ./bin/install-python.js"
+    "install-python": "node ./bin/install-python.js",
+    "prepack": "node ./bin/prepack.js",
+    "postpack": "node ./bin/postpack.js"
   },
   "keywords": [
     "ai",

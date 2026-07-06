@@ -320,12 +320,15 @@ function setStatus(label, cls) {
 // ────────────────────────────────────────────────────────────────────────────
 // Toast notifications
 // ────────────────────────────────────────────────────────────────────────────
-function toast(msg, type = 'info', durationMs = 3500) {
+function toast(msg, type = 'info', durationMs = 2000) {
   const t = document.createElement('div');
   t.className = `toast ${type}`;
   t.textContent = msg;
   els.toastContainer.appendChild(t);
-  setTimeout(() => t.remove(), durationMs);
+  setTimeout(() => {
+    t.classList.add('hide');
+    setTimeout(() => t.remove(), 250);
+  }, durationMs);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -452,7 +455,8 @@ async function fetchOllamaModels() {
 // ────────────────────────────────────────────────────────────────────────────
 // LLM settings persistence & Settings Modal logic
 // ────────────────────────────────────────────────────────────────────────────
-let ALL_PROVIDERS = [];
+const DEFAULT_PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'nvidia', 'ollama'];
+let ALL_PROVIDERS = [...DEFAULT_PROVIDERS];
 let litellmProvidersList = [];
 
 function getSavedKey(provider) {
@@ -524,6 +528,19 @@ async function loadLlmSettings() {
     }
   } catch (e) { console.error('Failed to fetch litellm providers', e); }
 
+  // Load custom added providers from local storage
+  try {
+    const customStr = localStorage.getItem('custom_added_providers');
+    if (customStr) {
+      const customAdded = JSON.parse(customStr);
+      if (Array.isArray(customAdded)) {
+        customAdded.forEach(p => {
+          if (!ALL_PROVIDERS.includes(p)) ALL_PROVIDERS.push(p);
+        });
+      }
+    }
+  } catch (err) { console.warn('Failed to load custom providers:', err); }
+
   try {
     const res = await fetch('/api/config');
     if (res.ok) {
@@ -546,10 +563,6 @@ async function loadLlmSettings() {
     }
   } catch (err) { console.warn('Failed to load config:', err); }
 
-  if (ALL_PROVIDERS.length === 0) {
-    ALL_PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'nvidia'];
-  }
-
   const savedCooldown = localStorage.getItem('llm_cooldown') || '5';
   populateProvidersDropdown();
   await populateModels(els.llmProvider.value);
@@ -566,7 +579,17 @@ function populateSettingsModal() {
   ALL_PROVIDERS.forEach(p => {
     const isOllama = (p === 'ollama');
     const isCustom = (p === 'custom');
+    const isDefault = DEFAULT_PROVIDERS.includes(p);
     
+    let removeBtnHtml = '';
+    if (!isDefault) {
+      removeBtnHtml = `
+        <button class="btn-xs remove-custom-provider" data-provider="${p}" title="Remove provider" style="padding: 2px 6px; font-size: 0.65rem; color: var(--rose); border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.05); margin-right: 8px; cursor: pointer; border-radius: var(--r-sm);">
+          ✕ Remove
+        </button>
+      `;
+    }
+
     let inputHtml = '';
     if (isOllama) {
       const url = localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
@@ -582,7 +605,7 @@ function populateSettingsModal() {
       const key = localStorage.getItem(`api_key_${p}`) || '';
       inputHtml = `
         <input type="password" id="key_${p}" class="field-input setting-key" placeholder="Enter key..." value="${key}" style="flex: 1;" />
-        <button class="btn-eye toggle-setting-key" title="Show/hide key" style="padding: 0 10px;">👁</button>
+        <button class="btn-eye toggle-setting-key" title="Show/hide key">👁</button>
       `;
     }
 
@@ -592,9 +615,12 @@ function populateSettingsModal() {
     row.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
         <label class="field-label" style="margin-bottom: 0; font-weight: 600;">${p.toUpperCase()} ${isOllama ? 'URL' : 'API Key'}</label>
-        <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
-          <input type="checkbox" id="show_${p}" class="setting-show-checkbox" ${isShown ? 'checked' : ''} /> Show in sidebar
-        </label>
+        <div style="display: flex; align-items: center;">
+          ${removeBtnHtml}
+          <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; color: var(--text-secondary); cursor: pointer;">
+            <input type="checkbox" id="show_${p}" class="setting-show-checkbox" ${isShown ? 'checked' : ''} /> Show in sidebar
+          </label>
+        </div>
       </div>
       <div class="key-input-wrap" style="display: flex; gap: 8px;">
         ${inputHtml}
@@ -612,6 +638,36 @@ function populateSettingsModal() {
     });
   });
 
+  container.querySelectorAll('.remove-custom-provider').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.preventDefault();
+      const p = btn.getAttribute('data-provider');
+      if (confirm(`Are you sure you want to remove the provider "${p.toUpperCase()}"?`)) {
+        ALL_PROVIDERS = ALL_PROVIDERS.filter(x => x !== p);
+        
+        let customStr = localStorage.getItem('custom_added_providers');
+        if (customStr) {
+          let customAdded = JSON.parse(customStr);
+          customAdded = customAdded.filter(x => x !== p);
+          localStorage.setItem('custom_added_providers', JSON.stringify(customAdded));
+        }
+        
+        localStorage.removeItem(`api_key_${p}`);
+        localStorage.removeItem(`show_provider_${p}`);
+        
+        const fd = new FormData();
+        fd.append('provider', p);
+        fd.append('api_key', '');
+        await fetch('/api/config', { method: 'POST', body: fd });
+        
+        populateSettingsModal();
+        populateProvidersDropdown();
+        syncActiveApiKey();
+        toast(`Removed provider ${p.toUpperCase()}`, 'success');
+      }
+    });
+  });
+
   const cooldown = localStorage.getItem('llm_cooldown') || '5';
   els.settingsCooldown.value = cooldown;
   els.settingsCooldownVal.textContent = cooldown;
@@ -626,6 +682,18 @@ if ($('addProviderBtn')) {
     if (!ALL_PROVIDERS.includes(p)) {
       ALL_PROVIDERS.push(p);
       localStorage.setItem(`show_provider_${p}`, 'true');
+      
+      // Persist in custom added providers list
+      let customAdded = [];
+      const customStr = localStorage.getItem('custom_added_providers');
+      if (customStr) {
+        try { customAdded = JSON.parse(customStr); } catch(err){}
+      }
+      if (!customAdded.includes(p)) {
+        customAdded.push(p);
+        localStorage.setItem('custom_added_providers', JSON.stringify(customAdded));
+      }
+      
       populateSettingsModal();
       input.value = '';
     } else {
@@ -717,14 +785,15 @@ if (els.settingsCooldown) {
 const _EXCLUDE_MODEL_PATTERNS = [
   'tts', 'whisper', 'audio', 'speech', 'realtime',
   'dall-e', 'stable-diffusion', 'imagen', 'image-generation',
-  'embed', 'ada-002', 'text-embedding', 'search-',
-  'moderation', 'content-filter', 'shield',
+  'embed', 'ada-002', 'text-embedding', 'search-', 'embedding', 'encoder',
+  'moderation', 'content-filter', 'shield', 'guard',
   'code-davinci', 'code-cushman', 'davinci-edit', 'text-davinci-edit',
   'text-ada', 'text-babbage', 'text-curie',
   'babbage-002', 'davinci-002',
   'text-davinci-001', 'text-davinci-002', 'text-davinci-003',
   'computer-use', 'ft:davinci', 'ft:babbage', 'ft:curie', 'ft:ada',
   'transcription', 'translation',
+  'rerank', 'clip', 'vit', 'siglip',
 ];
 function _isTextModel(name) {
   const low = name.toLowerCase();
@@ -2016,6 +2085,12 @@ function startSSEStream(sessionId) {
             loadResults(sessionId);
           };
         }
+        // Auto-dismiss after 2 seconds
+        setTimeout(() => {
+          if (notif && notif.classList.contains('complete')) {
+            notif.classList.add('hidden');
+          }
+        }, 2000);
       }
 
       appendLog('Analysis complete! Loading results…');
@@ -2054,6 +2129,12 @@ function startSSEStream(sessionId) {
           loadResults(sessionId);
         };
       }
+      // Auto-dismiss after 2 seconds
+      setTimeout(() => {
+        if (notif && notif.classList.contains('complete')) {
+          notif.classList.add('hidden');
+        }
+      }, 2000);
     }
 
     addNotification('Analysis Finished', 'Pipeline stream finalized.', 'info');

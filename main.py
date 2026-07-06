@@ -41,27 +41,7 @@ except Exception:
 
 # Copy assets on startup/reload
 try:
-    import glob
-    import shutil
-    
-    # 1. Copy ai chat logo
-    src_logo = Path(__file__).resolve().parent / "ai chat logo.png"
-    dest_logo = Path(__file__).resolve().parent / "assets" / "chat_logo.png"
-    if src_logo.exists():
-        shutil.copy2(src_logo, dest_logo)
-        print("Successfully copied ai chat logo.png to assets/chat_logo.png")
-        
-    # 2. Copy generated placeholder thumbnail
-    artifact_dir = Path("C:/Users/Asus/.gemini/antigravity-ide/brain/dcde0815-2aa1-4cf6-8671-5a5dceebea4b")
-    dest_thumb = Path(__file__).resolve().parent / "assets" / "placeholder_thumbnail.png"
-    if artifact_dir.exists():
-        thumbs = glob.glob(str(artifact_dir / "placeholder_thumbnail*.png"))
-        if thumbs:
-            thumbs.sort(key=os.path.getmtime, reverse=True)
-            shutil.copy2(thumbs[0], dest_thumb)
-            print(f"Successfully copied {Path(thumbs[0]).name} to assets/placeholder_thumbnail.png")
-
-    # 3. Convert bin/crewlyze.js line endings to LF
+    # 1. Convert bin/crewlyze.js line endings to LF
     bin_js = Path(__file__).resolve().parent / "bin" / "crewlyze.js"
     if bin_js.exists():
         with open(bin_js, "rb") as f:
@@ -71,7 +51,7 @@ try:
             f.write(lf_content)
         print("Successfully converted bin/crewlyze.js line endings to LF")
 except Exception as e:
-    print(f"Failed to auto-copy assets or convert line endings: {e}")
+    print(f"Failed to convert line endings: {e}")
 
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
@@ -1067,10 +1047,10 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
         "tts", "whisper", "audio", "speech", "realtime",
         # Image generation / vision-only
         "dall-e", "stable-diffusion", "imagen", "image-generation",
-        # Embeddings
-        "embed", "ada-002", "text-embedding", "search-",
-        # Moderation / safety
-        "moderation", "content-filter", "shield",
+        # Embeddings / Encoders
+        "embed", "ada-002", "text-embedding", "search-", "embedding", "encoder",
+        # Moderation / safety / guardrails
+        "moderation", "content-filter", "shield", "guard",
         # Code-only non-chat (old Codex completions API)
         "code-davinci", "code-cushman", "davinci-edit", "text-davinci-edit",
         "text-ada", "text-babbage", "text-curie",
@@ -1083,6 +1063,8 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
         "ft:davinci", "ft:babbage", "ft:curie", "ft:ada",
         # Transcription / translation
         "transcription", "translation",
+        # Rerankers & Vision-specific
+        "rerank", "clip", "vit", "siglip",
     )
 
     def _is_text_model(name: str) -> bool:

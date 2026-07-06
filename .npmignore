@@ -32,3 +32,15 @@ run_web.bat
 .idea/
 .vscode/
 .gemini/
+
+# NPM tarballs & stray files
+*.tgz
+crewlyze-*.tgz
+ai chat logo.png
+git_history.txt
+README-NPM.md
+README-GITHUB.md
+.dockerignore
+Dockerfile
+docker-compose.yml
+.gitattributes
