@@ -20,8 +20,8 @@
   --violet:       #ff252a;
   --violet-light: #ff6b6e;
   --violet-glow:  rgba(255,37,42,0.25);
-  --cyan:         #22d3ee;
-  --cyan-glow:    rgba(34,211,238,0.18);
+  --cyan:         #ffffff;
+  --cyan-glow:    rgba(255,255,255,0.15);
   --rose:         #f43f5e;
   --emerald:      #10b981;
   --amber:        #f59e0b;
@@ -234,7 +234,7 @@ html, body {
 .status-pill.error     { background: rgba(244,63,94,0.15);  color: var(--rose); }
 
 /* ── Screens ─────────────────────────────────────────── */
-.screen { display: none; flex: 1; min-height: 0; overflow-y: auto; padding: 32px 28px 28px; }
+.screen { display: none; flex: 1; min-height: 0; max-height: calc(100vh - 56px); overflow-y: auto !important; padding: 32px 28px 28px; }
 .screen.active { display: flex; flex-direction: column; gap: 28px; }
 
 /* ── Landing ─────────────────────────────────────────── */
@@ -1291,10 +1291,10 @@ html, body {
 .chat-msg.user { flex-direction: row-reverse; }
 
 .chat-avatar {
-  width: 32px; height: 32px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   flex-shrink: 0;
 }
 .chat-msg.user .chat-avatar { background: var(--violet-glow); color: var(--violet-light); }
@@ -2341,15 +2341,18 @@ html, body {
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
-    font-size: 0.9em;
+    font-size: 0.85rem;
     border-radius: var(--r-md);
-    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
     box-shadow: inset 0 0 0 1px var(--border-color);
 }
 .markdown-body th, .markdown-body td {
-    padding: 10px 14px;
+    padding: 8px 14px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
 }
 .markdown-body th {
     background: rgba(255, 255, 255, 0.05);
@@ -2558,4 +2561,295 @@ html, body {
 }
 .hub-card#btnEnterAgentic:hover .btn-primary {
   box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
+}
+
+/* Faded Background Logo */
+.hero-bg-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 580px;
+  height: 580px;
+  opacity: 0.18;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 40px rgba(255, 37, 42, 0.12));
+}
+.hero-bg-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Create Project Card Enhancements */
+.create-project-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 37, 42, 0.4) !important;
+  box-shadow: 0 10px 25px rgba(255, 37, 42, 0.08) !important;
+  background: rgba(255, 37, 42, 0.04) !important;
+}
+.create-project-card:hover div:first-child {
+  transform: scale(1.08);
+  background: rgba(255, 37, 42, 0.15) !important;
+  box-shadow: 0 0 20px rgba(255, 37, 42, 0.2) !important;
+}
+#importProjectCard:hover {
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.08) !important;
+  background: rgba(16, 185, 129, 0.04) !important;
+}
+#importProjectCard:hover div:first-child {
+  transform: scale(1.08);
+  background: rgba(16, 185, 129, 0.15) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Sidebar toggle collapsed adjustments */
+.sidebar.collapsed .sidebar-toggle {
+  background: rgba(255, 37, 42, 0.15) !important;
+  border-color: rgba(255, 37, 42, 0.3) !important;
+}
+
+/* Bell Notification center details styling */
+#notifsList::-webkit-scrollbar {
+  width: 4px;
+}
+#notifsList::-webkit-scrollbar-thumb {
+  background: var(--border-mid);
+  border-radius: 2px;
+}
+.notif-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-low);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.78rem;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.notif-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.notif-item.unread {
+  background: rgba(255, 37, 42, 0.02);
+}
+.notif-item-title {
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.notif-item-time {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+.notif-item-text {
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* Multi-select check wrap inside chat */
+.chat-select-wrap {
+  margin-right: 10px;
+  display: none !important;
+  align-items: center;
+  justify-content: center;
+}
+.chat-messages.export-mode-active .chat-select-wrap {
+  display: flex !important;
+}
+.chat-select-check {
+  cursor: pointer;
+  accent-color: var(--violet);
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--border-mid);
+  border-radius: 4px;
+}
+
+/* Collapsed sidebar header alignment styles */
+.sidebar.collapsed .sidebar-header {
+  padding: 18px 0 !important;
+  justify-content: center !important;
+}
+.sidebar.collapsed .logo {
+  display: none !important;
+}
+
+/* Import Zip drag over and hover styles */
+#importZipZone {
+  border: 2px dashed rgba(16, 185, 129, 0.35) !important;
+  background: rgba(16, 185, 129, 0.04) !important;
+  max-width: 520px;
+  margin: 10px auto 0 auto;
+}
+#importZipZone:hover, #importZipZone.drag-over {
+  border-color: var(--emerald) !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15) !important;
+}
+
+/* Premium Modal Wizard Styles */
+.modal-overlay .modal-box {
+  background: #09090b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+  border-radius: var(--r-xl) !important;
+  overflow: hidden;
+  max-width: 500px !important;
+}
+
+.modal-overlay .modal-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 18px 24px !important;
+  background: rgba(255, 255, 255, 0.01) !important;
+}
+
+.modal-overlay .modal-header h2 {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.modal-overlay .modal-header h2 i {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
+
+.modal-overlay .modal-header .btn-icon {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary) !important;
+  font-size: 1.2rem !important;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 4px;
+}
+.modal-overlay .modal-header .btn-icon:hover {
+  color: #fff !important;
+}
+
+.modal-overlay .modal-body {
+  padding: 24px 24px 28px 24px !important;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+
+/* Force standard left-aligned forms inside modals */
+.modal-overlay .wizard-step {
+  display: none;
+  flex-direction: column;
+  align-items: stretch !important;
+  text-align: left !important;
+  width: 100% !important;
+  opacity: 0;
+  transform: none !important; /* Remove translate to keep rendering sharp */
+  transition: opacity 0.25s ease;
+}
+
+.modal-overlay .wizard-step.active {
+  display: flex;
+  opacity: 1;
+}
+
+.modal-overlay .wizard-step p {
+  color: var(--text-secondary) !important;
+  font-size: 0.84rem !important;
+  line-height: 1.5 !important;
+  margin: 0 0 4px 0 !important;
+  text-align: left !important;
+}
+
+.modal-overlay .field-group {
+  width: 100% !important;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.modal-overlay .field-label {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  margin: 0 !important;
+  text-align: left !important;
+  display: block !important;
+}
+
+.modal-overlay .field-input {
+  width: 100% !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  border-radius: var(--r-md) !important;
+  padding: 10px 12px !important;
+  font-size: 0.9rem !important;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+
+.modal-overlay .field-input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.modal-overlay .field-input:focus {
+  border-color: rgba(255, 37, 42, 0.5) !important;
+  background: rgba(255, 37, 42, 0.02) !important;
+  box-shadow: 0 0 0 3px rgba(255, 37, 42, 0.15) !important;
+}
+
+.modal-overlay textarea.field-input {
+  min-height: 80px;
+  resize: none;
+}
+
+/* Custom premium footer buttons alignment inside the wizard */
+.modal-overlay .wizard-step button {
+  margin-top: 8px;
+  padding: 12px 24px !important;
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--r-md) !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* CSV Upload Area inside Modal Step 2 */
+.modal-overlay .upload-zone {
+  border: 2px dashed rgba(255, 37, 42, 0.25) !important;
+  background: rgba(255, 37, 42, 0.01) !important;
+  border-radius: var(--r-md) !important;
+  padding: 36px 20px !important;
+  transition: all 0.25s ease-in-out;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.modal-overlay .upload-zone:hover,
+.modal-overlay .upload-zone.drag-over {
+  border-color: rgba(255, 37, 42, 0.6) !important;
+  background: rgba(255, 37, 42, 0.04) !important;
+  box-shadow: 0 0 20px rgba(255, 37, 42, 0.08) !important;
+}
+
+.modal-overlay #modalStep2 .upload-actions {
+  display: flex !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin-top: 12px !important;
+}
+
+.modal-overlay #modalStep2 .upload-actions button {
+  margin: 0 !important;
 }

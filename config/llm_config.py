@@ -8,6 +8,22 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def _load_local_config():
+    try:
+        from pathlib import Path
+        import json
+        cfg_path = Path.home() / ".crewlyze" / "config.json"
+        if cfg_path.exists():
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+                for k, v in cfg.items():
+                    if k not in os.environ:
+                        os.environ[k] = str(v)
+    except Exception:
+        pass
+
+_load_local_config()
+
 # NVIDIA NIM OpenAI-compatible endpoint (required for LiteLLM / CrewAI)
 NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
 

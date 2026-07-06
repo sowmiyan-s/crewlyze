@@ -17,7 +17,7 @@
 
 'use strict';
 
-const DEFAULT_THUMBNAIL_SVG = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiB2aWV3Qm94PSIwIDAgMzIwIDE4MCI+PHJlY3Qgd2lkdGg9IjMyMCIgaGVpZ2h0PSIxODAiIGZpbGw9IiMxODE4MWIiLz48Y2lyY2xlIGN4PSIxNjAiIGN5PSI5MCIgcj0iNDAiIGZpbGw9IiM3YzNhZWQiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PHBhdGggZD0iTTE0MCAxMDAgTDE2MCA4MCBMMTgwIDEwMCIgc3Ryb2tlPSIjN2MzYWVkIiBzdHJva2Utd2lkdGg9IjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xMzAgMTE1IEwxOTAgMTE1IiBzdHJva2U9IiMyMmQzZWUiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PHRleHQgeD0iMTYwIiB5PSIxNTAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIiBmaWxsPSIjYTFhMWFhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5BR0VOVElDIExPR1M8L3RleHQ+PC9zdmc+';
+const DEFAULT_THUMBNAIL_SVG = '/assets/placeholder_thumbnail.png';
 
 // ────────────────────────────────────────────────────────────────────────────
 // Model catalogue (mirrors the sidebar in the old Streamlit app)
@@ -78,10 +78,10 @@ const els = {
   sidebarLogo:       $('sidebarLogo'),
   newProjectWizard:  $('newProjectWizard'),
   wizardStep0:       $('wizardStep0'),
-  startWizardCard:    $('startWizardCard'),
-  wizardStep1:       $('wizardStep1'),
-  wizardBack1Btn:     $('wizardBack1Btn'),
-  wizardStep2:       $('wizardStep2'),
+  startWizardCard:   $('startWizardCard'),
+  wizardStep1:       $('modalStep1'),
+  wizardBack1Btn:    $('wizardBack1Btn'),
+  wizardStep2:       $('modalStep2'),
   wizardProjectName: $('wizardProjectName'),
   wizardNextBtn:     $('wizardNextBtn'),
   wizardBackBtn:     $('wizardBackBtn'),
@@ -205,6 +205,7 @@ const els = {
   sendChatBtn:       $('sendChatBtn'),
   clearChatBtn:      $('clearChatBtn'),
   colPickerDropdown: $('colPickerDropdown'),
+  toggleExportModeBtn: $('toggleExportModeBtn'),
 
   // Export
   exportPdfBtn:      $('exportPdfBtn'),
@@ -263,19 +264,23 @@ const els = {
   agenticTabsBar:              $('agenticTabsBar'),
   agenticTabPanels:            $('agenticTabPanels'),
   btnRunAgenticPipeline:       $('btnRunAgenticPipeline'),
+  sidebarMetricsBtn:           $('sidebarMetricsBtn'),
+  metricsScreen:               $('metricsScreen'),
+  backToDashboardBtn:          $('backToDashboardBtn'),
+  metricsTableBody:            $('metricsTableBody'),
 };
 
 // ────────────────────────────────────────────────────────────────────────────
 // Screen management
 // ────────────────────────────────────────────────────────────────────────────
 function showScreen(name) {
-  ['landingScreen','runningScreen','resultsScreen'].forEach(id => {
+  ['landingScreen','runningScreen','resultsScreen','metricsScreen'].forEach(id => {
     const el = $(id);
-    el.classList.toggle('active', id === name + 'Screen');
+    if (el) el.classList.toggle('active', id === name + 'Screen');
   });
-  if (name !== 'results') {
+  if (name !== 'results' && name !== 'metrics') {
     if (els.sidebarProjectActions) els.sidebarProjectActions.classList.add('hidden');
-  } else {
+  } else if (name === 'results') {
     updateSidebarProjectActionsVisibility();
   }
 }
@@ -513,6 +518,30 @@ function populateProvidersDropdown() {
 }
 
 async function loadLlmSettings() {
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      const backendCfg = await res.json();
+      if (backendCfg.NVIDIA_API_KEY) localStorage.setItem('api_key_nvidia', backendCfg.NVIDIA_API_KEY);
+      if (backendCfg.GROQ_API_KEY) localStorage.setItem('api_key_groq', backendCfg.GROQ_API_KEY);
+      if (backendCfg.OPENAI_API_KEY) localStorage.setItem('api_key_openai', backendCfg.OPENAI_API_KEY);
+      if (backendCfg.ANTHROPIC_API_KEY) localStorage.setItem('api_key_anthropic', backendCfg.ANTHROPIC_API_KEY);
+      if (backendCfg.GEMINI_API_KEY) localStorage.setItem('api_key_gemini', backendCfg.GEMINI_API_KEY);
+      if (backendCfg.MISTRAL_API_KEY) localStorage.setItem('api_key_mistral', backendCfg.MISTRAL_API_KEY);
+      if (backendCfg.HUGGINGFACE_API_KEY) localStorage.setItem('api_key_huggingface', backendCfg.HUGGINGFACE_API_KEY);
+      if (backendCfg.COHERE_API_KEY) localStorage.setItem('api_key_cohere', backendCfg.COHERE_API_KEY);
+      if (backendCfg.TOGETHER_API_KEY) localStorage.setItem('api_key_together', backendCfg.TOGETHER_API_KEY);
+      if (backendCfg.OPENROUTER_API_KEY) localStorage.setItem('api_key_openrouter', backendCfg.OPENROUTER_API_KEY);
+      if (backendCfg.DEEPSEEK_API_KEY) localStorage.setItem('api_key_deepseek', backendCfg.DEEPSEEK_API_KEY);
+      if (backendCfg.PERPLEXITY_API_KEY) localStorage.setItem('api_key_perplexity', backendCfg.PERPLEXITY_API_KEY);
+      if (backendCfg.OLLAMA_BASE_URL) localStorage.setItem('api_url_ollama', backendCfg.OLLAMA_BASE_URL);
+      if (backendCfg.CUSTOM_BASE_URL) localStorage.setItem('api_url_custom', backendCfg.CUSTOM_BASE_URL);
+      if (backendCfg.CUSTOM_API_KEY) localStorage.setItem('api_key_custom', backendCfg.CUSTOM_API_KEY);
+    }
+  } catch (err) {
+    console.warn('Failed to load credentials from backend config:', err);
+  }
+
   const savedProvider = localStorage.getItem('llm_provider');
   const savedCooldown = localStorage.getItem('llm_cooldown') || '5';
 
@@ -598,6 +627,28 @@ function saveSettingsModal() {
   localStorage.setItem('api_url_ollama', els.urlOllama.value.trim());
   localStorage.setItem('api_url_custom', els.urlCustom.value.trim());
   localStorage.setItem('api_key_custom', els.keyCustom.value.trim());
+
+  // Save to backend configuration
+  const providers_to_save = ['nvidia', 'groq', 'openai', 'anthropic', 'gemini', 'mistral', 'huggingface', 'cohere', 'together', 'openrouter', 'deepseek', 'perplexity', 'ollama', 'custom'];
+  providers_to_save.forEach(async (prov) => {
+    const fd = new FormData();
+    fd.append('provider', prov);
+    if (prov === 'ollama') {
+      fd.append('base_url', els.urlOllama.value.trim());
+    } else if (prov === 'custom') {
+      fd.append('base_url', els.urlCustom.value.trim());
+      fd.append('api_key', els.keyCustom.value.trim());
+    } else {
+      const capId = prov.charAt(0).toUpperCase() + prov.slice(1);
+      const val = (els[`key${capId}`] ? els[`key${capId}`].value.trim() : '');
+      fd.append('api_key', val);
+    }
+    try {
+      await fetch('/api/config', { method: 'POST', body: fd });
+    } catch (err) {
+      console.error('Failed to sync settings to backend for', prov, err);
+    }
+  });
 
   const cooldown = els.settingsCooldown.value;
   localStorage.setItem('llm_cooldown', cooldown);
@@ -772,7 +823,10 @@ els.llmModel.addEventListener('change', async () => {
 // ────────────────────────────────────────────────────────────────────────────
 els.sidebarToggle.addEventListener('click', () => {
   const collapsed = els.sidebar.classList.toggle('collapsed');
-  els.sidebarToggle.textContent = collapsed ? '›' : '‹';
+  els.sidebarToggle.innerHTML = collapsed 
+    ? '<i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>'
+    : '<i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>';
+  if (window.lucide) lucide.createIcons();
 });
 els.mobileSidebarBtn.addEventListener('click', () => {
   els.sidebar.classList.toggle('mobile-open');
@@ -1097,18 +1151,67 @@ function resetWizardState() {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     els.wizardProjectName.value = `Analysis - ${d.getDate()} ${months[d.getMonth()]}`;
   }
-  if (els.wizardStep0) els.wizardStep0.classList.add('active');
-  if (els.wizardStep1) els.wizardStep1.classList.remove('active');
-  if (els.wizardStep2) els.wizardStep2.classList.remove('active');
+  const s1 = $('modalStep1');
+  const s2 = $('modalStep2');
+  if (s1) {
+    s1.style.display = 'flex';
+    s1.classList.add('active');
+  }
+  if (s2) {
+    s2.style.display = 'none';
+    s2.classList.remove('active');
+  }
   if (els.uploadedFileMeta) els.uploadedFileMeta.classList.add('hidden');
   if (els.uploadedFileActions) els.uploadedFileActions.classList.add('hidden');
 }
 
 // Import Project ZIP flow
-if (els.importProjectCard && els.importZipFileInput) {
+const importProjectModal = $('importProjectModal');
+if (els.importProjectCard && importProjectModal) {
   els.importProjectCard.addEventListener('click', () => {
+    importProjectModal.classList.remove('hidden');
+  });
+}
+const closeImportModal = $('closeImportModal');
+if (closeImportModal && importProjectModal) {
+  closeImportModal.addEventListener('click', () => {
+    importProjectModal.classList.add('hidden');
+  });
+}
+if (importProjectModal) {
+  importProjectModal.addEventListener('click', (e) => {
+    if (e.target === importProjectModal) importProjectModal.classList.add('hidden');
+  });
+}
+const importZipZone = $('importZipZone');
+if (importZipZone && els.importZipFileInput) {
+  importZipZone.addEventListener('click', () => {
     els.importZipFileInput.click();
   });
+  ['dragover','dragleave','drop'].forEach(evt => {
+    importZipZone.addEventListener(evt, e => {
+      e.preventDefault();
+      if (evt === 'dragover') importZipZone.classList.add('drag-over');
+      else {
+        importZipZone.classList.remove('drag-over');
+        if (evt === 'drop' && e.dataTransfer.files[0]) {
+          const zipFile = e.dataTransfer.files[0];
+          if (!zipFile.name.endsWith('.zip')) {
+            toast('Only ZIP files are supported.', 'error');
+            return;
+          }
+          // Set file field programmatically
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(zipFile);
+          els.importZipFileInput.files = dataTransfer.files;
+          els.importZipFileInput.dispatchEvent(new Event('change'));
+        }
+      }
+    });
+  });
+}
+
+if (els.importZipFileInput) {
   
   els.importZipFileInput.addEventListener('change', async () => {
     const file = els.importZipFileInput.files[0];
@@ -1128,6 +1231,7 @@ if (els.importProjectCard && els.importZipFileInput) {
       const data = await res.json();
       toast(`Project imported successfully: ${data.name}`, 'success');
       addMyProject(data.id);
+      if (importProjectModal) importProjectModal.classList.add('hidden');
       
       // Reset input
       els.importZipFileInput.value = '';
@@ -1148,19 +1252,27 @@ if (els.importProjectCard && els.importZipFileInput) {
   });
 }
 
-// Wire wizard events
-if (els.startWizardCard) {
+// Wire wizard events inside newProjectModal
+const newProjectModal = $('newProjectModal');
+if (els.startWizardCard && newProjectModal) {
   els.startWizardCard.addEventListener('click', () => {
-    if (els.wizardStep0) els.wizardStep0.classList.remove('active');
-    if (els.wizardStep1) els.wizardStep1.classList.add('active');
-    if (els.wizardProjectName) els.wizardProjectName.focus();
+    newProjectModal.classList.remove('hidden');
+    resetWizardState();
+    if (els.wizardProjectName) {
+      setTimeout(() => els.wizardProjectName.focus(), 150);
+    }
   });
 }
 
-if (els.wizardBack1Btn) {
-  els.wizardBack1Btn.addEventListener('click', () => {
-    if (els.wizardStep1) els.wizardStep1.classList.remove('active');
-    if (els.wizardStep0) els.wizardStep0.classList.add('active');
+const closeNewProjectModal = $('closeNewProjectModal');
+if (closeNewProjectModal && newProjectModal) {
+  closeNewProjectModal.addEventListener('click', () => {
+    newProjectModal.classList.add('hidden');
+  });
+}
+if (newProjectModal) {
+  newProjectModal.addEventListener('click', (e) => {
+    if (e.target === newProjectModal) newProjectModal.classList.add('hidden');
   });
 }
 
@@ -1182,15 +1294,32 @@ if (els.wizardNextBtn) {
     if (els.reportTitle) {
       els.reportTitle.value = state.newProjectReportTitle || `${name} Executive Analysis`;
     }
-    if (els.wizardStep1) els.wizardStep1.classList.remove('active');
-    if (els.wizardStep2) els.wizardStep2.classList.add('active');
+    
+    const s1 = $('modalStep1');
+    const s2 = $('modalStep2');
+    if (s1) {
+      s1.style.display = 'none';
+      s1.classList.remove('active');
+    }
+    if (s2) {
+      s2.style.display = 'flex';
+      s2.classList.add('active');
+    }
   });
 }
 
 if (els.wizardBackBtn) {
   els.wizardBackBtn.addEventListener('click', () => {
-    if (els.wizardStep2) els.wizardStep2.classList.remove('active');
-    if (els.wizardStep1) els.wizardStep1.classList.add('active');
+    const s1 = $('modalStep1');
+    const s2 = $('modalStep2');
+    if (s1) {
+      s1.style.display = 'flex';
+      s1.classList.add('active');
+    }
+    if (s2) {
+      s2.style.display = 'none';
+      s2.classList.remove('active');
+    }
   });
 }
 
@@ -1394,6 +1523,8 @@ els.startAnalysisBtn.addEventListener('click', () => {
 // ────────────────────────────────────────────────────────────────────────────
 function openConfigModal() {
   els.configModal.classList.remove('hidden');
+  const modal = $('newProjectModal');
+  if (modal) modal.classList.add('hidden');
 }
 function closeConfigModal() {
   els.configModal.classList.add('hidden');
@@ -1510,6 +1641,7 @@ els.runAnalysisBtn.addEventListener('click', async () => {
     els.runningTitle.textContent = `Analysing "${projName}"…`;
     setStatus('● Running', 'running');
     startSSEStream(state.uploadedSession);
+    addNotification('Analysis Started', `Pipeline triggered for "${projName}"`);
     toast('Analysis started!', 'success');
   } catch (e) {
     toast('Failed to start analysis: ' + e.message, 'error');
@@ -1749,6 +1881,7 @@ function updateProgressTrack(newStage) {
   const text = labels[newStage] || 'Analysing...';
   const el = $('notifActiveJob');
   if (el) el.textContent = text;
+  addNotification('Stage Transition', `Analysis transitioned to stage: ${newStage}`);
 }
 
 function inferStageFromLog(line) {
@@ -1866,6 +1999,7 @@ function startSSEStream(sessionId) {
 
       appendLog('Analysis complete! Loading results…');
       setStatus('● Loading…', 'running');
+      addNotification('Analysis Completed', 'Pipeline finished successfully!', 'success');
       setTimeout(() => loadResults(sessionId), 1500);
       return;
     }
@@ -1901,6 +2035,7 @@ function startSSEStream(sessionId) {
       }
     }
 
+    addNotification('Analysis Finished', 'Pipeline stream finalized.', 'info');
     // Try to load results anyway
     setTimeout(() => loadResults(sessionId), 2000);
   };
@@ -2520,7 +2655,10 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
       card.innerHTML = `
         <div class="chart-card-header">
           <div class="chart-card-title">${escHtml(chart.title)}</div>
-          <div class="chart-card-type">${typeLabel}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="btn-xs download-plotly-btn" data-index="${idx}" style="cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--border-mid); background: var(--bg-surface); border-radius: var(--r-sm); color: var(--text-secondary);"><i data-lucide="download" style="width: 12px; height: 12px;"></i> Download</button>
+            <div class="chart-card-type">${typeLabel}</div>
+          </div>
         </div>
         <div class="chart-card-body">
           <div id="plotly_chart_${idx}" style="width:100%;height:380px;"></div>
@@ -2542,6 +2680,21 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
           modeBarButtonsToRemove: ['toImage','sendDataToCloud'],
           displaylogo: false,
         });
+
+        const dlBtn = card.querySelector('.download-plotly-btn');
+        if (dlBtn) {
+          dlBtn.addEventListener('click', () => {
+            const gd = document.getElementById(`plotly_chart_${idx}`);
+            if (gd) {
+              Plotly.downloadImage(gd, {
+                format: 'png',
+                width: 1000,
+                height: 600,
+                filename: chart.title || 'plotly_chart'
+              });
+            }
+          });
+        }
       } catch (e) {
         card.querySelector('.chart-card-body').innerHTML =
           `<div class="chart-card-error">⚠ Could not render chart: ${escHtml(String(e))}</div>`;
@@ -2561,15 +2714,19 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
         .replace(/\brelation\b/g, '')
         .replace(/^[a-z]/, c => c.toUpperCase())
         .trim();
+      const chartUrl = `/api/charts/${sessionId}/${encodeURIComponent(name)}`;
       return `
         <div class="chart-card png-chart-card">
           <div class="chart-card-header">
             <div class="chart-card-title">${escHtml(title)}</div>
-            <div class="chart-card-type">agent chart</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <a href="${chartUrl}" download="${escHtml(name)}" class="btn-xs" style="cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid var(--border-mid); background: var(--bg-surface); border-radius: var(--r-sm); color: var(--text-secondary);"><i data-lucide="download" style="width: 12px; height: 12px;"></i> Download</a>
+              <div class="chart-card-type">agent chart</div>
+            </div>
           </div>
           <div class="chart-card-body png-chart-body">
             <img
-              src="/api/charts/${sessionId}/${encodeURIComponent(name)}"
+              src="${chartUrl}"
               alt="${escHtml(title)}"
               class="png-chart-img"
               loading="lazy"
@@ -2580,6 +2737,10 @@ function renderCharts(plotlyCharts, pngCharts, sessionId) {
     }).join('');
   } else {
     els.pngChartsWrap.classList.add('hidden');
+  }
+
+  if (window.lucide) {
+    lucide.createIcons();
   }
 }
 
@@ -2658,22 +2819,33 @@ function resetChat() {
   state.chatHistory = [];
   els.chatMessages.innerHTML = '';
   // Seed with a welcome message
-  appendChatMsg('assistant', `Hi! I'm your AI Data Copilot. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`);
+  appendChatMsg('assistant', `Hi! I'm your Crew Chat assistant. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`);
 }
 
 function appendChatMsg(role, content, plotUrl = null) {
+  const cleanedContent = removeFilePathInfo(content);
+  const msgIdx = state.chatHistory.length;
+  state.chatHistory.push({ role, content: cleanedContent, plot_url: plotUrl });
+
   const div = document.createElement('div');
   div.className = `chat-msg ${role}`;
+  
+  const checkHtml = `
+    <div class="chat-select-wrap">
+      <input type="checkbox" class="chat-select-check" data-idx="${msgIdx}" />
+    </div>
+  `;
+
   const avatar = role === 'user' 
-    ? '<i data-lucide="user" style="width: 16px; height: 16px;"></i>' 
-    : '<i data-lucide="bot" style="width: 16px; height: 16px;"></i>';
+    ? '<i data-lucide="user" style="width: 18px; height: 18px;"></i>' 
+    : '<img src="/assets/chat_logo.png" style="width: 30px; height: 30px; object-fit: contain;" />';
 
   let formatted = '';
   // Try to use marked.js, fallback if CDN fails
   if (typeof marked !== 'undefined') {
-    formatted = marked.parse(content);
+    formatted = marked.parse(cleanedContent);
   } else {
-    formatted = escHtml(content)
+    formatted = escHtml(cleanedContent)
       .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
       .replace(/`([^`]+)`/g, '<code style="background:var(--bg-surface);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:0.85em">$1</code>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -2681,10 +2853,16 @@ function appendChatMsg(role, content, plotUrl = null) {
   }
 
   div.innerHTML = `
-    <div class="chat-avatar">${avatar}</div>
-    <div class="chat-bubble markdown-body">
+    ${checkHtml}
+    <div class="chat-avatar" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">${avatar}</div>
+    <div class="chat-bubble markdown-body" style="position: relative;">
       ${formatted}
-      ${plotUrl ? `<img src="${plotUrl}" alt="Generated chart" style="margin-top:1rem; border-radius:12px; border:1px solid var(--border-color); max-width:100%; box-shadow: 0 4px 15px var(--shadow-color);" />` : ''}
+      ${plotUrl ? `
+        <div style="position: relative; display: inline-block; max-width: 100%; margin-top: 1rem;">
+          <img src="${plotUrl}" alt="Generated chart" style="border-radius:12px; border:1px solid var(--border-color); max-width:100%; box-shadow: 0 4px 15px var(--shadow-color);" />
+          <a href="${plotUrl}" download style="position: absolute; bottom: 10px; right: 10px; display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--r-sm); text-decoration: none; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); transition: all 0.2s;"><i data-lucide="download" style="width: 12px; height: 12px;"></i> Download</a>
+        </div>
+      ` : ''}
     </div>`;
   els.chatMessages.appendChild(div);
   els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
@@ -2692,6 +2870,8 @@ function appendChatMsg(role, content, plotUrl = null) {
   if (window.lucide) {
     lucide.createIcons({ attrs: { class: 'icon-svg' } });
   }
+
+  div.querySelector('.chat-select-check').addEventListener('change', updateExportChatPdfBtnVisibility);
 }
 
 function showTypingIndicator() {
@@ -2699,7 +2879,10 @@ function showTypingIndicator() {
   div.className = 'chat-msg assistant';
   div.id = 'typingIndicator';
   div.innerHTML = `
-    <div class="chat-avatar"><i data-lucide="bot" style="width: 16px; height: 16px;"></i></div>
+    <div class="chat-select-wrap" style="visibility: hidden;">
+      <input type="checkbox" class="chat-select-check" />
+    </div>
+    <div class="chat-avatar" style="overflow: hidden; display: flex; align-items: center; justify-content: center;"><img src="/assets/chat_logo.png" style="width: 22px; height: 22px; object-fit: contain; border-radius: 50%;" /></div>
     <div class="chat-bubble" style="color:var(--text-muted)">
       <span style="animation:pulse 1.2s infinite;display:inline-block">Analysing</span>…
     </div>`;
@@ -2849,6 +3032,141 @@ document.addEventListener('click', e => {
   }
 });
 
+
+// Path locations cleanup helper to avoid showing raw local paths in UI
+function removeFilePathInfo(text) {
+  if (!text) return '';
+  let cleaned = text.replace(/(?:[a-zA-Z]:)?[\\/][a-zA-Z0-9_\-\.\s\\/]+?\.(?:png|csv|zip|json|txt|py)/gi, '[File]');
+  cleaned = cleaned.replace(/Plot saved to \[File\]/gi, 'Plot generated and saved successfully.');
+  cleaned = cleaned.replace(/saved to \[File\]/gi, 'saved successfully.');
+  
+  // Strip Auto-Healing system headers, execution output dumps, and tracebacks
+  cleaned = cleaned.replace(/\[Auto-Healing system resolved a code error!\][\s\S]*?(?:Successful Execution Output:\s*(?:\(no output\)|\S+)?)/gi, '');
+  cleaned = cleaned.replace(/\[Auto-Healing system installed missing package[\s\S]*?(?:Output:\s*\S*)?/gi, '');
+  cleaned = cleaned.replace(/Original Error:[\s\S]*?(?=(?:Successful Execution Output|$))/gi, '');
+  cleaned = cleaned.replace(/Successful Execution Output:\s*\(no output\)/gi, '');
+  cleaned = cleaned.replace(/Successful Execution Output:/gi, '');
+  
+  cleaned = cleaned.trim().replace(/\n{3,}/g, '\n\n');
+  return cleaned;
+}
+
+// Local Notification Center
+state.notifications = [];
+
+function addNotification(title, text, type = 'info') {
+  const notif = {
+    id: Date.now() + Math.random(),
+    title,
+    text: removeFilePathInfo(text),
+    time: new Date(),
+    read: false,
+    type
+  };
+  state.notifications.unshift(notif);
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const badge = $('notifBadge');
+  const list = $('notifsList');
+  if (!badge || !list) return;
+  
+  const unreadCount = state.notifications.filter(n => !n.read).length;
+  badge.textContent = unreadCount;
+  if (unreadCount > 0) {
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+  
+  if (state.notifications.length === 0) {
+    list.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-secondary); font-size: 0.8rem;">No new notifications</div>`;
+    return;
+  }
+  
+  list.innerHTML = state.notifications.map(n => {
+    const d = n.time;
+    const timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+    return `
+      <div class="notif-item ${n.read ? '' : 'unread'}" data-id="${n.id}">
+        <div class="notif-item-title">
+          <span>${escHtml(n.title)}</span>
+          <span class="notif-item-time">${timeStr}</span>
+        </div>
+        <div class="notif-item-text">${escHtml(n.text)}</div>
+      </div>
+    `;
+  }).join('');
+  
+  list.querySelectorAll('.notif-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = parseFloat(item.dataset.id);
+      const n = state.notifications.find(not => not.id === id);
+      if (n) {
+        n.read = true;
+        renderNotifications();
+      }
+    });
+  });
+}
+
+function updateExportChatPdfBtnVisibility() {
+  const isExportActive = els.chatMessages.classList.contains('export-mode-active');
+  const checked = document.querySelectorAll('.chat-select-check:checked');
+  const btn = $('exportChatPdfBtn');
+  if (btn) {
+    btn.style.display = (isExportActive && checked.length > 0) ? 'inline-flex' : 'none';
+  }
+}
+
+async function exportChatPdf() {
+  const sessionId = state.activeProject?.id || state.uploadedSession;
+  if (!sessionId) { toast('No active session. Run an analysis first.', 'warning'); return; }
+  
+  const checked = document.querySelectorAll('.chat-select-check:checked');
+  const selectedMessages = [];
+  checked.forEach(chk => {
+    const idx = parseInt(chk.dataset.idx, 10);
+    const msg = state.chatHistory[idx];
+    if (msg) {
+      selectedMessages.push(msg);
+    }
+  });
+  
+  if (selectedMessages.length === 0) {
+    toast('Select at least one message to export.', 'warning');
+    return;
+  }
+  
+  try {
+    toast('Generating PDF...', 'info');
+    const fd = new FormData();
+    fd.append('session_id', sessionId);
+    fd.append('messages_json', JSON.stringify(selectedMessages));
+    
+    const res = await fetch('/api/export-chat-pdf', {
+      method: 'POST',
+      body: fd
+    });
+    
+    if (!res.ok) throw new Error('PDF generation failed');
+    
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat_history_${sessionId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    toast('PDF exported successfully!', 'success');
+  } catch (e) {
+    toast('Error exporting PDF: ' + e.message, 'error');
+  }
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Utilities
 // ────────────────────────────────────────────────────────────────────────────
@@ -2885,7 +3203,7 @@ function escHtml(str) {
       }
       if (els.areaHub) els.areaHub.classList.add('hidden');
       switchSection('chat');
-      setBreadcrumb(p.name, 'AI Data Chat');
+      setBreadcrumb(p.name, 'Crew Chat');
     });
   }
 
@@ -2912,7 +3230,7 @@ function escHtml(str) {
       const p = state.activeProject;
       if (els.areaHub) els.areaHub.classList.add('hidden');
       switchSection('chat');
-      if (p) setBreadcrumb(p.name, 'AI Data Chat');
+      if (p) setBreadcrumb(p.name, 'Crew Chat');
     });
   }
   if (els.btnSectionAgentic) {
@@ -2996,6 +3314,179 @@ function escHtml(str) {
       e.stopPropagation();
       const notif = $('analysisNotification');
       if (notif) notif.classList.add('hidden');
+    });
+  }
+
+  // Performance Metrics logic
+  async function loadMetrics() {
+    try {
+      const res = await fetch('/api/metrics');
+      if (!res.ok) throw new Error('Failed to fetch metrics');
+      const data = await res.json();
+      
+      const totalRuns = data.length;
+      let totalTime = 0;
+      let totalTokens = 0;
+      let totalCost = 0;
+      
+      data.forEach(run => {
+        totalTime += run.total_time || 0;
+        totalTokens += run.token_usage || 0;
+        totalCost += run.estimated_cost || 0;
+      });
+      
+      const avgTime = totalRuns > 0 ? (totalTime / totalRuns).toFixed(1) : 0;
+      
+      const runsEl = $('metricsTotalRuns');
+      const timeEl = $('metricsAvgTime');
+      const tokensEl = $('metricsTotalTokens');
+      const costEl = $('metricsTotalCost');
+      
+      if (runsEl) runsEl.textContent = totalRuns;
+      if (timeEl) timeEl.textContent = `${avgTime}s`;
+      if (tokensEl) tokensEl.textContent = totalTokens.toLocaleString();
+      if (costEl) costEl.textContent = `$${totalCost.toFixed(3)}`;
+      
+      const tbody = $('metricsTableBody');
+      if (tbody) {
+        tbody.innerHTML = '';
+        
+        if (data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 20px; color: var(--text-secondary);">No run history recorded yet.</td></tr>`;
+          return;
+        }
+        
+        const sorted = [...data].reverse();
+        sorted.forEach(run => {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid var(--border)';
+          
+          const ts = new Date(run.timestamp).toLocaleString();
+          const statusText = run.success ? '✓ Success' : '✗ Failed';
+          const statusStyle = run.success ? 'color: var(--emerald); font-weight: 600;' : 'color: var(--rose); font-weight: 600;';
+          
+          tr.innerHTML = `
+            <td style="padding: 12px 20px; font-weight: 500;">${escHtml(run.dataset_name || 'dataset.csv')}</td>
+            <td style="padding: 12px 20px; color: var(--text-secondary);">${run.rows || 0} x ${run.columns || 0}</td>
+            <td style="padding: 12px 20px;">${(run.total_time || 0).toFixed(1)}s</td>
+            <td style="padding: 12px 20px;">${(run.token_usage || 0).toLocaleString()}</td>
+            <td style="padding: 12px 20px; color: var(--amber); font-weight: 500;">$${(run.estimated_cost || 0).toFixed(3)}</td>
+            <td style="padding: 12px 20px; color: var(--text-secondary);">${ts}</td>
+            <td style="padding: 12px 20px; ${statusStyle}">${statusText}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast('Failed to load performance metrics', 'error');
+    }
+  }
+
+  if (els.sidebarMetricsBtn) {
+    els.sidebarMetricsBtn.addEventListener('click', () => {
+      showScreen('metrics');
+      loadMetrics();
+    });
+  }
+  
+  if (els.backToDashboardBtn) {
+    els.backToDashboardBtn.addEventListener('click', () => {
+      if (state.activeProject) {
+        showScreen('results');
+      } else {
+        showScreen('landing');
+      }
+    });
+  }
+
+  // Wire Notification Bell & Dropdown
+  const bellBtn = $('notifBellBtn');
+  const dropdown = $('notifDropdown');
+  if (bellBtn && dropdown) {
+    bellBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        state.notifications.forEach(n => n.read = true);
+        renderNotifications();
+      }
+    });
+    
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target) && e.target !== bellBtn) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  }
+  
+  const clearNotifsBtn = $('clearNotifsBtn');
+  if (clearNotifsBtn) {
+    clearNotifsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.notifications = [];
+      renderNotifications();
+    });
+  }
+
+  // Wire Terms of Service modal
+  const tosModal = $('tosModal');
+  const tosBtn = $('sidebarTosBtn');
+  const closeTos = $('closeTosModal');
+  const acceptTos = $('acceptTosBtn');
+  
+  if (tosBtn && tosModal) {
+    tosBtn.addEventListener('click', () => {
+      tosModal.classList.remove('hidden');
+    });
+  }
+  if (closeTos && tosModal) {
+    closeTos.addEventListener('click', () => {
+      tosModal.classList.add('hidden');
+    });
+  }
+  if (acceptTos && tosModal) {
+    acceptTos.addEventListener('click', () => {
+      tosModal.classList.add('hidden');
+      toast('Thank you for accepting the Terms of Service.', 'success');
+    });
+  }
+  if (tosModal) {
+    tosModal.addEventListener('click', (e) => {
+      if (e.target === tosModal) {
+        tosModal.classList.add('hidden');
+      }
+    });
+  }
+
+  // Wire Export Chat PDF button & Toggle Export Mode
+  const btnExportChat = $('exportChatPdfBtn');
+  if (btnExportChat) {
+    btnExportChat.addEventListener('click', () => {
+      exportChatPdf();
+      // Auto-exit export mode after successful download trigger
+      if (els.toggleExportModeBtn) els.toggleExportModeBtn.click();
+    });
+  }
+
+  if (els.toggleExportModeBtn) {
+    els.toggleExportModeBtn.addEventListener('click', () => {
+      const isActive = els.chatMessages.classList.toggle('export-mode-active');
+      if (isActive) {
+        els.toggleExportModeBtn.innerHTML = '<i data-lucide="x" style="width:12px; height:12px;"></i> Cancel';
+        els.toggleExportModeBtn.style.background = 'rgba(255, 37, 42, 0.15)';
+        els.toggleExportModeBtn.style.borderColor = 'rgba(255, 37, 42, 0.4)';
+        els.toggleExportModeBtn.style.color = 'var(--rose)';
+      } else {
+        els.toggleExportModeBtn.innerHTML = '<i data-lucide="share-2" style="width:12px; height:12px;"></i> Export Chat';
+        els.toggleExportModeBtn.style.background = '';
+        els.toggleExportModeBtn.style.borderColor = '';
+        els.toggleExportModeBtn.style.color = '';
+        // Uncheck all
+        document.querySelectorAll('.chat-select-check').forEach(chk => chk.checked = false);
+      }
+      updateExportChatPdfBtnVisibility();
+      if (window.lucide) lucide.createIcons();
     });
   }
 

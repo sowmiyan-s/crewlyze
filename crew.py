@@ -84,16 +84,16 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
         categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
 
         generated = []
-        # Dark-themed premium style
-        sns.set_theme(style="darkgrid", palette="deep")
-        BG_DARK = "#0f172a"
-        BG_CARD = "#1e293b"
-        TEXT_COLOR = "#e2e8f0"
-        GRID_COLOR = "#334155"
-        colors = ["#818cf8", "#22d3ee", "#f472b6", "#34d399", "#fb923c"]
+        # White-themed premium style
+        sns.set_theme(style="whitegrid", palette="muted")
+        BG_WHITE = "#ffffff"
+        BG_CARD = "#f8fafc"
+        TEXT_COLOR = "#1e293b"
+        GRID_COLOR = "#e2e8f0"
+        colors = ["#4f46e5", "#06b6d4", "#ec4899", "#10b981", "#fb923c"]
 
-        def _apply_dark_style(fig, ax_list):
-            fig.patch.set_facecolor(BG_DARK)
+        def _apply_light_style(fig, ax_list):
+            fig.patch.set_facecolor(BG_WHITE)
             for ax in (ax_list if isinstance(ax_list, list) else [ax_list]):
                 ax.set_facecolor(BG_CARD)
                 ax.tick_params(colors=TEXT_COLOR)
@@ -102,7 +102,7 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                 ax.title.set_color(TEXT_COLOR)
                 for spine in ax.spines.values():
                     spine.set_edgecolor(GRID_COLOR)
-                ax.grid(color=GRID_COLOR, linewidth=0.5)
+                ax.grid(True, color=GRID_COLOR, linestyle="--", linewidth=0.5)
 
         # ── PHASE 1: Parse relation pairs from agent output ────────────────────
         relation_pairs = []
@@ -164,11 +164,11 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                     title = f"{x_col} vs {y_col} Relationship"
 
                 ax.set_title(title, fontsize=13, fontweight="bold", pad=14)
-                _apply_dark_style(fig, ax)
+                _apply_light_style(fig, ax)
                 plt.tight_layout()
                 safe_name = re.sub(r"[^\w]+", "_", f"relation_{x_col}_vs_{y_col}").lower()
                 dest = output_dir / f"{safe_name}.png"
-                plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
                 plt.close()
                 generated.append(dest.name)
                 print(f"Relation chart saved: {dest.name}")
@@ -189,10 +189,10 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                                 square=True, cbar_kws={"shrink": .8}, ax=ax,
                                 annot_kws={"color": TEXT_COLOR})
                     ax.set_title("Correlation Matrix", fontsize=14, fontweight="bold", pad=14)
-                    _apply_dark_style(fig, ax)
+                    _apply_light_style(fig, ax)
                     plt.tight_layout()
                     dest = output_dir / "correlation_matrix.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
                     plt.close()
                     generated.append(dest.name)
                 except Exception:
@@ -205,10 +205,10 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                     fig, ax = plt.subplots(figsize=(10, 6))
                     sns.histplot(df[col].dropna(), kde=True, color=colors[0], ax=ax)
                     ax.set_title(f"Distribution of {col}", fontsize=13, fontweight="bold", pad=14)
-                    _apply_dark_style(fig, ax)
+                    _apply_light_style(fig, ax)
                     plt.tight_layout()
                     dest = output_dir / f"distribution_{col}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
                     plt.close()
                     generated.append(dest.name)
                 except Exception:
@@ -221,10 +221,10 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                     fig, ax = plt.subplots(figsize=(10, 6))
                     sns.scatterplot(data=df.head(2000), x=x, y=y, color=colors[1], alpha=0.7, ax=ax)
                     ax.set_title(f"{x} vs {y} Relationship", fontsize=13, fontweight="bold", pad=14)
-                    _apply_dark_style(fig, ax)
+                    _apply_light_style(fig, ax)
                     plt.tight_layout()
                     dest = output_dir / f"scatter_{x}_vs_{y}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
                     plt.close()
                     generated.append(dest.name)
                 except Exception:
@@ -240,10 +240,10 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                     sns.barplot(data=sub_df, x=cat, y=num, errorbar=None, color=colors[2], ax=ax)
                     ax.set_title(f"Average {num} by {cat} (Top 10)", fontsize=13, fontweight="bold", pad=14)
                     plt.xticks(rotation=45, ha="right", color=TEXT_COLOR)
-                    _apply_dark_style(fig, ax)
+                    _apply_light_style(fig, ax)
                     plt.tight_layout()
                     dest = output_dir / f"bar_{cat}_vs_{num}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_DARK)
+                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
                     plt.close()
                     generated.append(dest.name)
                 except Exception:
@@ -263,8 +263,10 @@ def _cleanup_old_sessions(max_age_hours: int = 24) -> None:
     Also enforces a strict disk quota limit: if the total combined size of sessions and
     outputs exceeds 1.0 GB, it prunes the oldest folders until the size is under 400 MB.
     """
-    sessions_root = Path("data") / "sessions"
-    outputs_root  = Path("outputs")
+    user_home = Path.home() / ".crewlyze"
+    data_dir = Path(os.getenv("CREWLYZE_DATA_DIR", str(user_home / "data")))
+    sessions_root = data_dir / "sessions"
+    outputs_root  = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(user_home / "outputs")))
 
     # 1. Clean based on age
     for root in (sessions_root, outputs_root):
@@ -502,13 +504,24 @@ def run_crew(
     """
     _cleanup_old_sessions()
 
+    import time
+    from config.metrics_tracker import log_metric
+
+    start_run = time.time()
+    stage_times = {}
+    total_tokens = 0
+
     def _progress(stage: str, data: object = None) -> None:
         if on_progress:
             on_progress(stage, data)
 
     # ── Per-session directories ───────────────────────────────────────────────
-    session_data_dir   = Path("data") / "sessions" / session_id
-    session_output_dir = Path("outputs") / session_id
+    user_home = Path.home() / ".crewlyze"
+    data_dir = Path(os.getenv("CREWLYZE_DATA_DIR", str(user_home / "data")))
+    outputs_dir_base = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(user_home / "outputs")))
+
+    session_data_dir   = data_dir / "sessions" / session_id
+    session_output_dir = outputs_dir_base / session_id
     session_data_dir.mkdir(parents=True, exist_ok=True)
     session_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -585,7 +598,9 @@ def run_crew(
         print(f"Large file detected ({n_rows:,} rows). "
               f"Profiling on {profile_max_rows:,}-row sample ...")
     print("Building dataset profile ...")
+    start_prof = time.time()
     profile = build_dataset_profile(str(cleaned_path), max_rows=profile_max_rows)
+    stage_times["profiling"] = time.time() - start_prof
     _progress("profiling", profile)
     print("Profile ready.\n")
 
@@ -599,7 +614,7 @@ def run_crew(
     existing_relations = ""
     try:
         import json
-        meta_path = Path("data/sessions") / session_id / "metadata.json"
+        meta_path = session_data_dir / "metadata.json"
         if meta_path.exists():
             with open(meta_path, "r", encoding="utf-8") as f:
                 meta = json.load(f)
@@ -607,7 +622,7 @@ def run_crew(
                 report_title = meta.get("report_title") or ""
                 
         # Load tweaked relations from results.json
-        results_path = Path("data/sessions") / session_id / "results.json"
+        results_path = session_data_dir / "results.json"
         if results_path.exists():
             with open(results_path, "r", encoding="utf-8") as f:
                 res_data = json.load(f)
@@ -635,6 +650,7 @@ def run_crew(
 
     if do_cleaning:
         print("\n[Stage 1/4] Running Data Cleaner ...")
+        start_clean_stage = time.time()
         clean_crew = Crew(
             agents=[agents[0]],
             tasks=[tasks[0]],
@@ -645,6 +661,11 @@ def run_crew(
         try:
             clean_crew.kickoff()
             clean_output = _safe_output(tasks[0])
+            try:
+                if hasattr(clean_crew, "usage_metrics") and clean_crew.usage_metrics:
+                    total_tokens += clean_crew.usage_metrics.get("total_tokens", 0)
+            except Exception:
+                pass
         except Exception as exc:
             print(f"Cleaning error: {exc}. Activating auto-healing fallback...")
             traceback.print_exc()
@@ -653,6 +674,7 @@ def run_crew(
                 "- Auto-healing fallback: Skipped active code execution and used raw data copy to prevent pipeline failure."
             )
 
+        stage_times["cleaning"] = time.time() - start_clean_stage
         _progress("cleaning", clean_output)
         print("[Stage 1/4] Cleaning complete.\n")
     else:
@@ -660,90 +682,52 @@ def run_crew(
         _progress("cleaning", clean_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 2 — Relations + Insights (PARALLEL)
+    # STAGE 2 — Relations (sequential)
     # ════════════════════════════════════════════════════════════════════════
     relation_output = "Relationship mapping was skipped by user selection."
-    insights_output = "Business insights generation was skipped by user selection."
 
-    if do_relations or do_insights:
-        print("[Stage 2/4] Running Relation Analyst + BI Analyst ...")
-        
-        if do_relations and do_insights:
-            import contextvars
-            ctx1 = contextvars.copy_context()
-            ctx2 = contextvars.copy_context()
-            
-            def run_rel_safe():
-                try:
-                    res_task = _run_single_task(agents[1], tasks[1], 8)
-                    return _safe_output(res_task)
-                except Exception as e:
-                    print(f"Relations Agent error: {e}. Activating auto-healing fallback...")
-                    traceback.print_exc()
-                    return _run_auto_relation_fallback(df)
-
-            def run_ins_safe():
-                try:
-                    res_task = _run_single_task(agents[2], tasks[2], 8)
-                    return _safe_output(res_task)
-                except Exception as e:
-                    print(f"Insights Agent error: {e}. Activating auto-healing fallback...")
-                    traceback.print_exc()
-                    return _run_auto_insights_fallback(df, project_goal)
-
+    if do_relations:
+        print("\n[Stage 2/4] Running Relation Analyst ...")
+        start_rel_stage = time.time()
+        try:
+            rel_crew = Crew(
+                agents=[agents[1]],
+                tasks=[tasks[1]],
+                max_rpm=15,
+                cache=True,
+                verbose=True,
+            )
+            rel_crew.kickoff()
+            relation_output = _safe_output(tasks[1])
             try:
-                with ThreadPoolExecutor(max_workers=2, thread_name_prefix="crew") as executor:
-                    rel_future = executor.submit(ctx1.run, run_rel_safe)
-                    ins_future = executor.submit(ctx2.run, run_ins_safe)
-                    relation_output = rel_future.result()
-                    insights_output = ins_future.result()
-            except Exception as exc:
-                print(f"Parallel execution collapsed: {exc}. Running fallbacks...")
-                traceback.print_exc()
-                if do_relations:
-                    relation_output = _run_auto_relation_fallback(df)
-                if do_insights:
-                    insights_output = _run_auto_insights_fallback(df, project_goal)
-        else:
-            if do_relations:
-                try:
-                    rel_crew = Crew(agents=[agents[1]], tasks=[tasks[1]], max_rpm=15, cache=True, verbose=True)
-                    rel_crew.kickoff()
-                    relation_output = _safe_output(tasks[1])
-                except Exception as e:
-                    print(f"Relations Agent error: {e}. Activating auto-healing fallback...")
-                    traceback.print_exc()
-                    relation_output = _run_auto_relation_fallback(df)
-            if do_insights:
-                try:
-                    ins_crew = Crew(agents=[agents[2]], tasks=[tasks[2]], max_rpm=15, cache=True, verbose=True)
-                    ins_crew.kickoff()
-                    insights_output = _safe_output(tasks[2])
-                except Exception as e:
-                    print(f"Insights Agent error: {e}. Activating auto-healing fallback...")
-                    traceback.print_exc()
-                    insights_output = _run_auto_insights_fallback(df, project_goal)
+                if hasattr(rel_crew, "usage_metrics") and rel_crew.usage_metrics:
+                    total_tokens += rel_crew.usage_metrics.get("total_tokens", 0)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Relations Agent error: {e}. Activating auto-healing fallback...")
+            traceback.print_exc()
+            relation_output = _run_auto_relation_fallback(df)
 
-    _progress("relations", relation_output)
-    _progress("insights", insights_output)
-    print("[Stage 2/4] Relations + Insights complete.\n")
+        stage_times["relations"] = time.time() - start_rel_stage
+        _progress("relations", relation_output)
+        print("[Stage 2/4] Relation Analysis complete.\n")
+    else:
+        print("\n[Stage 2/4] Skipping Relation Analyst (user selection).\n")
+        _progress("relations", relation_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 3 — Visualize (sequential, receives actual outputs as context)
+    # STAGE 3 — Visualize (sequential, receives relation output as context)
     # ════════════════════════════════════════════════════════════════════════
     visualize_output = "Visualization was skipped by user selection."
 
     if do_visualization:
         print("[Stage 3/4] Running Data Visualizer ...")
+        start_viz_stage = time.time()
 
-        # Inject relation + insight outputs directly into the task description
-        # so the visualizer has full context without relying on CrewAI's
-        # cross-crew context= mechanism.
+        # Inject relation output directly into the task description
         viz_task = tasks[3]
-        viz_task.description += (
-            f"\n\nRELATIONSHIPS TO VISUALIZE:\n{relation_output}"
-            f"\n\nKEY INSIGHTS FOR CONTEXT:\n{insights_output}"
-        )
+        viz_task.description += f"\n\nRELATIONSHIPS TO VISUALIZE:\n{relation_output}"
 
         viz_crew = Crew(
             agents=[agents[3]],
@@ -756,6 +740,11 @@ def run_crew(
         try:
             viz_crew.kickoff()
             visualize_output = _safe_output(viz_task)
+            try:
+                if hasattr(viz_crew, "usage_metrics") and viz_crew.usage_metrics:
+                    total_tokens += viz_crew.usage_metrics.get("total_tokens", 0)
+            except Exception:
+                pass
         except Exception as exc:
             print(f"Visualization Agent error: {exc}. Activating auto-healing visualizer fallback...")
             traceback.print_exc()
@@ -770,19 +759,67 @@ def run_crew(
             )
             visualize_output = f"{visualize_output}\n\n[Auto-Healing Fallback Status]: {fallback_msg}"
             print(fallback_msg)
+
+        stage_times["visualization"] = time.time() - start_viz_stage
+        _progress("visualization", visualize_output)
+        print("[Stage 3/4] Visualization complete.\n")
     else:
         print("[Stage 3/4] Skipping Data Visualizer (user selection).\n")
+        _progress("visualization", visualize_output)
 
-    _progress("visualization", visualize_output)
-    print("[Stage 3/4] Visualization complete.\n")
+    # ════════════════════════════════════════════════════════════════════════
+    # STAGE 4 — Insights (sequential, receives cleaning, relation, and visualization as context)
+    # ════════════════════════════════════════════════════════════════════════
+    insights_output = "Business insights generation was skipped by user selection."
+
+    if do_insights:
+        print("[Stage 4/4] Running BI Analyst ...")
+        start_ins_stage = time.time()
+
+        # Inject cleaning, relation, and visualization outputs into task description
+        ins_task = tasks[2]
+        ins_task.description += (
+            f"\n\nCLEANING COMPLETED:\n{clean_output}"
+            f"\n\nRELATIONSHIPS MAP:\n{relation_output}"
+            f"\n\nVISUALIZATIONS GENERATED:\n{visualize_output}"
+        )
+
+        ins_crew = Crew(
+            agents=[agents[2]],
+            tasks=[ins_task],
+            max_rpm=15,
+            cache=True,
+            verbose=True,
+        )
+        try:
+            ins_crew.kickoff()
+            insights_output = _safe_output(ins_task)
+            try:
+                if hasattr(ins_crew, "usage_metrics") and ins_crew.usage_metrics:
+                    total_tokens += ins_crew.usage_metrics.get("total_tokens", 0)
+            except Exception:
+                pass
+        except Exception as e:
+            print(f"Insights Agent error: {e}. Activating auto-healing fallback...")
+            traceback.print_exc()
+            insights_output = _run_auto_insights_fallback(df, project_goal)
+
+        stage_times["insights"] = time.time() - start_ins_stage
+        _progress("insights", insights_output)
+        print("[Stage 4/4] BI Analysis complete.\n")
+    else:
+        print("[Stage 4/4] Skipping BI Analyst (user selection).\n")
+        _progress("insights", insights_output)
 
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
     print("[Stage 4/4] Building interactive Plotly charts ...")
+    start_plotly_stage = time.time()
     plotly_charts = generate_plotly_charts(
         csv_path=str(cleaned_path),
         relations_text=relation_output,
     )
     _progress("plotly", plotly_charts)
+    stage_times["plotly"] = time.time() - start_plotly_stage
     print(f"Generated {len(plotly_charts)} interactive chart(s).\n")
 
     # ── Reload cleaned dataframe ──────────────────────────────────────────────
@@ -791,6 +828,24 @@ def run_crew(
     except Exception:
         print("WARNING: Could not load cleaned CSV. Falling back to original data.")
         cleaned_df = df
+
+    total_time = time.time() - start_run
+    try:
+        dataset_name = Path(csv_path).name
+        est_cost = (total_tokens / 1_000_000) * 0.15 if total_tokens else 0.0
+        log_metric(
+            session_id=session_id,
+            dataset_name=dataset_name,
+            rows=n_rows,
+            cols=n_cols,
+            stages=stage_times,
+            total_time=total_time,
+            success=True,
+            token_usage=total_tokens,
+            estimated_cost=est_cost
+        )
+    except Exception as e:
+        print(f"Error logging metric: {e}")
 
     return {
         "dataframe":      cleaned_df,
