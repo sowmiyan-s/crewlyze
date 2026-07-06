@@ -450,7 +450,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     raw_insights   = _clean_ai_artifacts(result.get("insights", "")).strip()
     cleaning_text  = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
     relations_text = _clean_ai_artifacts(result.get("relations", "")).strip()
-    report_title   = _clean_ai_artifacts(result.get("report_title") or filename or "Executive Analysis").strip()
+    report_title   = _clean_ai_artifacts(result.get("report_title") or result.get("name") or filename or "Executive Analysis").strip()
     report_goal    = _clean_ai_artifacts(result.get("goal", "")).strip()
     timestamp      = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
     df             = result.get("dataframe")
@@ -478,21 +478,6 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     # PAGE 1 — COVER
     # ═══════════════════════════════════════════════════════════════════════════
 
-    # Top coloured band (full-width table trick)
-    band_data = [[Paragraph(
-        "EXECUTIVE BUSINESS INTELLIGENCE REPORT",
-        ParagraphStyle("BandText", fontName="Helvetica-Bold", fontSize=8.5,
-                       textColor=C_WHITE, alignment=1, leading=11)
-    )]]
-    band = Table(band_data, colWidths=[504], rowHeights=[22])
-    band.setStyle(TableStyle([
-        ("BACKGROUND",    (0, 0), (-1, -1), C_COVER_BAND),
-        ("ALIGN",         (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING",    (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-    ]))
-
     # Thick crimson divider
     def _divider(thick=3, color=C_CRIMSON):
         t = Table([[""]], colWidths=[504], rowHeights=[thick])
@@ -501,27 +486,25 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                                 ("BOTTOMPADDING",(0,0),(-1,-1),0)]))
         return t
 
-    story.append(Spacer(1, 60))
-    story.append(band)
-    story.append(Spacer(1, 6))
+    story.append(Spacer(1, 50))
     story.append(_divider(2))
-    story.append(Spacer(1, 32))
+    story.append(Spacer(1, 40))
 
     # Title
     story.append(Paragraph(
         f"<b>{_escape(report_title.upper())}</b>",
-        ParagraphStyle("CoverTitle", fontName="Helvetica-Bold", fontSize=30,
-                       leading=36, textColor=C_CRIMSON_DARK, spaceAfter=4)
+        ParagraphStyle("CoverTitle", fontName="Helvetica-Bold", fontSize=26,
+                       leading=32, textColor=C_CRIMSON_DARK, spaceAfter=8, alignment=1)
     ))
-    story.append(Spacer(1, 6))
-    story.append(_divider(4))
-    story.append(Spacer(1, 14))
+    story.append(Spacer(1, 10))
     story.append(Paragraph(
         "Autonomous Multi-Agent Data Analysis &amp; Strategic Intelligence Suite",
         ParagraphStyle("CoverSub", fontName="Helvetica", fontSize=11,
-                       leading=15, textColor=C_MUTED)
+                       leading=15, textColor=C_MUTED, alignment=1)
     ))
-    story.append(Spacer(1, 80))
+    story.append(Spacer(1, 40))
+    story.append(_divider(3))
+    story.append(Spacer(1, 100))
 
     # Specifications grid
     story.append(Paragraph(
@@ -878,7 +861,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                            textColor=C_INK, leading=14.5)
         ),
     ]
-    concl_tbl = Table([conclusion_items], colWidths=[504])
+    concl_tbl = Table([[conclusion_items]], colWidths=[504])
     concl_tbl.setStyle(TableStyle([
         ("BACKGROUND",    (0, 0), (-1, -1), C_ROW_ALT),
         ("BOX",           (0, 0), (-1, -1), 1,  C_BORDER),

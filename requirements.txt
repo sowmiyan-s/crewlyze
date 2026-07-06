@@ -31,3 +31,6 @@ regex
 # NOTE: streamlit has been removed — the app now runs on FastAPI + vanilla web UI
 # NOTE: tiktoken removed — requires Rust; not needed
 # NOTE: grpcio NOT listed — install only if needed: pip install grpcio --only-binary=:all:
+
+duckdb>=0.9.0
+requests>=2.31.0

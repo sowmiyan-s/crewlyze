@@ -4,10 +4,32 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
-console.log('🚀 Starting Crewlyze...');
 
 const projectRoot = path.resolve(__dirname, '..');
 const userHome = path.join(os.homedir(), '.crewlyze');
+
+// ─── CLI BANNER ─────────────────────────────────────────────────────────────
+const banner = `
+\x1b[38;5;196m
+   ██████╗██████╗ ███████╗██╗    ██╗██╗  ██╗   ██╗███████╗███████╗
+  ██╔════╝██╔══██╗██╔════╝██║    ██║██║  ╚██╗ ██╔╝╚══███╔╝██╔════╝
+  ██║     ██████╔╝█████╗  ██║ █╗ ██║██║   ╚████╔╝   ███╔╝ █████╗  
+  ██║     ██╔══██╗██╔══╝  ██║███╗██║██║    ╚██╔╝   ███╔╝  ██╔══╝  
+  ╚██████╗██║  ██║███████╗╚███╔███╔╝███████╗██║   ███████╗███████╗
+   ╚═════╝╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚══════╝╚═╝   ╚══════╝╚══════╝\x1b[0m
+
+\x1b[1m  Autonomous Multi-Agent Business Intelligence Platform\x1b[0m
+\x1b[90m  Powered by CrewAI & FastAPI\x1b[0m
+`;
+
+console.log(banner);
+
+// Check if running globally (simple heuristic)
+const isGlobal = __dirname.includes('npm') || __dirname.includes('global') || __dirname.includes('Roaming') || __dirname.includes('AppData') || __dirname.includes('yarn') || __dirname.includes('pnpm');
+if (!isGlobal) {
+  console.log('\x1b[33m\x1b[1m⚠️  WARNING: Crewlyze should be installed globally.\x1b[0m');
+  console.log('\x1b[33mPlease run: \x1b[1mnpm install -g crewlyze\x1b[0m\x1b[33m to ensure all features work correctly.\x1b[0m\n');
+}
 
 // Ensure home directory configuration folder exists
 if (!fs.existsSync(userHome)) {
@@ -19,43 +41,22 @@ process.env.CREWLYZE_DATA_DIR = path.join(userHome, 'data');
 process.env.CREWLYZE_OUTPUTS_DIR = path.join(userHome, 'outputs');
 
 const venvDir = path.join(userHome, 'venv');
-const requirementsPath = path.join(projectRoot, 'requirements.txt');
 const mainPyPath = path.join(projectRoot, 'main.py');
 
-// 1. Check if Python is installed
-let pythonCmd = 'python3';
-try {
-  execSync('python3 --version', { stdio: 'ignore' });
-} catch (e) {
-  try {
-    execSync('python --version', { stdio: 'ignore' });
-    pythonCmd = 'python';
-  } catch (err) {
-    console.error('❌ Error: Python 3 is not installed or not in PATH.');
-    process.exit(1);
-  }
-}
-
-// 2. Create virtual environment inside user's home folder if it doesn't exist
+// Check venv exists (created by postinstall)
 if (!fs.existsSync(venvDir)) {
-  console.log(`📦 Creating Python virtual environment in ${venvDir}...`);
-  execSync(`"${pythonCmd}" -m venv "${venvDir}"`, { stdio: 'inherit' });
+  console.log('\x1b[31m❌ Error: Python virtual environment not found!\x1b[0m');
+  console.log('\x1b[33mDependencies were not installed. Please reinstall crewlyze globally:\x1b[0m');
+  console.log('  npm install -g .');
+  process.exit(1);
 }
-
-const pipCmd = process.platform === 'win32'
-  ? path.join(venvDir, 'Scripts', 'pip')
-  : path.join(venvDir, 'bin', 'pip');
 
 const uvicornCmd = process.platform === 'win32'
   ? path.join(venvDir, 'Scripts', 'uvicorn')
   : path.join(venvDir, 'bin', 'uvicorn');
 
-// 3. Install dependencies
-console.log('📦 Installing/Verifying Python dependencies... This may take a moment.');
-execSync(`"${pipCmd}" install -r "${requirementsPath}"`, { cwd: projectRoot, stdio: 'inherit' });
-
-// 4. Start the server
-console.log('🚀 Starting Crewlyze server...');
+// Start the server
+console.log('\x1b[36m🚀 Starting Crewlyze engine...\x1b[0m\n');
 const serverProcess = spawn(uvicornCmd, ['main:app', '--host', '127.0.0.1', '--port', '8000', '--reload'], {
   cwd: projectRoot,
   stdio: 'inherit',

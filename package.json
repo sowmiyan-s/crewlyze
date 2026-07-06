@@ -6,8 +6,11 @@
   "bin": {
     "crewlyze": "bin/crewlyze.js"
   },
+  "preferGlobal": true,
   "scripts": {
-    "start": "node ./bin/crewlyze.js"
+    "start": "node ./bin/crewlyze.js",
+    "postinstall": "node ./bin/install-python.js",
+    "install-python": "node ./bin/install-python.js"
   },
   "keywords": [
     "ai",

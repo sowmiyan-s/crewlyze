@@ -73,10 +73,11 @@ try:
 except Exception as e:
     print(f"Failed to auto-copy assets or convert line endings: {e}")
 
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
-from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse
+from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
+from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 
 # regex to find ANSI terminal escape patterns
 ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -221,6 +222,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Optional Enterprise Auth
+# ---------------------------------------------------------------------------
+AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
+AUTH_TOKEN = os.getenv("AUTH_TOKEN", "enterprise-secret-key")
+
+class OptionalAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if AUTH_ENABLED:
+            if request.url.path.startswith("/api/") and not request.url.path.startswith("/api/validate-key"):
+                auth_header = request.headers.get("Authorization")
+                if not auth_header or not auth_header.startswith("Bearer ") or auth_header.split(" ")[1] != AUTH_TOKEN:
+                    return JSONResponse(status_code=401, content={"detail": "Unauthorized: Invalid or missing Enterprise Token"})
+        response = await call_next(request)
+        return response
+
+app.add_middleware(OptionalAuthMiddleware)
 
 # ---------------------------------------------------------------------------
 # State & Directory Setup
@@ -880,6 +899,30 @@ async def export_chat_history_pdf(
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {e}")
 
 
+@app.post("/api/export/webhook")
+async def export_webhook(
+    session_id: str = Form(...),
+    webhook_url: str = Form(...)
+):
+    """(Enterprise) Export PDF report directly to a Slack/Discord webhook."""
+    import requests
+    output_dir = get_safe_output_dir(session_id)
+    pdf_path = output_dir / f"{session_id}_report.pdf"
+    
+    if not pdf_path.exists():
+        raise HTTPException(status_code=404, detail="PDF report not found. Run analysis first.")
+    
+    try:
+        with open(pdf_path, 'rb') as f:
+            files = {'file': (f"report_{session_id}.pdf", f, 'application/pdf')}
+            payload = {'content': f"📈 **Crewlyze AI Analysis Complete!**\nNew business insights are ready for session: `{session_id}`"}
+            response = requests.post(webhook_url, data=payload, files=files, timeout=10)
+            response.raise_for_status()
+        return {"status": "success", "message": "Report successfully dispatched to webhook!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Webhook dispatch failed: {str(e)}")
+
+
 @app.get("/api/charts/{session_id}/{filename}")
 async def serve_chart(session_id: str, filename: str):
     """Serves the generated PNG visual charts."""
@@ -1000,6 +1043,135 @@ async def save_local_config(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
     return {"status": "success"}
+
+@app.get("/api/llm/providers")
+async def get_llm_providers():
+    try:
+        import litellm
+        # Filter out extremely esoteric or broken prefixes if needed, but we return all.
+        providers = sorted(list(litellm.models_by_provider.keys()))
+        return {"providers": providers}
+    except Exception as e:
+        return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama"], "error": str(e)}
+
+@app.get("/api/llm/providers/{provider}/models")
+async def get_llm_models(provider: str, api_key: Optional[str] = None):
+    """Returns only text-to-text (chat/completion) models for a provider.
+    Filters out voice, image, embedding, moderation, realtime, and other
+    non-text-generation models that this project cannot use.
+    If api_key is provided, dynamically queries the provider's active models list."""
+    
+    # Substrings that indicate a model is NOT a text-to-text chat model.
+    _EXCLUDE_PATTERNS = (
+        # Audio / voice / speech
+        "tts", "whisper", "audio", "speech", "realtime",
+        # Image generation / vision-only
+        "dall-e", "stable-diffusion", "imagen", "image-generation",
+        # Embeddings
+        "embed", "ada-002", "text-embedding", "search-",
+        # Moderation / safety
+        "moderation", "content-filter", "shield",
+        # Code-only non-chat (old Codex completions API)
+        "code-davinci", "code-cushman", "davinci-edit", "text-davinci-edit",
+        "text-ada", "text-babbage", "text-curie",
+        # Deprecated / legacy completions-only
+        "babbage-002", "davinci-002",
+        "text-davinci-001", "text-davinci-002", "text-davinci-003",
+        # Computer-use / tool-only
+        "computer-use",
+        # Fine-tune helper models
+        "ft:davinci", "ft:babbage", "ft:curie", "ft:ada",
+        # Transcription / translation
+        "transcription", "translation",
+    )
+
+    def _is_text_model(name: str) -> bool:
+        low = name.lower()
+        return not any(pat in low for pat in _EXCLUDE_PATTERNS)
+
+    models = []
+    fetched_successfully = False
+
+    # Dynamic fetching based on user's API Key (if provided)
+    if api_key and api_key.strip() and not api_key.endswith("..."):
+        import requests
+        clean_key = api_key.strip()
+        try:
+            if provider == "nvidia":
+                res = requests.get(
+                    "https://integrate.api.nvidia.com/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [f"nvidia_nim/{m['id']}" for m in res.json().get("data", [])]
+                    fetched_successfully = True
+            elif provider == "groq":
+                res = requests.get(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [f"groq/{m['id']}" for m in res.json().get("data", [])]
+                    fetched_successfully = True
+            elif provider == "openai":
+                res = requests.get(
+                    "https://api.openai.com/v1/models",
+                    headers={"Authorization": f"Bearer {clean_key}"},
+                    timeout=4
+                )
+                if res.status_code == 200:
+                    models = [m['id'] for m in res.json().get("data", [])]
+                    fetched_successfully = True
+        except Exception:
+            pass # Fallback to litellm list if request fails
+
+    if not fetched_successfully:
+        try:
+            import litellm
+            models = list(litellm.models_by_provider.get(provider, []))
+
+            # Also grab models from the global model_list if they match the provider
+            if hasattr(litellm, "model_list"):
+                extra = [m for m in litellm.model_list if m.startswith(f"{provider}/")]
+                if provider == "openai":
+                    extra.extend([m for m in litellm.model_list if "gpt-" in m and "/" not in m])
+                models.extend(extra)
+        except Exception as e:
+            return {"models": [], "error": str(e)}
+
+    # Deduplicate, filter, sort
+    models = sorted(set(m for m in models if _is_text_model(m)))
+    return {"models": models}
+
+@app.post("/api/validate-key")
+async def validate_key(
+    provider: str = Form(...),
+    model: str = Form(...),
+    api_key: Optional[str] = Form(""),
+):
+    """Pings the LLM provider to validate the model identifier and API key."""
+    try:
+        # Load crew module functions lazily if needed
+        _load_crew()
+        
+        # Get actual env key name
+        if provider == "ollama":
+            env_key_name = "OLLAMA_BASE_URL"
+        elif provider in ("nvidia", "minimax"):
+            env_key_name = "NVIDIA_API_KEY"
+        else:
+            env_key_name = f"{provider.upper()}_API_KEY"
+            
+        result = _validate_llm_connection(provider, model, api_key)
+        if not result.get("valid"):
+            raise HTTPException(status_code=400, detail=result.get("message", "Validation failed"))
+        return {"status": "success", "message": result.get("message")}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Validation failed: {str(e)}")
 
 
 # ---------------------------------------------------------------------------

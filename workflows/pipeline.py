@@ -30,6 +30,7 @@ from agents.cleaner    import make_cleaner_agent
 from agents.relation   import make_relation_agent
 from agents.insights   import make_insights_agent
 from agents.visualizer import make_visualizer_agent
+from agents.predictive import make_predictive_agent
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +119,7 @@ def make_pipeline(
     relation_agent   = make_relation_agent()
     insights_agent   = make_insights_agent()
     visualizer_agent = make_visualizer_agent()
+    predictive_agent = make_predictive_agent()
 
     deep_prompt = "\n\nIf deep analysis mode is enabled, provide richer reasoning, deeper causal exploration, and more detailed business implications for each recommendation." if deep_analysis else ""
     
@@ -272,8 +274,22 @@ def make_pipeline(
         callback=cb,
     )
 
-    agents = [cleaner_agent, relation_agent, insights_agent, visualizer_agent]
-    tasks  = [clean_task, relation_task, insight_task, visualize_task]
+    predictive_prompt = (
+        "Using the dataset profile, select the single most likely target column (e.g. outcome, sales). "
+        "Write and execute a python script using 'Execute Visualization Code' to train a simple Random Forest. "
+        "Extract the Feature Importances and output the top 3 drivers."
+        f"{profile_block}"
+    )
+
+    predictive_task = Task(
+        agent=predictive_agent,
+        description=predictive_prompt,
+        expected_output="A list of the top 3 drivers influencing the target column, explained simply.",
+        callback=cb,
+    )
+
+    agents = [cleaner_agent, relation_agent, insights_agent, visualizer_agent, predictive_agent]
+    tasks  = [clean_task, relation_task, insight_task, visualize_task, predictive_task]
 
     # If a stage is disabled, return placeholder tasks for safe indexing.
     if "cleaning" not in selected_tasks:
