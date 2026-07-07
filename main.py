@@ -1021,62 +1021,160 @@ async def save_local_config(
 async def get_llm_providers():
     try:
         import litellm
-        # Filter out extremely esoteric or broken prefixes if needed, but we return all.
-        providers = sorted(list(litellm.models_by_provider.keys()))
-        return {"providers": providers}
+        import os
+        import json
+
+        model_cost = {}
+        if hasattr(litellm, "model_cost"):
+            model_cost = litellm.model_cost
+        else:
+            try:
+                backup_path = os.path.join(os.path.dirname(litellm.__file__), "model_prices_and_context_window_backup.json")
+                with open(backup_path, "r", encoding="utf-8") as f:
+                    model_cost = json.load(f)
+            except Exception:
+                pass
+
+        providers = set()
+        for model_name, info in model_cost.items():
+            if not isinstance(info, dict):
+                continue
+            prov = info.get("litellm_provider")
+            if prov:
+                providers.add(str(prov).lower())
+            if "/" in model_name:
+                prefix = model_name.split("/")[0].lower()
+                if prefix and prefix not in ("1024-x-1024", "256-x-256", "512-x-512"):
+                    providers.add(prefix)
+
+        def clean_provider_name(p: str) -> bool:
+            p = p.lower().strip()
+            if not p:
+                return False
+            if any(x in p for x in ("http", "docs.litellm", " ", "/", "cost", "token", "image", "audio", "video", "speech", "tts", "embed", "pixel")):
+                return False
+            if "-" in p:
+                parts = p.split("-")
+                if all(part.isdigit() for part in parts if part):
+                    return False
+                if any(part.isdigit() for part in parts):
+                    if any(x in parts for x in ("x", "w", "h")):
+                        return False
+            if p in ("hd", "high", "low", "medium", "standard", "v0", "sample_spec", "fallback_generalizations", "max-x-max"):
+                return False
+            return True
+
+        clean_providers = sorted(list(set(p for p in providers if clean_provider_name(p))))
+        
+        # Ensure standard fallbacks are included
+        standard_fallbacks = ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama", "cohere", "mistral", "vertex_ai", "bedrock", "openrouter", "deepinfra", "together_ai", "xai"]
+        for sf in standard_fallbacks:
+            if sf not in clean_providers:
+                clean_providers.append(sf)
+
+        return {"providers": sorted(clean_providers)}
     except Exception as e:
-        return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama"], "error": str(e)}
+        return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama", "cohere", "mistral", "vertex_ai", "bedrock", "openrouter", "deepinfra", "together_ai", "xai"], "error": str(e)}
+
+def _is_text_generation_model(model_name: str, info: Optional[dict] = None) -> bool:
+    low_name = model_name.lower()
+    _EXCLUDE_SUBSTRINGS = (
+        "embed", "ada-002", "dall-e", "stable-diffusion", "imagen", "image-generation",
+        "tts", "whisper", "audio", "speech", "realtime", "moderation", "content-filter",
+        "shield", "guard", "rerank", "clip", "vit", "siglip", "transcription", "translation",
+        "vector_store", "search-", "encoder", "ocr", "video_generation", "image_edit"
+    )
+    if any(sub in low_name for sub in _EXCLUDE_SUBSTRINGS):
+        return False
+        
+    if info:
+        non_text_keys = (
+            "input_cost_per_image", "output_cost_per_image",
+            "input_cost_per_audio_per_second", "input_cost_per_audio_token", "output_cost_per_audio_token",
+            "ocr_cost_per_page", "annotation_cost_per_page", "input_cost_per_pixel", "output_cost_per_pixel",
+            "input_cost_per_video_per_second", "output_cost_per_video_per_second"
+        )
+        if any(k in info for k in non_text_keys):
+            return False
+            
+        mode = info.get("mode")
+        if mode not in ("chat", "completion", None):
+            return False
+            
+    return True
+
+def _verify_single_model(provider: str, model_name: str, api_key: str) -> bool:
+    import litellm
+    import os
+    
+    if provider == "ollama":
+        env_key_name = "OLLAMA_BASE_URL"
+    elif provider in ("nvidia", "minimax"):
+        env_key_name = "NVIDIA_API_KEY"
+    else:
+        env_key_name = f"{provider.upper()}_API_KEY"
+
+    original_val = os.environ.get(env_key_name)
+    if api_key:
+        os.environ[env_key_name] = api_key
+        
+    try:
+        litellm.completion(
+            model=model_name,
+            messages=[{"role": "user", "content": "."}],
+            max_tokens=1,
+            timeout=4.0
+        )
+        return True
+    except Exception as e:
+        err_str = str(e).lower()
+        err_type = type(e).__name__
+        
+        is_bad_request = False
+        is_not_found = False
+        
+        if "badrequest" in err_type.lower() or "400" in err_str:
+            is_bad_request = True
+        if "notfound" in err_type.lower() or "404" in err_str or "not_found" in err_str:
+            is_not_found = True
+            
+        if is_bad_request or is_not_found:
+            return False
+            
+        return True
+    finally:
+        if original_val is not None:
+            os.environ[env_key_name] = original_val
+        elif env_key_name in os.environ:
+            del os.environ[env_key_name]
 
 @app.get("/api/llm/providers/{provider}/models")
 async def get_llm_models(provider: str, api_key: Optional[str] = None):
     """Returns only text-to-text (chat/completion) models for a provider.
     Filters out voice, image, embedding, moderation, realtime, and other
     non-text-generation models that this project cannot use.
-    If api_key is provided, dynamically queries the provider's active models list."""
+    If api_key is provided or configured, dynamically queries the provider's active models list."""
     
-    # Substrings that indicate a model is NOT a text-to-text chat model.
-    _EXCLUDE_PATTERNS = (
-        # Audio / voice / speech
-        "tts", "whisper", "audio", "speech", "realtime",
-        # Image generation / vision-only
-        "dall-e", "stable-diffusion", "imagen", "image-generation",
-        # Embeddings / Encoders
-        "embed", "ada-002", "text-embedding", "search-", "embedding", "encoder",
-        # Moderation / safety / guardrails
-        "moderation", "content-filter", "shield", "guard",
-        # Code-only non-chat (old Codex completions API)
-        "code-davinci", "code-cushman", "davinci-edit", "text-davinci-edit",
-        "text-ada", "text-babbage", "text-curie",
-        # Deprecated / legacy completions-only
-        "babbage-002", "davinci-002",
-        "text-davinci-001", "text-davinci-002", "text-davinci-003",
-        # Computer-use / tool-only
-        "computer-use",
-        # Fine-tune helper models
-        "ft:davinci", "ft:babbage", "ft:curie", "ft:ada",
-        # Transcription / translation
-        "transcription", "translation",
-        # Rerankers & Vision-specific
-        "rerank", "clip", "vit", "siglip",
-        # Legacy / Date-suffixed models
-        "-0301", "-0613", "-1106", "-0125", "-0518", "-0829", "-0913",
-        "gpt-4-0", "gpt-4-32k", "gpt-3.5-turbo-16k",
-        "claude-2", "claude-instant",
-        "llama-2", "llama3-8b", "llama3-70b",
-        "gemini-1.0", "mistral-tiny", "mistral-medium"
-    )
-
-    def _is_text_model(name: str) -> bool:
-        low = name.lower()
-        # Exclude exact legacy model name that fails validation
-        if low in ("nvidia_nim/mistralai/mistral-large", "mistralai/mistral-large"):
-            return False
-        return not any(pat in low for pat in _EXCLUDE_PATTERNS)
+    # Read API Key from local config if not passed/dummy
+    if not api_key or not api_key.strip() or api_key.endswith("..."):
+        cfg_path = get_local_config_path()
+        if cfg_path.exists():
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                    if provider == "ollama":
+                        api_key = cfg.get("OLLAMA_BASE_URL", "")
+                    elif provider in ("nvidia", "minimax"):
+                        api_key = cfg.get("NVIDIA_API_KEY", "")
+                    else:
+                        api_key = cfg.get(f"{provider.upper()}_API_KEY", "")
+            except Exception:
+                pass
 
     models = []
     fetched_successfully = False
 
-    # Dynamic fetching based on user's API Key (if provided)
+    # Dynamic fetching based on API Key
     if api_key and api_key.strip() and not api_key.endswith("..."):
         import requests
         clean_key = api_key.strip()
@@ -1111,23 +1209,91 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
         except Exception:
             pass # Fallback to litellm list if request fails
 
-    if not fetched_successfully:
+    import litellm
+    import os
+    
+    # Load litellm dictionary
+    model_cost = {}
+    if hasattr(litellm, "model_cost"):
+        model_cost = litellm.model_cost
+    else:
         try:
-            import litellm
-            models = list(litellm.models_by_provider.get(provider, []))
+            backup_path = os.path.join(os.path.dirname(litellm.__file__), "model_prices_and_context_window_backup.json")
+            with open(backup_path, "r", encoding="utf-8") as f:
+                model_cost = json.load(f)
+        except Exception:
+            pass
 
-            # Also grab models from the global model_list if they match the provider
+    provider_models = []
+    
+    if fetched_successfully and models:
+        for model in models:
+            info = model_cost.get(model)
+            if _is_text_generation_model(model, info):
+                provider_models.append(model)
+    else:
+        for model_name, info in model_cost.items():
+            if not isinstance(info, dict):
+                continue
+            prov = info.get("litellm_provider", "")
+            prov_lower = prov.lower() if prov else ""
+            req_prov_lower = provider.lower()
+            
+            is_match = False
+            if prov_lower == req_prov_lower:
+                is_match = True
+            elif req_prov_lower == "nvidia" and prov_lower == "nvidia_nim":
+                is_match = True
+            elif req_prov_lower == "cohere" and prov_lower == "cohere_chat":
+                is_match = True
+            elif req_prov_lower == "bedrock" and prov_lower in ("bedrock_converse", "bedrock_mantle"):
+                is_match = True
+            elif model_name.startswith(f"{provider}/"):
+                is_match = True
+            elif provider.lower() == "openai" and "gpt-" in model_name and "/" not in model_name:
+                is_match = True
+
+            if is_match:
+                if _is_text_generation_model(model_name, info):
+                    provider_models.append(model_name)
+
+        try:
             if hasattr(litellm, "model_list"):
                 extra = [m for m in litellm.model_list if m.startswith(f"{provider}/")]
                 if provider == "openai":
                     extra.extend([m for m in litellm.model_list if "gpt-" in m and "/" not in m])
-                models.extend(extra)
-        except Exception as e:
-            return {"models": [], "error": str(e)}
+                for m in extra:
+                    info = model_cost.get(m)
+                    if _is_text_generation_model(m, info):
+                        provider_models.append(m)
+        except Exception:
+            pass
 
-    # Deduplicate, filter, sort
-    models = sorted(set(m for m in models if _is_text_model(m)))
-    return {"models": models}
+    provider_models = sorted(list(set(provider_models)))
+
+    verified_models = []
+    # Upstream active validation check
+    if api_key and api_key.strip() and not api_key.endswith("..."):
+        import concurrent.futures
+        clean_key = api_key.strip()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            future_to_model = {
+                executor.submit(_verify_single_model, provider, model, clean_key): model
+                for model in provider_models
+            }
+            for future in concurrent.futures.as_completed(future_to_model):
+                model = future_to_model[future]
+                try:
+                    is_active = future.result()
+                    if is_active:
+                        verified_models.append(model)
+                except Exception:
+                    verified_models.append(model)
+    else:
+        verified_models = provider_models
+
+    verified_models = sorted(list(set(verified_models)))
+    return {"models": verified_models}
 
 @app.post("/api/validate-key")
 async def validate_key(
