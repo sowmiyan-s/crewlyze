@@ -19,17 +19,17 @@ Welcome to the **Crewlyze** source repository! This project hosts the codebase f
 
 ---
 
-## 🛠️ Local Development & Setup
+## 🛠️ Local Development & Setup 
 
 ### Option 1: Run via Docker (Recommended)
 This launches both the web platform and handles all dependencies inside a containerized workspace.
 ```bash
-docker-compose up --build
+docker-compose up --build 
 ```
 Navigate to [http://localhost:8000](http://localhost:8000)
 
 ### Option 2: Run via NPM (Global CLI Mode)
-Install globally and execute:
+Install globally and execute :
 ```bash
 npm install -g .
 crewlyze
