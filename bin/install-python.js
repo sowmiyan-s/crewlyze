@@ -53,13 +53,16 @@ try {
 // 4. Auto-elevate to global install if run locally
 const isGlobal = process.env.npm_config_global === 'true' || process.env.npm_config_global === '1' || process.env.npm_config_global === true || process.env.npm_config_global === 1;
 const isNpm = !!process.env.npm_lifecycle_event;
+const isElevating = process.env.CREWLYZE_ELEVATING === 'true';
 
-if (!isGlobal && isNpm) {
-  console.log('\x1b[33m⚠️ Local install detected. Elevating to global install automatically...\x1b[0m');
+if (!isGlobal && isNpm && !isElevating) {
+  console.log('\x1b[33m⚠️ Local install detected. Elevating to global install automatically to make "crewlyze" available everywhere...\x1b[0m');
   try {
-    execSync('npm install -g .', { stdio: 'inherit', cwd: projectRoot });
+    const envCopy = Object.assign({}, process.env, { CREWLYZE_ELEVATING: 'true' });
+    execSync('npm install -g .', { stdio: 'inherit', cwd: projectRoot, env: envCopy });
     console.log('\x1b[32m✅ Successfully installed globally. You can now use the "crewlyze" command from anywhere.\x1b[0m');
   } catch (err) {
     console.error('\x1b[31m❌ Failed to automatically elevate to global install.\x1b[0m');
   }
 }
+

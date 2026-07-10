@@ -1,6 +1,6 @@
 {
   "name": "crewlyze",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
   "main": "index.js",
   "bin": {
