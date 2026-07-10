@@ -14,19 +14,6 @@ const venvDir = path.join(userHome, 'venv');
 const projectRoot = path.join(__dirname, '..');
 const requirementsPath = path.join(projectRoot, 'requirements.txt');
 
-// 0. Auto-elevate to global install if run locally
-const isGlobal = process.env.npm_config_global === 'true' || process.env.npm_config_global === '1' || process.env.npm_config_global === true || process.env.npm_config_global === 1;
-if (!isGlobal && process.env.npm_config_global !== undefined) {
-  console.log('\x1b[33m⚠️ Local install detected. Elevating to global install automatically...\x1b[0m');
-  try {
-    execSync('npm install -g .', { stdio: 'inherit', cwd: projectRoot });
-    console.log('\x1b[32m✅ Successfully installed globally. You can now use the "crewlyze" command from anywhere.\x1b[0m');
-    process.exit(0);
-  } catch (err) {
-    console.error('\x1b[31m❌ Failed to automatically elevate to global install.\x1b[0m');
-    // Continue with local install as fallback
-  }
-}
 
 // 1. Check if Python is installed
 let pythonCmd = 'python3';
@@ -61,4 +48,18 @@ try {
 } catch (e) {
   console.error('\x1b[31m❌ Error installing Python dependencies.\x1b[0m');
   process.exit(1);
+}
+
+// 4. Auto-elevate to global install if run locally
+const isGlobal = process.env.npm_config_global === 'true' || process.env.npm_config_global === '1' || process.env.npm_config_global === true || process.env.npm_config_global === 1;
+const isNpm = !!process.env.npm_lifecycle_event;
+
+if (!isGlobal && isNpm) {
+  console.log('\x1b[33m⚠️ Local install detected. Elevating to global install automatically...\x1b[0m');
+  try {
+    execSync('npm install -g .', { stdio: 'inherit', cwd: projectRoot });
+    console.log('\x1b[32m✅ Successfully installed globally. You can now use the "crewlyze" command from anywhere.\x1b[0m');
+  } catch (err) {
+    console.error('\x1b[31m❌ Failed to automatically elevate to global install.\x1b[0m');
+  }
 }
