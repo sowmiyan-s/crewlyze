@@ -451,4 +451,4 @@ Your sponsorship directly funds the development of v2.0 (Database Integrations) 
 
 Copyright © 2025 Sowmiyan S.
 
-> **Disclaimer:** *Always ensure you comply with your organization's internal data privacy policies and GDPR/HIPAA regulations when uploading sensitive datasets to cloud LLM providers (OpenAI, Google, Anthropic). For maximum security with confidential data, strictly utilize local Ollama instances.* 🚀
+> **Disclaimer:** *Always ensure you comply with your organization's internal data privacy policies and GDPR/HIPAA regulations when uploading sensitive datasets to cloud LLM providers (OpenAI, Google, Anthropic). For maximum security with confidential data, strictly utilize local Ollama instances.*
