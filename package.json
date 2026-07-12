@@ -1,6 +1,6 @@
 {
   "name": "crewlyze",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
   "main": "index.js",
   "repository": {
@@ -15,8 +15,10 @@
     "start": "node ./bin/crewlyze.js",
     "postinstall": "node ./bin/install-python.js",
     "install-python": "node ./bin/install-python.js",
-    "prepack": "node ./bin/prepack.js",
-    "postpack": "node ./bin/postpack.js"
+    "prepack": "node ./bin/sync-version.js && node ./bin/prepack.js",
+    "postpack": "node ./bin/postpack.js",
+    "sync-version": "node ./bin/sync-version.js",
+    "version": "node ./bin/sync-version.js && git add pyproject.toml main.py package-lock.json"
   },
   "keywords": [
     "ai",
