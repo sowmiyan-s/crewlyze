@@ -29,5 +29,7 @@
   ],
   "author": "Sowmiyan S",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "crewlyze": "^1.0.4"
+  }
 }
