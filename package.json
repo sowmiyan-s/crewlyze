@@ -12,6 +12,7 @@
   },
   "preferGlobal": true,
   "scripts": {
+    "test": "echo \"No tests specified\" && exit 0",
     "start": "node ./bin/crewlyze.js",
     "postinstall": "node ./bin/install-python.js",
     "install-python": "node ./bin/install-python.js",
