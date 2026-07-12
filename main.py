@@ -53,6 +53,32 @@ try:
 except Exception as e:
     print(f"Failed to convert line endings: {e}")
 
+# 2. Compress large local PNG assets to avoid Git LFS dependencies
+try:
+    from PIL import Image
+    assets_dir = Path(__file__).resolve().parent / "assets"
+    targets = {
+        "logo.png": (512, 512),
+        "chat_logo.png": (512, 512),
+        "favicon.png": (48, 48),
+        "placeholder_thumbnail.png": (600, 400),
+        "branding_image.png": (800, 500)
+    }
+    for filename, max_size in targets.items():
+        filepath = assets_dir / filename
+        if filepath.exists():
+            orig_size = filepath.stat().st_size
+            if orig_size < 1000:
+                print(f"Skipping LFS pointer file: {filename}")
+                continue
+            with Image.open(filepath) as img:
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                img.save(filepath, "PNG", optimize=True)
+            new_size = filepath.stat().st_size
+            print(f"Optimized asset {filename}: {orig_size} -> {new_size} bytes")
+except Exception as e:
+    print(f"Asset optimization failed: {e}")
+
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException, Request
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
