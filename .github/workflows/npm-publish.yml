@@ -1,4 +1,4 @@
-name: Node.js CI & Dual Publish to NPM and GitHub Packages
+name: Node.js CI & Publish to NPM
 
 on:
   push:
@@ -37,7 +37,7 @@ jobs:
   publish-npm:
     name: Publish to npmjs.com
     needs: test-and-build
-    if: github.event_name == 'release'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -57,50 +57,36 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Auto-increment version and sync
+        run: |
+          node -e "
+            const fs = require('fs');
+            const { execSync } = require('child_process');
+            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
+            const localVersion = pkg.version;
+            let latestVersion = '0.0.0';
+            try {
+              latestVersion = execSync('npm view crewlyze version', { encoding: 'utf8' }).trim();
+            } catch (e) {
+              console.log('Package not found or private. Using 0.0.0 as baseline.');
+            }
+            const parseVersion = v => v.split('.').map(Number);
+            const [localMajor, localMinor, localPatch] = parseVersion(localVersion);
+            const [latestMajor, latestMinor, latestPatch] = parseVersion(latestVersion);
+            let targetVersion = localVersion;
+            const isLocalGreater = localMajor > latestMajor || (localMajor === latestMajor && localMinor > latestMinor) || (localMajor === latestMajor && localMinor === latestMinor && localPatch > latestPatch);
+            if (!isLocalGreater) {
+              targetVersion = latestMajor + '.' + latestMinor + '.' + (latestPatch + 1);
+            }
+            console.log('Local version in repo: ' + localVersion);
+            console.log('Latest version on npm: ' + latestVersion);
+            console.log('Target version to publish: ' + targetVersion);
+            pkg.version = targetVersion;
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          node ./bin/sync-version.js
+
       - name: Publish to public npm
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  publish-gpr:
-    name: Publish to GitHub Packages
-    needs: test-and-build
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@sowmiyan-s'
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Dynamically Update package.json name to Scoped Name
-        run: |
-          node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('./package.json', 'utf8'));
-            pkg.name = '@sowmiyan-s/crewlyze';
-            pkg.publishConfig = { registry: 'https://npm.pkg.github.com' };
-            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, 2));
-            console.log('Successfully updated package name to ' + pkg.name + ' for GitHub Packages publishing.');
-          "
-
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
