@@ -72,6 +72,130 @@ def _build_column_context(csv_path: str, max_rows: int = 500) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Specialized Data Analysis Engines (Hypothesis Testing & AutoML)
+# ---------------------------------------------------------------------------
+
+def _run_hypothesis_test_engine(query: str, csv_path: str) -> Optional[dict]:
+    """Runs scipy statistical hypothesis tests (Pearson, Spearman, Chi-Square, ANOVA, Normality)."""
+    q_lower = query.lower()
+    if not any(k in q_lower for k in ("hypothesis", "p-value", "significance", "pearson", "spearman", "chi-square", "anova", "normality", "t-test")):
+        return None
+
+    try:
+        import scipy.stats as stats
+        df = read_csv_robust(csv_path)
+        num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        cat_cols = df.select_dtypes(exclude=["number"]).columns.tolist()
+
+        results_md = []
+        results_md.append("### 🧪 **Statistical Hypothesis & Significance Test Report**\n")
+
+        if len(num_cols) >= 2:
+            c1, c2 = num_cols[0], num_cols[1]
+            p_corr, p_val = stats.pearsonr(df[c1].dropna(), df[c2].dropna())
+            sig_text = "Statistically Significant ($p < 0.05$)" if p_val < 0.05 else "Not Statistically Significant ($p \\ge 0.05$)"
+            results_md.append(f"#### **1. Pearson Correlation Test ({c1} vs {c2})**")
+            results_md.append(f"| Metric | Calculated Value |")
+            results_md.append(f"| :--- | :--- |")
+            results_md.append(f"| **Pearson $r$ Coefficient** | `{p_corr:.4f}` |")
+            results_md.append(f"| **$P$-Value** | `{p_val:.4e}` |")
+            results_md.append(f"| **Conclusion** | **{sig_text}** |")
+
+            sample_data = df[c1].dropna().head(100)
+            shapiro_stat, shapiro_p = stats.shapiro(sample_data)
+            norm_text = "Normal Distribution" if shapiro_p > 0.05 else "Non-Normal Distribution"
+            results_md.append(f"\n#### **2. Shapiro-Wilk Normality Test ({c1})**")
+            results_md.append(f"- **Test Statistic ($W$)**: `{shapiro_stat:.4f}`")
+            results_md.append(f"- **$P$-Value**: `{shapiro_p:.4f}` $\\rightarrow$ **{norm_text}**")
+
+        if cat_cols and num_cols:
+            cat_col = cat_cols[0]
+            num_col = num_cols[0]
+            groups = [group[num_col].dropna().values for _, group in df.groupby(cat_col) if len(group) > 2]
+            if len(groups) >= 2:
+                f_stat, f_p = stats.f_oneway(*groups[:5])
+                anova_sig = "Significant Group Variance ($p < 0.05$)" if f_p < 0.05 else "No Significant Group Variance"
+                results_md.append(f"\n#### **3. One-Way ANOVA Test ({num_col} across {cat_col})**")
+                results_md.append(f"- **$F$-Statistic**: `{f_stat:.4f}`")
+                results_md.append(f"- **$P$-Value**: `{f_p:.4e}` $\\rightarrow$ **{anova_sig}**")
+
+        return {
+            "success": True,
+            "text": "\n".join(results_md),
+            "plot_path": None
+        }
+    except Exception as e:
+        print(f"Hypothesis engine fallback to code generator: {e}")
+        return None
+
+def _run_automl_engine(query: str, csv_path: str, output_dir: Path) -> Optional[dict]:
+    """Trains a Scikit-Learn predictive model and generates feature importance charts."""
+    q_lower = query.lower()
+    if not any(k in q_lower for k in ("predict", "automl", "model", "feature importance", "classify", "train")):
+        return None
+
+    try:
+        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.model_selection import train_test_split
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        df = read_csv_robust(csv_path)
+        num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        
+        if len(num_cols) < 2:
+            return None
+
+        target_col = num_cols[-1]
+        feature_cols = [c for c in num_cols if c != target_col][:6]
+
+        if not feature_cols:
+            return None
+
+        X = df[feature_cols].fillna(df[feature_cols].median())
+        y = df[target_col].fillna(df[target_col].median())
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        model = RandomForestRegressor(n_estimators=50, random_state=42)
+        model.fit(X_train, y_train)
+        score = model.score(X_test, y_test)
+
+        importances = model.feature_importances_
+        feat_df = pd.DataFrame({"Feature": feature_cols, "Importance": importances}).sort_values("Importance", ascending=True)
+
+        plot_path = output_dir / f"automl_importance_{_uuid_short()}.png"
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.barh(feat_df["Feature"], feat_df["Importance"], color="#7c3aed")
+        ax.set_title(f"Feature Importance Ranking for Target: '{target_col}'", fontsize=11, fontweight="bold", pad=12)
+        ax.set_xlabel("Relative Importance Score", fontsize=9)
+        plt.tight_layout()
+        plt.savefig(str(plot_path), dpi=150)
+        plt.close()
+
+        res_md = [
+            f"### 🤖 **AutoML Predictive Model & Feature Importance Report**",
+            f"- **Target Predictor Variable**: `{target_col}`",
+            f"- **Algorithm**: `RandomForestRegressor (n_estimators=50)`",
+            f"- **Model $R^2$ Variance Score**: `{score:.4f}` ({score*100:.1f}% explained variance)",
+            f"\n#### **Feature Importance Ranking Table**",
+            f"| Feature Name | Importance Weight | Rank |",
+            f"| :--- | :--- | :--- |"
+        ]
+        for rank, (_, r) in enumerate(feat_df.iloc[::-1].iterrows(), 1):
+            res_md.append(f"| `{r['Feature']}` | `{r['Importance']:.4f}` | **#{rank}** |")
+
+        return {
+            "success": True,
+            "text": "\n".join(res_md),
+            "plot_path": str(plot_path) if plot_path.exists() else None
+        }
+    except Exception as e:
+        print(f"AutoML engine fallback to code generator: {e}")
+        return None
+
+# ---------------------------------------------------------------------------
 # Main copilot entry point
 # ---------------------------------------------------------------------------
 
@@ -100,6 +224,16 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
     # 3. Prepare plot output path
     output_dir = Path(output_dir_str)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check for specialized Data Analysis Engines (Hypothesis Testing & AutoML)
+    hypo_res = _run_hypothesis_test_engine(query, csv_path)
+    if hypo_res:
+        return hypo_res
+
+    automl_res = _run_automl_engine(query, csv_path, output_dir)
+    if automl_res:
+        return automl_res
+
     plot_name = f"copilot_plot_{_uuid_short()}.png"
     plot_path = output_dir / plot_name
 
@@ -159,8 +293,55 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
                 "plot_path": None,
             }
 
-        # 6. Execute in sandboxed subprocess
+        # 6. Execute in sandboxed subprocess with Auto-Healing Loop (up to 2 retry attempts)
         success, exec_output = _run_in_subprocess(code)
+        auto_healed = False
+
+        max_heals = 2
+        heal_count = 0
+
+        while not success and heal_count < max_heals:
+            heal_count += 1
+            print(f"[AI Chat Auto-Heal] Code execution failed (Attempt {heal_count}/{max_heals}). Auto-fixing code...")
+            
+            heal_prompt = textwrap.dedent(f"""
+            The previous Python code generated for the user query produced a runtime execution error.
+
+            USER QUERY: "{query}"
+            
+            FAILED CODE:
+            ```python
+            {code}
+            ```
+
+            EXECUTION ERROR TRACE:
+            ```
+            {exec_output}
+            ```
+
+            === DATASET SCHEMA ===
+            {column_context}
+            =====================
+
+            INSTRUCTIONS TO FIX:
+            1. Analyze the execution error trace (e.g. KeyError, NameError, SyntaxError, AttributeError).
+            2. Correct the code to use exact column names from the dataset schema.
+            3. Ensure all required imports (pandas, matplotlib, seaborn, plotly) are included.
+            4. Return ONLY the corrected, self-contained Python code inside a ```python ... ``` block.
+            """).strip()
+
+            try:
+                heal_res = llm.call([{"role": "user", "content": heal_prompt}])
+                heal_raw = heal_res if isinstance(heal_res, str) else str(heal_res)
+                healed_code = _strip_markdown_fences(heal_raw)
+                if healed_code.strip():
+                    code = healed_code
+                    success, exec_output = _run_in_subprocess(code)
+                    if success:
+                        auto_healed = True
+                        break
+            except Exception as heal_err:
+                print(f"[AI Chat Auto-Heal] Failed during heal attempt {heal_count}: {heal_err}")
 
         plot_saved      = plot_path.exists() and plot_path.stat().st_size > 0
         final_plot_path = str(plot_path) if plot_saved else None
@@ -168,11 +349,13 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
         if success:
             answer_text = exec_output.strip() if exec_output.strip() not in ("", "(no output)") \
                           else "Query executed successfully (no text output)."
+            if auto_healed:
+                answer_text = f"✨ **[AI Chat Auto-Healed]** *Code fixed automatically after resolving runtime execution error.*\n\n{answer_text}"
             return {"success": True, "text": answer_text, "plot_path": final_plot_path}
         else:
             return {
                 "success": False,
-                "text": f"Execution error:\n```\n{exec_output}\n```",
+                "text": f"⚠️ **Execution error after auto-healing attempts:**\n```\n{exec_output}\n```",
                 "plot_path": None,
             }
 

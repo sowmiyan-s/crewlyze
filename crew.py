@@ -343,6 +343,14 @@ def _run_single_task(agent, task, max_rpm: int = 8) -> object:
 # Output extractor
 # ---------------------------------------------------------------------------
 
+def _clean_think_tags(text: str) -> str:
+    """Removes LLM chain-of-thought reasoning tags (<think>...</think>) and extraneous AI artifacts."""
+    if not text:
+        return ""
+    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL | re.IGNORECASE)
+    cleaned = re.sub(r'</?think>', '', cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
 def _safe_output(task) -> str:
     """Safely extract raw string output and error diagnostics from a completed CrewAI task."""
     if task is None:
@@ -350,7 +358,8 @@ def _safe_output(task) -> str:
 
     output_parts = []
     if hasattr(task, "output") and task.output is not None:
-        output_parts.append(str(task.output.raw if hasattr(task.output, "raw") else task.output))
+        raw_txt = str(task.output.raw if hasattr(task.output, "raw") else task.output)
+        output_parts.append(_clean_think_tags(raw_txt))
 
     for attr_name in ("error", "exception", "traceback", "trace"):  # best-effort diagnostics
         if hasattr(task, attr_name):
@@ -699,11 +708,17 @@ def run_crew(
                 verbose=True,
             )
             rel_crew.kickoff()
-            relation_output = _safe_output(tasks[1])
-            
-            # Post-processing: if no lines match the expected X and Y relationship format, run fallback
-            has_relations = any(("|" in line and "X:" in line) for line in relation_output.split("\n"))
-            if not has_relations:
+            raw_rel = _clean_think_tags(_safe_output(tasks[1]))
+
+            # Filter strictly for formatted relationship lines
+            rel_lines = [
+                line.strip() for line in raw_rel.split("\n")
+                if ("|" in line and ("X:" in line or "x:" in line) and ("Y:" in line or "y:" in line))
+            ]
+
+            if rel_lines:
+                relation_output = "\n".join(rel_lines)
+            else:
                 print("Relationship Analyst output lacked strict format. Generating statistical relation fallback...")
                 relation_output = _run_auto_relation_fallback(df)
                 

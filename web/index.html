@@ -567,6 +567,15 @@
                     data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete Column</button>
               </div>
             </div>
+            
+            <!-- Filter Search & Stats Bar -->
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+              <div style="position: relative; flex: 1;">
+                <input type="text" id="previewTableSearch" class="field-input" placeholder="🔍 Search dataset rows or filter values..." style="width: 100%; height: 34px; font-size: 0.8rem; padding: 6px 12px 6px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md);" />
+              </div>
+              <span id="previewTableRowCount" style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; background: rgba(255,255,255,0.04); padding: 6px 10px; border-radius: var(--r-sm); border: 1px solid rgba(255,255,255,0.06);">Rows: --</span>
+            </div>
+
             <div id="previewTableWrap" class="table-wrap" style="max-height: 250px; overflow-y: auto;">
               <div id="previewTable" class="data-table-container"></div>
             </div>
@@ -755,10 +764,46 @@
 
           <!-- AGENT LOGS -->
           <div class="tab-panel" id="panel-logs">
-            <h3 class="panel-title"><i data-lucide="clipboard-list"
-                style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Agent Execution Logs
-            </h3>
-            <div id="resultsLogOutput" class="log-output" style="max-height: 550px; overflow-y: auto; padding: 16px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 class="panel-title" style="margin: 0;"><i data-lucide="clipboard-list"
+                  style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Agent Execution Logs &amp; Pipeline Status
+              </h3>
+            </div>
+
+            <!-- Multi-Agent Execution Progress Stepper -->
+            <div id="pipelineProgressStepper" class="pipeline-stepper-card" style="margin-bottom: 16px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md); padding: 14px 18px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+                  <i data-lucide="cpu" style="width: 15px; height: 15px; color: var(--violet-light);"></i> Multi-Agent Orchestrator Stepper
+                </span>
+                <span id="stepperStatusBadge" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">Idle</span>
+              </div>
+              
+              <div class="stepper-track" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
+                <div class="stepper-item" data-agent="cleaner" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
+                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">1. Cleaner</div>
+                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Data Healing</div>
+                </div>
+                <div class="stepper-item" data-agent="relation" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
+                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">2. Relation</div>
+                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Schema Map</div>
+                </div>
+                <div class="stepper-item" data-agent="insights" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
+                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">3. Insights</div>
+                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Executive Plan</div>
+                </div>
+                <div class="stepper-item" data-agent="predictive" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
+                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">4. Risk</div>
+                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Anomalies</div>
+                </div>
+                <div class="stepper-item" data-agent="visualizer" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
+                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">5. Visuals</div>
+                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Charts Suite</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="resultsLogOutput" class="log-output" style="max-height: 460px; overflow-y: auto; padding: 16px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);"></div>
           </div>
           </div>
         </div>
@@ -919,30 +964,30 @@
 
   <!-- Settings Modal -->
   <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal-box" style="width: 1300px; max-width: 95%; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
-      <div class="modal-header" style="padding: 16px 24px; border-bottom: 1px solid var(--border-low);">
-        <h2 style="margin: 0; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="settings" style="width: 20px; height: 20px;"></i> API Credentials &amp; Settings</h2>
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2><i data-lucide="settings"></i> API Credentials &amp; Settings</h2>
         <button id="closeSettingsModal" class="btn-icon">✕</button>
       </div>
 
       <!-- Tabbed container layout -->
-      <div class="modal-body" style="display: flex; flex-direction: row !important; padding: 0; min-height: 480px; overflow: hidden; background: var(--bg-card); flex: 1;">
+      <div class="modal-body">
         
         <!-- Left Sidebar Tabs Menu -->
-        <div class="settings-sidebar-tabs" style="background: rgba(0, 0, 0, 0.25); border-right: 1px solid var(--border-low); display: flex; flex-direction: column; padding: 16px 0; position: relative;">
+        <div class="settings-sidebar-tabs">
           <div class="settings-tab-indicator"></div>
           
-          <button class="settings-tab-btn active" data-settings-tab="general" style="position: relative; z-index: 1;">
-            <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> General Settings
+          <button class="settings-tab-btn active" data-settings-tab="general">
+            <i data-lucide="sliders"></i> General Settings
           </button>
-          <button class="settings-tab-btn" data-settings-tab="llm" style="position: relative; z-index: 1;">
-            <i data-lucide="key" style="width: 16px; height: 16px;"></i> LLM API Keys
+          <button class="settings-tab-btn" data-settings-tab="llm">
+            <i data-lucide="key"></i> LLM API Keys
           </button>
-          <button class="settings-tab-btn" data-settings-tab="integrations" style="position: relative; z-index: 1;">
-            <i data-lucide="shuffle" style="width: 16px; height: 16px;"></i> Integrations
+          <button class="settings-tab-btn" data-settings-tab="integrations">
+            <i data-lucide="shuffle"></i> Integrations
           </button>
-          <button class="settings-tab-btn" data-settings-tab="features" style="position: relative; z-index: 1;">
-            <i data-lucide="star" style="width: 16px; height: 16px;"></i> System Features
+          <button class="settings-tab-btn" data-settings-tab="features">
+            <i data-lucide="star"></i> System Features
           </button>
         </div>
 
@@ -951,157 +996,166 @@
           
           <!-- TAB 1: General Settings -->
           <div id="settingsTab-general" class="settings-tab-panel">
-            <h4 style="margin: 0 0 12px 0; color: #fff; font-size: 1.1rem; font-weight: 700;">General Settings</h4>
+            <h4 style="margin: 0 0 14px 0; color: #fff; font-size: 1.15rem; font-weight: 700;">General Engine Settings</h4>
             <div class="section-help-box">
-              <i data-lucide="info" style="width:16px;height:16px;"></i>
-              <div><strong>About General Settings</strong> — Configure global engine behaviour that applies to all projects. The API cooldown prevents rate-limit errors when the LLM provider throttles rapid requests. Increase this value if you see <em>429 Too Many Requests</em> errors in the log.</div>
+              <i data-lucide="info" style="width:18px;height:18px;"></i>
+              <div><strong>About General Settings</strong> — Configure global engine behavior that applies to all projects. The API cooldown prevents rate-limit errors when the LLM provider throttles rapid requests. Increase this value if you see <em>429 Too Many Requests</em> errors in the log.</div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <div class="settings-card">
+              <div class="settings-card-title"><i data-lucide="sliders" style="width:16px; height:16px; color: var(--violet-light);"></i> Rate Limiting &amp; Cooldown</div>
               <div>
-                <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">API Cooldown delay: <span
-                    id="settingsCooldownVal">5</span>s
+                <label class="field-label" style="display: block; margin-bottom: 8px; font-weight: 600;">API Cooldown delay: <span id="settingsCooldownVal" style="color: var(--violet-light); font-weight: 700;">5</span>s
                   <span class="info-tooltip-trigger" data-tooltip="Rate-limiting delay in seconds applied between successive LLM requests. Use higher cooldowns if you encounter rate-limiting errors."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
                 </label>
                 <input type="range" id="settingsCooldown" class="field-range" min="0" max="60" value="5" />
-                <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Rate-limiting delay between concurrent API requests. Increases stability against provider throttle limits.</span>
+                <span style="font-size: 0.74rem; color: var(--text-muted); display: block; margin-top: 6px;">Rate-limiting delay between concurrent API requests. Increases stability against provider throttle limits.</span>
               </div>
+            </div>
 
-              <div>
-                <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Console Log Level
-                  <span class="info-tooltip-trigger" data-tooltip="Set logging detail level for the stdout.log and live event panel."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
-                </label>
-                <select id="settingsLogLevel" class="field-select" style="max-width: 200px;">
-                  <option value="INFO">INFO</option>
-                  <option value="DEBUG">DEBUG</option>
-                  <option value="ERROR">ERROR</option>
-                </select>
-                <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Controls how much information is streamed during execution.</span>
-              </div>
-              
-              <div>
-                <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Workspace Storage Dir
-                  <span class="info-tooltip-trigger" data-tooltip="Local machine path where all files, PDF reports, zip backups, and session metadata are persistently saved."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
-                </label>
-                <input type="text" id="settingsStorageDir" class="field-input" placeholder="e.g. ~/.crewlyze/data" />
+            <div class="settings-card">
+              <div class="settings-card-title"><i data-lucide="terminal" style="width:16px; height:16px; color: var(--violet-light);"></i> Environment &amp; Logging</div>
+              <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+                <div>
+                  <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Console Log Level
+                    <span class="info-tooltip-trigger" data-tooltip="Set logging detail level for stdout.log and live event panel."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
+                  </label>
+                  <select id="settingsLogLevel" class="field-select" style="width: 100%;">
+                    <option value="INFO">INFO</option>
+                    <option value="DEBUG">DEBUG</option>
+                    <option value="ERROR">ERROR</option>
+                  </select>
+                  <span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">Controls streamed logging detail level.</span>
+                </div>
+
+                <div>
+                  <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Workspace Storage Directory
+                    <span class="info-tooltip-trigger" data-tooltip="Local machine path where all files, PDF reports, zip backups, and session metadata are persistently saved."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
+                  </label>
+                  <input type="text" id="settingsStorageDir" class="field-input" placeholder="e.g. ~/.crewlyze/data" />
+                </div>
               </div>
             </div>
           </div>
 
           <!-- TAB 2: LLM API Keys -->
           <div id="settingsTab-llm" class="settings-tab-panel hidden">
-            <h4 style="margin: 0 0 12px 0; color: #fff; font-size: 1.1rem; font-weight: 700;">LLM Provider Credentials</h4>
+            <h4 style="margin: 0 0 14px 0; color: #fff; font-size: 1.1rem; font-weight: 600;">LLM Provider Credentials</h4>
             <div class="section-help-box">
-              <i data-lucide="key" style="width:16px;height:16px;"></i>
+              <i data-lucide="key"></i>
               <div><strong>How to set up LLM Keys</strong> — Crewlyze supports <strong>100+ providers</strong> via LiteLLM (OpenAI, Gemini, Anthropic, Mistral, Ollama, Bedrock, and more). Enter your API key for the provider you want to use and check <em>Show in sidebar</em> to make it selectable when running analysis. Keys are stored locally in your browser and are never sent to any Crewlyze server — only to the LLM provider's endpoint directly.</div>
             </div>
             
-            <div style="margin-bottom: 16px;">
-              <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600;">Add Custom LLM Provider
-                <span class="info-tooltip-trigger" data-tooltip="Search and add custom LiteLLM providers (e.g. perplexity, vertex_ai, deepseek, together) to your sidebar list."><i data-lucide="info" style="width: 12.5px; height: 12.5px; display: inline-block; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
-              </label>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <input type="text" id="providerSearchInput" list="providerList" class="field-input" placeholder="Search 100+ litellm providers (e.g. bedrock, vertex_ai)..." style="flex: 1;" />
-                <datalist id="providerList"></datalist>
-                <button id="addProviderBtn" class="btn-primary" style="height: 38px; padding: 0 16px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0; border-radius: var(--r-md);">Add Provider</button>
+            <div class="settings-card">
+              <div class="settings-card-title"><i data-lucide="plus-circle"></i> Add Custom LLM Provider</div>
+              <div>
+                <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.8rem; color: #a1a1aa;">Search &amp; Add Provider
+                  <span class="info-tooltip-trigger" data-tooltip="Search and add custom LiteLLM providers (e.g. perplexity, vertex_ai, deepseek, together) to your sidebar list."><i data-lucide="info" style="width: 12px; height: 12px; vertical-align: middle; margin-left: 4px; opacity: 0.6; cursor: help;"></i></span>
+                </label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                  <input type="text" id="providerSearchInput" list="providerList" class="field-input" placeholder="Search 100+ litellm providers (e.g. bedrock, vertex_ai, deepseek)..." style="flex: 1;" />
+                  <datalist id="providerList"></datalist>
+                  <button id="addProviderBtn" class="btn-primary" style="height: 38px; padding: 0 16px; font-size: 0.82rem; font-weight: 600; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0; border-radius: 8px;">Add Provider</button>
+                </div>
               </div>
             </div>
             
-            <div id="dynamicProvidersList" style="display: flex; flex-direction: column; gap: 14px;">
+            <div id="dynamicProvidersList">
               <!-- Dynamically populated via JS -->
             </div>
           </div>
 
           <!-- TAB 3: Integrations & Automations -->
           <div id="settingsTab-integrations" class="settings-tab-panel hidden">
-            <h4 style="margin: 0 0 12px 0; color: #fff; font-size: 1.1rem; font-weight: 700;">Automated Outbound Integrations</h4>
+            <h4 style="margin: 0 0 14px 0; color: #fff; font-size: 1.15rem; font-weight: 700;">Automated Outbound Integrations</h4>
             <div class="section-help-box">
-              <i data-lucide="zap" style="width:16px;height:16px;"></i>
+              <i data-lucide="zap" style="width:18px;height:18px;"></i>
               <div><strong>Why use Integrations?</strong> — Once configured and enabled, Crewlyze automatically delivers analysis results the moment a pipeline finishes — no manual export needed. You can send the summary to a <strong>Slack channel</strong>, post an embed to <strong>Discord</strong>, deliver a PDF report via <strong>SMTP email</strong>, or hit any <strong>REST API endpoint</strong>. Enable each channel by saving valid credentials below — the Share button will then appear on your project cards.</div>
             </div>
             
             <!-- Grid of Mini Integration Cards inside modal -->
-            <div class="modal-integrations-tabs" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px;">
-              <button class="modal-int-tab-btn active" data-int-type="email" style="flex: 1;">
-                <i data-lucide="mail" style="width: 14px; height: 14px;"></i> SMTP
+            <div class="modal-integrations-tabs">
+              <button class="modal-int-tab-btn active" data-int-type="email">
+                <i data-lucide="mail" style="width: 15px; height: 15px;"></i> SMTP Email
               </button>
-              <button class="modal-int-tab-btn" data-int-type="slack" style="flex: 1;">
-                <i data-lucide="slack" style="width: 14px; height: 14px;"></i> Slack
+              <button class="modal-int-tab-btn" data-int-type="slack">
+                <i data-lucide="slack" style="width: 15px; height: 15px;"></i> Slack Bot
               </button>
-              <button class="modal-int-tab-btn" data-int-type="discord" style="flex: 1;">
-                <i data-lucide="message-square" style="width: 14px; height: 14px;"></i> Discord
+              <button class="modal-int-tab-btn" data-int-type="discord">
+                <i data-lucide="message-square" style="width: 15px; height: 15px;"></i> Discord Webhook
               </button>
-              <button class="modal-int-tab-btn" data-int-type="webhook" style="flex: 1;">
-                <i data-lucide="link" style="width: 14px; height: 14px;"></i> Webhook
+              <button class="modal-int-tab-btn" data-int-type="webhook">
+                <i data-lucide="link" style="width: 15px; height: 15px;"></i> REST Webhook
               </button>
             </div>
 
             <!-- SMTP Config Panel -->
             <div id="modalIntPanel-email" class="modal-int-panel">
-              <h5 style="margin: 0 0 12px 0; color: #fff; font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="mail" style="color: var(--emerald); width: 16px; height: 16px;"></i> Email SMTP Accounts
+              <h5 style="margin: 0 0 14px 0; color: #fff; font-size: 0.96rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="mail" style="color: var(--emerald); width: 18px; height: 18px;"></i> Email SMTP Accounts
               </h5>
               
               <!-- List of Saved SMTP Accounts -->
-              <div id="intSmtpAccountsList" style="margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.15); padding: 8px; border-radius: var(--r-sm); border: 1px solid var(--border-low);">
-                <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; padding: 12px;">No SMTP accounts configured yet.</div>
+              <div id="intSmtpAccountsList" style="margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 12px; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.07);">
+                <div style="font-size: 0.78rem; color: var(--text-secondary); text-align: center; padding: 12px;">No SMTP accounts configured yet.</div>
               </div>
 
-              <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--border-low); padding-top: 12px;">
-                <span id="smtpFormTitle" style="font-size: 0.75rem; font-weight: 700; color: #fff; display: block; margin-bottom: 2px;">Add SMTP Account:</span>
+              <div style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid rgba(255,255,255,0.07); padding-top: 16px;">
+                <span id="smtpFormTitle" style="font-size: 0.8rem; font-weight: 700; color: #fff; display: block; margin-bottom: 4px;">Add SMTP Account:</span>
                 <input type="hidden" id="intSmtpAccountId" value="" />
                 
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Account Friendly Name</label>
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Account Friendly Name</label>
                   <input type="text" id="intSmtpAccountName" class="field-input" placeholder="e.g. Corporate Gmail, SendGrid SMTP" />
                 </div>
 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 12px;">
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">SMTP Host
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">SMTP Host
                       <span class="info-tooltip-trigger" data-tooltip="Target SMTP server address (e.g. smtp.gmail.com)."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intSmtpHost" class="field-input" placeholder="smtp.gmail.com" />
                   </div>
-                  <div style="width: 90px;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Port
+                  <div style="width: 110px;">
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Port
                       <span class="info-tooltip-trigger" data-tooltip="Standard port values: 465 (SSL/TLS) or 587 (STARTTLS)."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="number" id="intSmtpPort" class="field-input" placeholder="587" />
                   </div>
                 </div>
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Username / Account email
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Username / Account Email
                     <span class="info-tooltip-trigger" data-tooltip="SMTP account username or sender email address."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                   <input type="text" id="intSmtpUser" class="field-input" placeholder="e.g. sender@gmail.com" />
                 </div>
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">SMTP Password
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">SMTP Password
                     <span class="info-tooltip-trigger" data-tooltip="SMTP login password or app-specific security token."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                   <input type="password" id="intSmtpPassword" class="field-input" placeholder="Password or app-specific key" />
                 </div>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 12px;">
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Sender Email
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Sender Email
                       <span class="info-tooltip-trigger" data-tooltip="Address appearing as the 'From' sender (defaults to account email)."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intSmtpSender" class="field-input" placeholder="alerts@company.com" />
                   </div>
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Default Recipient
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Default Recipient
                       <span class="info-tooltip-trigger" data-tooltip="List of stakeholder email addresses to receive reports."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intSmtpRecipient" class="field-input" placeholder="ceo@company.com, admin@..." />
                   </div>
                 </div>
-                <label style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; margin-top: 4px; user-select: none;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; margin-top: 4px; user-select: none;">
                   <input type="checkbox" id="intSmtpSecure" checked /> Force SSL/TLS secure connection
                   <span class="info-tooltip-trigger" data-tooltip="Enforce secure TLS connections. Keep checked for Gmail or SSL port 465."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                 </label>
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button id="saveIntEmailBtn" class="btn-primary btn-sm" style="flex: 1;">Save Account</button>
-                  <button id="testIntEmailBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: var(--emerald); color: var(--emerald);"><i data-lucide="send" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> Test Account</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                  <button id="saveIntEmailBtn" class="btn-primary btn-sm" style="flex: 1; padding: 8px 16px;">Save Account</button>
+                  <button id="testIntEmailBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: var(--emerald); color: var(--emerald); padding: 8px 16px;"><i data-lucide="send" style="width:13px; height:13px; vertical-align:middle; margin-right:4px;"></i> Test Account</button>
                   <button id="cancelEditSmtpBtn" class="btn-secondary btn-sm hidden" style="flex: 0.5;">Cancel</button>
                 </div>
               </div>
@@ -1109,47 +1163,47 @@
 
             <!-- Slack Config Panel -->
             <div id="modalIntPanel-slack" class="modal-int-panel hidden">
-              <h5 style="margin: 0 0 12px 0; color: #fff; font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="slack" style="color: #e01e5a; width: 16px; height: 16px;"></i> Slack Webhook URL
+              <h5 style="margin: 0 0 14px 0; color: #fff; font-size: 0.96rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="slack" style="color: #e01e5a; width: 18px; height: 18px;"></i> Slack Webhook Integration
               </h5>
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 4px;">
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.84rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 2px;">
                   <input type="checkbox" id="intSlackEnabled" /> Enable Slack Automation
                 </label>
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Slack Hook URL
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Slack Webhook URL
                     <span class="info-tooltip-trigger" data-tooltip="Incoming webhook URL generated in Slack App directory configurations."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                   <input type="text" id="intSlackWebhookUrl" class="field-input" placeholder="https://hooks.slack.com/services/..." />
                 </div>
                 
-                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.12); padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--border-low);">
-                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Slack Deliverables:</span>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.18); padding: 14px 16px; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Slack Deliverables:</span>
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intSlackSendSummary" checked /> Send Executive observations card
                     <span class="info-tooltip-trigger" data-tooltip="Posts a text message with summary metrics and observations to the Slack channel."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button id="saveIntSlackBtn" class="btn-primary btn-sm" style="flex: 1;">Save Slack</button>
-                  <button id="testIntSlackBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: var(--violet-light); color: var(--violet-light);"><i data-lucide="send" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                  <button id="saveIntSlackBtn" class="btn-primary btn-sm" style="flex: 1; padding: 8px 16px;">Save Slack</button>
+                  <button id="testIntSlackBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: #e01e5a; color: #e01e5a; padding: 8px 16px;"><i data-lucide="send" style="width:13px; height:13px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
                 </div>
               </div>
             </div>
 
             <!-- Discord Config Panel -->
             <div id="modalIntPanel-discord" class="modal-int-panel hidden">
-              <h5 style="margin: 0 0 12px 0; color: #fff; font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="message-square" style="color: #5865f2; width: 16px; height: 16px;"></i> Discord Webhook Config
+              <h5 style="margin: 0 0 14px 0; color: #fff; font-size: 0.96rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="message-square" style="color: #5865f2; width: 18px; height: 18px;"></i> Discord Webhook Integration
               </h5>
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 4px;">
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.84rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 2px;">
                   <input type="checkbox" id="intDiscordEnabled" /> Enable Discord Webhook
                 </label>
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Channel Mode</label>
-                  <select id="intDiscordChannelMode" class="field-input">
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Channel Mode</label>
+                  <select id="intDiscordChannelMode" class="field-input" style="width: 100%;">
                     <option value="same">Same Channel (Consolidated)</option>
                     <option value="separate">Separate Channels (Targeted)</option>
                   </select>
@@ -1157,135 +1211,135 @@
 
                 <!-- Single Channel Section -->
                 <div id="discordSingleChannelGroup">
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Discord Webhook URL
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Discord Webhook URL
                     <span class="info-tooltip-trigger" data-tooltip="URL created in Discord Channel Settings -> Integrations -> Webhooks."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                   <input type="text" id="intDiscordWebhookUrl" class="field-input" placeholder="https://discord.com/api/webhooks/..." />
                 </div>
 
                 <!-- Separate Channels Section -->
-                <div id="discordSeparateChannelsGroup" class="hidden" style="display: flex; flex-direction: column; gap: 10px; border-left: 2px solid var(--violet-light); padding-left: 10px; margin-top: 4px;">
+                <div id="discordSeparateChannelsGroup" class="hidden" style="display: flex; flex-direction: column; gap: 12px; border-left: 2px solid #5865f2; padding-left: 14px; margin-top: 4px;">
                   <div>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: #fff;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; color: #fff;">
                       <input type="checkbox" id="intDiscordCleaningEnabled" /> 🧹 Data Cleaning Webhook URL
                     </label>
                     <input type="text" id="intDiscordCleaningUrl" class="field-input" style="margin-top: 4px;" placeholder="https://discord.com/api/webhooks/..." />
                   </div>
                   <div>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: #fff;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; color: #fff;">
                       <input type="checkbox" id="intDiscordRelationsEnabled" /> 🔗 Relationship Mapper Webhook URL
                     </label>
                     <input type="text" id="intDiscordRelationsUrl" class="field-input" style="margin-top: 4px;" placeholder="https://discord.com/api/webhooks/..." />
                   </div>
                   <div>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: #fff;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; color: #fff;">
                       <input type="checkbox" id="intDiscordInsightsEnabled" /> 💡 Business Analysis Webhook URL
                     </label>
                     <input type="text" id="intDiscordInsightsUrl" class="field-input" style="margin-top: 4px;" placeholder="https://discord.com/api/webhooks/..." />
                   </div>
                   <div>
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 600; color: #fff;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 0.76rem; font-weight: 600; color: #fff;">
                       <input type="checkbox" id="intDiscordVisualizationEnabled" /> 📊 Visualizations Webhook URL
                     </label>
                     <input type="text" id="intDiscordVisualizationUrl" class="field-input" style="margin-top: 4px;" placeholder="https://discord.com/api/webhooks/..." />
                   </div>
                 </div>
                 
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 12px;">
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Bot Username Override
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Bot Username Override
                       <span class="info-tooltip-trigger" data-tooltip="Display username of the bot poster (defaults to webhook name)."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intDiscordUsername" class="field-input" placeholder="e.g. Crewlyze Bot" />
                   </div>
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Bot Avatar URL
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Bot Avatar URL
                       <span class="info-tooltip-trigger" data-tooltip="Profile avatar image override URL."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intDiscordAvatar" class="field-input" placeholder="https://domain.com/avatar.png" />
                   </div>
                 </div>
 
-                <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <div style="display: flex; gap: 12px; align-items: flex-end;">
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Embed Accent Color
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Embed Accent Color
                       <span class="info-tooltip-trigger" data-tooltip="Accent side border color of the Discord embed block."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
-                    <div style="display: flex; gap: 6px;">
-                      <input type="color" id="intDiscordColorPicker" value="#5865F2" style="width: 38px; height: 38px; border: 1px solid var(--border-mid); border-radius: var(--r-sm); background: transparent; cursor: pointer; padding: 2px;" />
+                    <div style="display: flex; gap: 8px;">
+                      <input type="color" id="intDiscordColorPicker" value="#5865F2" style="width: 42px; height: 42px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--r-md); background: transparent; cursor: pointer; padding: 2px;" />
                       <input type="text" id="intDiscordColor" class="field-input" placeholder="#5865F2" value="#5865F2" style="flex: 1;" />
                     </div>
                   </div>
                   <div style="flex: 1;">
-                    <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Alert Mention Ping
+                    <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Alert Mention Ping
                       <span class="info-tooltip-trigger" data-tooltip="Pings roles/users (e.g. @everyone or @here) on analysis completion."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                     </label>
                     <input type="text" id="intDiscordMention" class="field-input" placeholder="e.g. @everyone or @here" />
                   </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px; background: rgba(0,0,0,0.12); padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--border-low);">
-                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Discord Deliverables &amp; Content:</span>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px; background: rgba(0,0,0,0.18); padding: 14px 16px; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Discord Deliverables &amp; Content:</span>
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intDiscordSendSummary" checked /> Send Executive observations card
                     <span class="info-tooltip-trigger" data-tooltip="Posts a text message with summary metrics and observations to the Discord channel."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intDiscordAttachPdf" checked /> Attach full PDF report file
                     <span class="info-tooltip-trigger" data-tooltip="Uploads the complete multi-page PDF report as an attachment in the Discord thread."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intDiscordAttachCharts" /> Attach generated PNG visuals (up to 3)
                     <span class="info-tooltip-trigger" data-tooltip="Uploads the individual correlation heatmap and summary chart image files directly to Discord."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intDiscordToggleStats" checked /> Include dataset shape details
                     <span class="info-tooltip-trigger" data-tooltip="Prepends row count, column count, and size metrics parameters to the Discord description embed."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intDiscordToggleWarnings" checked /> Include risk alerts and anomalies summaries
                     <span class="info-tooltip-trigger" data-tooltip="Includes flagged outlier summaries and anomaly counts in the main Discord text block."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button id="saveIntDiscordBtn" class="btn-primary btn-sm" style="flex: 1;">Save Discord</button>
-                  <button id="testIntDiscordBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: #5865f2; color: #5865f2;"><i data-lucide="send" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                  <button id="saveIntDiscordBtn" class="btn-primary btn-sm" style="flex: 1; padding: 8px 16px;">Save Discord</button>
+                  <button id="testIntDiscordBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: #5865f2; color: #5865f2; padding: 8px 16px;"><i data-lucide="send" style="width:13px; height:13px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
                 </div>
               </div>
             </div>
 
             <!-- Custom Webhook Config Panel -->
             <div id="modalIntPanel-webhook" class="modal-int-panel hidden">
-              <h5 style="margin: 0 0 12px 0; color: #fff; font-size: 0.92rem; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="link" style="color: var(--cyan); width: 16px; height: 16px;"></i> Custom REST Webhook
+              <h5 style="margin: 0 0 14px 0; color: #fff; font-size: 0.96rem; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="link" style="color: var(--cyan); width: 18px; height: 18px;"></i> Custom REST Webhook Endpoint
               </h5>
-              <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 4px;">
+              <div style="display: flex; flex-direction: column; gap: 14px;">
+                <label style="display: flex; align-items: center; gap: 10px; font-size: 0.84rem; font-weight: 600; color: #fff; cursor: pointer; user-select: none; margin-bottom: 2px;">
                   <input type="checkbox" id="intWebhookEnabled" /> Enable Webhook Automation
                 </label>
                 <div>
-                  <label class="field-label" style="font-size: 0.72rem; margin-bottom: 4px; display: block;">Destination API Endpoint (POST)
+                  <label class="field-label" style="font-size: 0.76rem; margin-bottom: 4px; display: block;">Destination API Endpoint (POST)
                     <span class="info-tooltip-trigger" data-tooltip="URL endpoint to post JSON metadata and PDF file multipart uploads."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                   <input type="text" id="intOutboundWebhookUrl" class="field-input" placeholder="https://api.yourcompany.com/v1/webhooks" />
                 </div>
                 
-                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.12); padding: 8px 12px; border-radius: var(--r-sm); border: 1px solid var(--border-low);">
-                  <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Webhook Deliverables:</span>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                <div style="margin-top: 4px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.18); padding: 14px 16px; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.06);">
+                  <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; display: block;">Webhook Deliverables:</span>
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intWebhookSendJson" checked /> Post metadata JSON payload
                     <span class="info-tooltip-trigger" data-tooltip="Sends session metadata, cleaning logs, and insight text as a JSON request body."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
-                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+                  <label style="display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
                     <input type="checkbox" id="intWebhookAttachPdf" checked /> Post full PDF report file (multipart)
                     <span class="info-tooltip-trigger" data-tooltip="Sends the compiled PDF report as a multipart file field upload."><i data-lucide="info" style="width: 11px; height: 11px; vertical-align: middle; margin-left: 3px; opacity: 0.5; cursor: help;"></i></span>
                   </label>
                 </div>
 
-                <div style="display: flex; gap: 8px; margin-top: 8px;">
-                  <button id="saveIntWebhookBtn" class="btn-primary btn-sm" style="flex: 1;">Save Webhook</button>
-                  <button id="testIntWebhookBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: var(--cyan); color: var(--cyan);"><i data-lucide="send" style="width:12px; height:12px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                  <button id="saveIntWebhookBtn" class="btn-primary btn-sm" style="flex: 1; padding: 8px 16px;">Save Webhook</button>
+                  <button id="testIntWebhookBtn" class="btn-secondary btn-sm" style="flex: 1; border-color: var(--cyan); color: var(--cyan); padding: 8px 16px;"><i data-lucide="send" style="width:13px; height:13px; vertical-align:middle; margin-right:4px;"></i> Test Connection</button>
                 </div>
               </div>
             </div>
@@ -1294,95 +1348,112 @@
 
           <!-- TAB 4: System Features -->
           <div id="settingsTab-features" class="settings-tab-panel hidden">
-            <h4 style="margin: 0 0 12px 0; color: #fff; font-size: 1.1rem; font-weight: 700;">Sidebar Action Features</h4>
+            <h4 style="margin: 0 0 14px 0; color: #fff; font-size: 1.15rem; font-weight: 700;">Sidebar Action Features</h4>
             <div class="section-help-box">
-              <i data-lucide="info" style="width:16px;height:16px;"></i>
+              <i data-lucide="star" style="width:18px;height:18px;"></i>
               <div><strong>Sidebar Actions Configurator</strong> — Customize which action buttons show up in your project sidebar. Toggles take effect immediately when you save settings.</div>
             </div>
             
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 10px;">
               
-              <!-- Toggle 1: Export PDF -->
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-low); border-radius: var(--r-md);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="file-text" style="width: 16px; height: 16px; color: var(--rose);"></i>
+              <!-- Toggle 1: Export PDF (Default ON) -->
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px; color: var(--rose);"></i>
                   </div>
                   <div>
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Export PDF Report</div>
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Show button to export project summaries as professional PDF files.</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Export PDF Report (Default ON)</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Enable or disable button to export executive multi-page PDF reports.</div>
                   </div>
                 </div>
                 <label class="switch-toggle">
-                  <input type="checkbox" id="featExportPdf" />
+                  <input type="checkbox" id="featExportPdf" checked />
+                  <span class="slider-round"></span>
+                </label>
+              </div>
+
+              <!-- Toggle 1.5: Export PowerPoint (.pptx) -->
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="presentation" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Export PowerPoint (.pptx) Deck</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Enable or disable button to export executive widescreen PowerPoint presentation decks.</div>
+                  </div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" id="featExportPptx" checked />
                   <span class="slider-round"></span>
                 </label>
               </div>
 
               <!-- Toggle 2: Export Notebook -->
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-low); border-radius: var(--r-md);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(14, 165, 233, 0.2); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="file-code" style="width: 16px; height: 16px; color: #0ea5e9;"></i>
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="file-code" style="width: 18px; height: 18px; color: #0ea5e9;"></i>
                   </div>
                   <div>
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Export Jupyter Notebook</div>
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Show button to export chart scripts as a Jupyter Notebook (.ipynb).</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Export Jupyter Notebook</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Show button to export chart scripts as a Jupyter Notebook (.ipynb).</div>
                   </div>
                 </div>
                 <label class="switch-toggle">
-                  <input type="checkbox" id="featExportNotebook" />
+                  <input type="checkbox" id="featExportNotebook" checked />
                   <span class="slider-round"></span>
                 </label>
               </div>
 
               <!-- Toggle 3: Re-run Analysis -->
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-low); border-radius: var(--r-md);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(255, 37, 42, 0.08); border: 1px solid rgba(255, 37, 42, 0.2); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px; color: var(--violet-light);"></i>
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(255, 37, 42, 0.1); border: 1px solid rgba(255, 37, 42, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="refresh-cw" style="width: 18px; height: 18px; color: var(--violet-light);"></i>
                   </div>
                   <div>
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Re-run Analysis</div>
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Show button to re-trigger analysis pipelines on the dataset.</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Re-run Analysis</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Show button to re-trigger analysis pipelines on the dataset.</div>
                   </div>
                 </div>
                 <label class="switch-toggle">
-                  <input type="checkbox" id="featReRun" />
+                  <input type="checkbox" id="featReRun" checked />
                   <span class="slider-round"></span>
                 </label>
               </div>
 
               <!-- Toggle 4: Share to Discord -->
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-low); border-radius: var(--r-md);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(88, 101, 242, 0.08); border: 1px solid rgba(88, 101, 242, 0.2); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="message-square" style="width: 16px; height: 16px; color: #5865f2;"></i>
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(88, 101, 242, 0.1); border: 1px solid rgba(88, 101, 242, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="message-square" style="width: 18px; height: 18px; color: #5865f2;"></i>
                   </div>
                   <div>
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Share to Discord</div>
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Show button to post report embeds to Discord (only visible if webhook URL is valid).</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Share to Discord</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Show button to post report embeds to Discord (only visible if webhook URL is valid).</div>
                   </div>
                 </div>
                 <label class="switch-toggle">
-                  <input type="checkbox" id="featShareDiscord" />
+                  <input type="checkbox" id="featShareDiscord" checked />
                   <span class="slider-round"></span>
                 </label>
               </div>
 
               <!-- Toggle 5: Download CSV -->
-              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: rgba(255, 255, 255, 0.01); border: 1px solid var(--border-low); border-radius: var(--r-md);">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 36px; height: 36px; border-radius: var(--r-sm); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center;">
-                    <i data-lucide="download" style="width: 16px; height: 16px; color: var(--emerald);"></i>
+              <div class="settings-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <div style="width: 40px; height: 40px; border-radius: var(--r-md); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="download" style="width: 18px; height: 18px; color: var(--emerald);"></i>
                   </div>
                   <div>
-                    <div style="font-size: 0.85rem; font-weight: 700; color: #fff;">Download Cleaned CSV</div>
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px;">Show button to download the cleaned, auto-healed CSV file.</div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #fff;">Download Cleaned CSV</div>
+                    <div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 2px;">Show button to download the cleaned, auto-healed CSV file.</div>
                   </div>
                 </div>
                 <label class="switch-toggle">
-                  <input type="checkbox" id="featDownloadCsv" />
+                  <input type="checkbox" id="featDownloadCsv" checked />
                   <span class="slider-round"></span>
                 </label>
               </div>
@@ -1394,9 +1465,9 @@
 
       </div>
 
-      <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-low);">
+      <div class="modal-footer">
         <button id="cancelSettingsBtn" class="btn-secondary">Close Settings</button>
-        <button id="saveSettingsBtn" class="btn-primary">Save Settings</button>
+        <button id="saveSettingsBtn" class="btn-primary"><i data-lucide="check" style="width: 15px; height: 15px;"></i> Save Settings</button>
       </div>
     </div>
   </div>
@@ -1806,6 +1877,41 @@
         <button id="emailShareCancelBtn" class="btn-secondary" style="padding: 8px 16px;">Cancel</button>
         <button id="emailShareConfirmBtn" class="btn-primary" style="padding: 8px 16px; background: var(--emerald); border-color: var(--emerald);">Send Email</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Interactive Column Selector / Action Modal -->
+  <div id="columnActionModal" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width: 460px; padding: 24px; border: 1px solid rgba(255, 255, 255, 0.12); background: #121216; border-radius: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0; background: transparent; border: none;">
+        <h3 id="colModalTitle" style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="sliders" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Column Manager</h3>
+        <button id="closeColActionModalBtn" class="btn-icon" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: #a1a1aa; padding: 0;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600; color: #a1a1aa; font-size: 0.8rem;">Select Target Column</label>
+          <select id="colActionSelect" class="field-select" style="width: 100%; height: 38px; background: #0d0d10; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 0 12px; font-size: 0.85rem;"></select>
+        </div>
+        <div id="colRenameGroup">
+          <label class="field-label" style="display: block; margin-bottom: 6px; font-weight: 600; color: #a1a1aa; font-size: 0.8rem;">New Column Name</label>
+          <input type="text" id="colActionNewName" class="field-input" placeholder="e.g. Sales_Q3" style="width: 100%; height: 38px; background: #0d0d10; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; padding: 0 12px; font-size: 0.85rem;" />
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; padding: 0; background: transparent; border: none;">
+        <button id="colActionCancelBtn" class="btn-secondary" style="padding: 8px 16px; border-radius: 8px;">Cancel</button>
+        <button id="colActionSubmitBtn" class="btn-primary" style="padding: 8px 20px; border-radius: 8px; background: linear-gradient(135deg, #ff252a 0%, #d91b20 100%);">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fullscreen Chart Inspector Modal -->
+  <div id="chartZoomModal" class="modal-overlay hidden">
+    <div class="modal-box" style="width: 95vw; height: 90vh; max-width: 1300px; padding: 20px; background: #111115; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.08); background: transparent;">
+        <h3 id="zoomChartTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="maximize-2" style="width: 18px; height: 18px; color: var(--violet-light);"></i> High-Res Chart Inspector</h3>
+        <button id="closeChartZoomBtn" class="btn-icon" style="background: transparent; border: none; font-size: 1.3rem; cursor: pointer; color: #a1a1aa; padding: 4px;">✕</button>
+      </div>
+      <div id="zoomChartBody" style="flex: 1; width: 100%; height: 100%; min-height: 0; position: relative;"></div>
     </div>
   </div>
 
