@@ -729,7 +729,7 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
         import json
         
         username = cfg.get("DISCORD_USERNAME", "").strip()
-        avatar_url = cfg.get("DISCORD_AVATAR_URL", "").strip() or "https://raw.githubusercontent.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/main/assets/chat_logo.png"
+        avatar_url = cfg.get("DISCORD_AVATAR_URL", "").strip() or "https://raw.githubusercontent.com/sowmiyan-s/crewlyze/main/assets/chat_logo.png"
         embed_color_hex = cfg.get("DISCORD_EMBED_COLOR", "#5865F2").strip()
         mention = cfg.get("DISCORD_MENTION_ROLE", "").strip()
         include_warnings = parse_bool(cfg.get("DISCORD_TOGGLE_WARNINGS", True))
@@ -2276,7 +2276,7 @@ async def test_discord_integration(
             raise ValueError("Webhook URL cannot be empty.")
             
         username = discord_username.strip() if discord_username else ""
-        avatar_url = discord_avatar_url.strip() if discord_avatar_url else "https://raw.githubusercontent.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/main/assets/chat_logo.png"
+        avatar_url = discord_avatar_url.strip() if discord_avatar_url else "https://raw.githubusercontent.com/sowmiyan-s/crewlyze/main/assets/chat_logo.png"
         embed_color_hex = discord_embed_color.strip() if discord_embed_color else "#5865F2"
         mention = discord_mention_role.strip() if discord_mention_role else ""
         send_summary = parse_bool(discord_send_summary)

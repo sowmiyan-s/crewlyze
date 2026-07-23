@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/releases">
+  <a href="https://github.com/sowmiyan-s/crewlyze/releases">
     <img src="https://img.shields.io/badge/Release-v1.0.7-7c3aed?style=for-the-badge&logo=github" alt="Release" />
   </a>
   <a href="https://www.npmjs.com/package/crewlyze">
@@ -23,10 +23,10 @@
   <a href="https://python.org">
     <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   </a>
-  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
+  <a href="https://github.com/sowmiyan-s/crewlyze/stargazers">
     <img src="https://img.shields.io/badge/Stars-★%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
   </a>
-  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/network/members">
+  <a href="https://github.com/sowmiyan-s/crewlyze/network/members">
     <img src="https://img.shields.io/badge/Forks-PRs%20Welcome-10b981?style=for-the-badge&logo=github" alt="Forks" />
   </a>
   <a href="https://opensource.org/licenses/MIT">
@@ -35,13 +35,13 @@
 </p>
 
 <p align="center">
-  <a href="#-quick-start-one-line-installer">⚡ Fast Setup</a> •
-  <a href="#-live-application-interface-showcase">📸 Live Demo</a> •
-  <a href="#-core-capabilities--deep-feature-breakdown">✨ Key Features</a> •
+  <a href="#-quick-start-one-line-installer">⚡ Quickstart</a> •
+  <a href="#-live-application-interface-showcase">📸 Screenshots</a> •
+  <a href="#-core-capabilities--deep-feature-breakdown">✨ Features</a> •
   <a href="#-architecture--multi-agent-orchestration">🏗️ Architecture</a> •
-  <a href="#-universal-llm-gateway-matrix">🔑 LLM Gateways</a> •
-  <a href="#-outbound-integrations-hub">📬 Integrations</a> •
-  <a href="#-api-reference-matrix">🔌 REST API</a>
+  <a href="#-universal-llm-gateway-matrix">🔑 LLMs</a> •
+  <a href="#-outbound-integrations-hub">📬 Outbound</a> •
+  <a href="#-api-reference-matrix">🔌 API</a>
 </p>
 
 ---
@@ -287,8 +287,8 @@ crewlyze
 ### 🐳 Option 2: Docker & Docker Compose
 
 ```bash
-git clone https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI.git
-cd Multi-Agent-Data-Analysis-System-with-CrewAI
+git clone https://github.com/sowmiyan-s/crewlyze.git
+cd crewlyze
 docker-compose up --build -d
 ```
 
@@ -298,8 +298,8 @@ docker-compose up --build -d
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI.git
-cd Multi-Agent-Data-Analysis-System-with-CrewAI
+git clone https://github.com/sowmiyan-s/crewlyze.git
+cd crewlyze
 
 # 2. Virtual environment setup
 python -m venv venv
@@ -369,8 +369,8 @@ We welcome contributions from open-source developers! Please feel free to open I
 If you find Crewlyze useful, please give us a star on GitHub! It helps the project grow and reach more developers.
 
 <p align="center">
-  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
-    <img src="https://api.star-history.com/svg?repos=sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI&type=Date" alt="Star History Chart" width="80%" />
+  <a href="https://github.com/sowmiyan-s/crewlyze">
+    <img src="https://img.shields.io/badge/⭐%20Star%20Crewlyze%20on%20GitHub-Click%20Here-f59e0b?style=for-the-badge&logo=github" alt="Star Crewlyze on GitHub" />
   </a>
 </p>
 

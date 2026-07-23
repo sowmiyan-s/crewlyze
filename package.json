@@ -5,7 +5,7 @@
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI.git"
+    "url": "git+https://github.com/sowmiyan-s/crewlyze.git"
   },
   "bin": {
     "crewlyze": "bin/crewlyze.js"

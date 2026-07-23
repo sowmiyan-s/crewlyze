@@ -45,8 +45,8 @@ crewlyze
 If you prefer installing directly from Python source:
 
 ```bash
-git clone https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI.git
-cd Multi-Agent-Data-Analysis-System-with-CrewAI
+git clone https://github.com/sowmiyan-s/crewlyze.git
+cd crewlyze
 python -m venv venv
 # Linux/macOS: source venv/bin/activate | Windows: venv\Scripts\activate
 pip install -r requirements.txt
