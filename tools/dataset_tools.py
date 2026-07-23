@@ -283,8 +283,8 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
     try:
         try:
             import duckdb
-            total_rows = duckdb.query(f"SELECT COUNT(*) FROM read_csv_auto('{csv_path}')").fetchone()[0]
-            df = duckdb.query(f"SELECT * FROM read_csv_auto('{csv_path}') LIMIT {max_rows}").df()
+            total_rows = duckdb.execute("SELECT COUNT(*) FROM read_csv_auto(?)", [csv_path]).fetchone()[0]
+            df = duckdb.execute("SELECT * FROM read_csv_auto(?) LIMIT ?", [csv_path, max_rows]).df()
             sampled = total_rows
         except Exception:
             df = read_csv_robust(csv_path, nrows=max_rows)

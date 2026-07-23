@@ -140,21 +140,17 @@ class NumberedCanvas(canvas.Canvas):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _md_to_html(text: str) -> str:
-    """Convert minimal markdown (**bold**, *italic*) to ReportLab-safe HTML."""
+    """Convert minimal markdown (**bold**, *italic*, `code`) to ReportLab-safe HTML."""
     if not text:
         return ""
+    # 1. Strip AI reasoning artifacts first
+    text = _clean_ai_artifacts(text)
+    # 2. Escape raw HTML entities to prevent ReportLab Expat XML errors
+    text = html.escape(str(text))
+    # 3. Restore intended markdown formatting into safe ReportLab HTML tags
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"\*(.*?)\*",     r"<i>\1</i>", text)
-    text = (
-        text.replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-    )
-    text = (
-        text.replace("&lt;b&gt;",  "<b>").replace("&lt;/b&gt;", "</b>")
-            .replace("&lt;i&gt;",  "<i>").replace("&lt;/i&gt;", "</i>")
-            .replace("&lt;br/&gt;", "<br/>")
-    )
+    text = re.sub(r"`(.*?)`",       r"<font name=\"Courier\">\1</font>", text)
     return text.strip()
 
 

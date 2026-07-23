@@ -224,13 +224,19 @@ const els = {
   vizCodeDetails:    $('vizCodeDetails'),
 
   // Chat
-  chatMessages:      $('chatMessages'),
-  chatBackBtn:       $('chatBackBtn'),
-  chatInput:         $('chatInput'),
-  sendChatBtn:       $('sendChatBtn'),
-  clearChatBtn:      $('clearChatBtn'),
-  colPickerDropdown: $('colPickerDropdown'),
-  toggleExportModeBtn: $('toggleExportModeBtn'),
+  chatMessages:          $('chatMessages'),
+  chatBackBtn:           $('chatBackBtn'),
+  chatInput:             $('chatInput'),
+  sendChatBtn:           $('sendChatBtn'),
+  clearChatBtn:          $('clearChatBtn'),
+  colPickerDropdown:     $('colPickerDropdown'),
+  toggleExportModeBtn:   $('toggleExportModeBtn'),
+  exportChatMarkdownBtn:   $('exportChatMarkdownBtn'),
+  exportChatPdfBtn:        $('exportChatPdfBtn'),
+  toggleArtifactCanvasBtn: $('toggleArtifactCanvasBtn'),
+  chatArtifactCanvas:      $('chatArtifactCanvas'),
+  artifactCanvasBody:      $('artifactCanvasBody'),
+  closeArtifactCanvasBtn:  $('closeArtifactCanvasBtn'),
 
   // Export
   exportPdfBtn:      $('exportPdfBtn'),
@@ -249,6 +255,13 @@ const els = {
   sidebarEmailReportBtn:   $('sidebarEmailReportBtn'),
 
   toastContainer:    $('toastContainer'),
+
+  // User Guide Modal
+  sidebarGuideBtn:     $('sidebarGuideBtn'),
+  guideModal:          $('guideModal'),
+  closeGuideModal:     $('closeGuideModal'),
+  closeGuideBtn:       $('closeGuideBtn'),
+  docsSearchInput:     $('docsSearchInput'),
 
   // API Warning Modal
   apiWarningModal:     $('apiWarningModal'),
@@ -1067,6 +1080,63 @@ if (els.settingsCooldown) {
   });
 }
 
+// User Guide Modal Listeners
+if (els.sidebarGuideBtn) {
+  els.sidebarGuideBtn.addEventListener('click', () => {
+    if (els.guideModal) els.guideModal.classList.remove('hidden');
+  });
+}
+if (els.closeGuideModal) {
+  els.closeGuideModal.addEventListener('click', () => {
+    if (els.guideModal) els.guideModal.classList.add('hidden');
+  });
+}
+if (els.closeGuideBtn) {
+  els.closeGuideBtn.addEventListener('click', () => {
+    if (els.guideModal) els.guideModal.classList.add('hidden');
+  });
+}
+if (els.guideModal) {
+  els.guideModal.addEventListener('click', e => {
+    if (e.target === els.guideModal) els.guideModal.classList.add('hidden');
+  });
+}
+
+// User Guide tab switching listeners
+const guideTabButtons = document.querySelectorAll('.guide-sidebar-tabs button.guide-modal-tab-btn');
+guideTabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabName = btn.getAttribute('data-guide-tab');
+    guideTabButtons.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.querySelectorAll('.guide-modal-panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+    const activePanel = document.getElementById(`guideTab-${tabName}`);
+    if (activePanel) {
+      activePanel.classList.add('active');
+    }
+  });
+});
+
+// Search filter in User Guide manual
+if (els.docsSearchInput) {
+  els.docsSearchInput.addEventListener('input', () => {
+    const query = els.docsSearchInput.value.trim().toLowerCase();
+    guideTabButtons.forEach(btn => {
+      if (!query) {
+        btn.style.display = 'flex';
+        return;
+      }
+      const tabName = btn.getAttribute('data-guide-tab');
+      const panel = document.getElementById(`guideTab-${tabName}`);
+      const text = (btn.textContent + ' ' + (panel ? panel.textContent : '')).toLowerCase();
+      btn.style.display = text.includes(query) ? 'flex' : 'none';
+    });
+  });
+}
+
 // Settings vertical tab switching click listeners
 const settingsTabButtons = document.querySelectorAll('.settings-sidebar-tabs button.settings-tab-btn');
 settingsTabButtons.forEach(btn => {
@@ -1728,6 +1798,7 @@ async function updateSidebarProjectActionsVisibility(sec) {
 let preChatSidebarCollapsed = false;
 
 function switchSection(sec) {
+  localStorage.setItem('crewlyze_active_section', sec);
   const resultsScreen = document.getElementById('resultsScreen');
   if (sec === 'chat') {
     els.btnSectionChat.classList.add('active');
@@ -1747,6 +1818,11 @@ function switchSection(sec) {
     if (!preChatSidebarCollapsed) {
       els.sidebar.classList.add('collapsed');
       if (els.sidebarToggle) els.sidebarToggle.textContent = '›';
+    }
+
+    const pId = state.activeProject?.id || state.uploadedSession;
+    if (pId) {
+      loadChatHistoryFromBackend(pId);
     }
   } else {
     els.btnSectionChat.classList.remove('active');
@@ -1780,37 +1856,53 @@ function switchSection(sec) {
 
 async function switchToProject(p) {
   state.activeProject = p;
+  localStorage.setItem('crewlyze_active_project_id', p.id);
   renderProjectsList();
   setBreadcrumb(p.name);
   setStatus('● Loading…', 'running');
   updateSidebarProjectActionsVisibility();
 
-  if (p.status === 'completed') {
-    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
-    if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
-    if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
-    await loadResults(p.id);
-    goToWorkspaceHub();
-  } else if (p.status === 'running') {
-    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
-    if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
-    if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
-    showScreen('running');
-    els.runningTitle.textContent = `Analysing "${p.name}"…`;
-    setStatus('● Running', 'running');
-    startSSEStream(p.id);
-  } else {
-    // Idle state
-    if (els.agenticPlaceholder) els.agenticPlaceholder.classList.remove('hidden');
-    if (els.agenticTabsBar) els.agenticTabsBar.classList.add('hidden');
-    if (els.agenticTabPanels) els.agenticTabPanels.classList.add('hidden');
+  // Safely load saved chat history without blocking project loading
+  try {
+    if (typeof loadChatHistoryFromBackend === 'function') {
+      await loadChatHistoryFromBackend(p.id);
+    }
+  } catch (err) {
+    console.error('Non-blocking chat history load error:', err);
+  }
 
-    state.results = null;
-    await refreshPreviewData(p.id);
-    setupExport(p.id);
-    resetChat();
-    goToWorkspaceHub();
-    showScreen('results');
+  try {
+    if (p.status === 'completed') {
+      if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
+      if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
+      if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
+      await loadResults(p.id);
+      goToWorkspaceHub();
+    } else if (p.status === 'running') {
+      if (els.agenticPlaceholder) els.agenticPlaceholder.classList.add('hidden');
+      if (els.agenticTabsBar) els.agenticTabsBar.classList.remove('hidden');
+      if (els.agenticTabPanels) els.agenticTabPanels.classList.remove('hidden');
+      showScreen('running');
+      els.runningTitle.textContent = `Analysing "${p.name}"…`;
+      setStatus('● Running', 'running');
+      startSSEStream(p.id);
+    } else {
+      // Idle state
+      if (els.agenticPlaceholder) els.agenticPlaceholder.classList.remove('hidden');
+      if (els.agenticTabsBar) els.agenticTabsBar.classList.add('hidden');
+      if (els.agenticTabPanels) els.agenticTabPanels.classList.add('hidden');
+
+      state.results = null;
+      await refreshPreviewData(p.id);
+      setupExport(p.id);
+      resetChat();
+      goToWorkspaceHub();
+      showScreen('results');
+      setStatus('● Idle', 'idle');
+    }
+  } catch (err) {
+    console.error('Error opening project:', err);
+    toast('Error opening project: ' + err.message, 'error');
     setStatus('● Idle', 'idle');
   }
 }
@@ -2013,6 +2105,8 @@ if (els.wizardBackBtn) {
 }
 
 function goToDashboardHome() {
+  localStorage.removeItem('crewlyze_active_project_id');
+  localStorage.removeItem('crewlyze_active_section');
   resetWizardState();
   showScreen('landing');
   state.uploadedFile = null;
@@ -2040,6 +2134,7 @@ if (els.newProjectBtn) {
 function goToWorkspaceHub() {
   const p = state.activeProject;
   if (!p) return;
+  localStorage.setItem('crewlyze_active_section', 'hub');
   
   // Hide sections switcher
   if (els.btnSectionChat && els.btnSectionChat.parentNode) {
@@ -3872,14 +3967,53 @@ window.addEventListener('resize', () => {
 // ────────────────────────────────────────────────────────────────────────────
 // AI Copilot Chat + /column picker
 // ────────────────────────────────────────────────────────────────────────────
-function resetChat() {
-  state.chatHistory = [];
-  els.chatMessages.innerHTML = '';
-  // Seed with a welcome message
-  appendChatMsg('assistant', `Hi! I'm your Crew Chat assistant. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`);
+async function loadChatHistoryFromBackend(sessionId) {
+  if (!sessionId) return;
+  try {
+    const res = await fetch(`/api/chat-history?session_id=${sessionId}`);
+    if (res.ok) {
+      const data = await res.json();
+      state.chatHistory = data.messages || [];
+      renderChatHistory();
+    }
+  } catch (e) {
+    console.error('Failed to load chat history:', e);
+  }
 }
 
-function appendChatMsg(role, content, plotUrl = null) {
+async function saveChatHistoryToBackend(sessionId) {
+  if (!sessionId || !state.chatHistory) return;
+  try {
+    const fd = new FormData();
+    fd.append('session_id', sessionId);
+    fd.append('messages_json', JSON.stringify(state.chatHistory));
+    await fetch('/api/chat-history', { method: 'POST', body: fd });
+  } catch (e) {
+    console.error('Failed to save chat history:', e);
+  }
+}
+
+function renderChatHistory() {
+  if (!els.chatMessages) return;
+  els.chatMessages.innerHTML = '';
+  if (!state.chatHistory || !state.chatHistory.length) {
+    resetChat();
+    return;
+  }
+  const historyCopy = [...state.chatHistory];
+  state.chatHistory = [];
+  historyCopy.forEach(msg => {
+    appendChatMsg(msg.role, msg.content, msg.plot_url || null, false);
+  });
+}
+
+function resetChat() {
+  state.chatHistory = [];
+  if (els.chatMessages) els.chatMessages.innerHTML = '';
+  appendChatMsg('assistant', `Hi! I'm your Crew Chat assistant. Ask me anything about your dataset — aggregations, trends, plots, or specific columns.\n\nType **/** to insert a column name directly.`, null, false);
+}
+
+function appendChatMsg(role, content, plotUrl = null, saveToBackend = true) {
   const cleanedContent = removeFilePathInfo(content);
   const msgIdx = state.chatHistory.length;
   state.chatHistory.push({ role, content: cleanedContent, plot_url: plotUrl });
@@ -3915,9 +4049,13 @@ function appendChatMsg(role, content, plotUrl = null) {
     <div class="chat-bubble markdown-body" style="position: relative;">
       ${formatted}
       ${plotUrl ? `
-        <div style="position: relative; display: inline-block; max-width: 100%; margin-top: 1rem;">
-          <img src="${plotUrl}" alt="Generated chart" style="border-radius:12px; border:1px solid var(--border-color); max-width:100%; box-shadow: 0 4px 15px var(--shadow-color);" />
-          <a href="${plotUrl}" download style="position: absolute; bottom: 10px; right: 10px; display: flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; color: #fff; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--r-sm); text-decoration: none; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); transition: all 0.2s;"><i data-lucide="download" style="width: 12px; height: 12px;"></i> Download</a>
+        <div class="chat-chart-card" style="margin-top: 12px; position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-low); background: rgba(0,0,0,0.2);">
+          <img src="${plotUrl}" alt="Generated Visualization" style="width: 100%; display: block; border-radius: 12px;" />
+          <div class="chat-chart-actions" style="position: absolute; bottom: 8px; right: 8px; background: rgba(18, 18, 22, 0.85); padding: 4px 8px; border-radius: 8px; backdrop-filter: blur(8px); border: 1px solid var(--border-low);">
+            <a href="${plotUrl}" download class="btn-xs btn-secondary" style="font-size: 0.72rem; display: flex; align-items: center; gap: 4px; text-decoration: none;">
+              <i data-lucide="download" style="width: 11px; height: 11px;"></i> Download PNG
+            </a>
+          </div>
         </div>
       ` : ''}
     </div>`;
@@ -3928,12 +4066,19 @@ function appendChatMsg(role, content, plotUrl = null) {
     lucide.createIcons({ attrs: { class: 'icon-svg' } });
   }
 
-  div.querySelector('.chat-select-check').addEventListener('change', updateExportChatPdfBtnVisibility);
+  const chk = div.querySelector('.chat-select-check');
+  if (chk) chk.addEventListener('change', updateExportChatPdfBtnVisibility);
+
+  const sessionId = state.activeProject?.id || state.uploadedSession;
+  if (saveToBackend && sessionId) {
+    saveChatHistoryToBackend(sessionId);
+  }
 }
 
 function showTypingIndicator() {
+  removeTypingIndicator(); // Clear any existing indicators first to prevent stacking
   const div = document.createElement('div');
-  div.className = 'chat-msg assistant';
+  div.className = 'chat-msg assistant typing-indicator';
   div.id = 'typingIndicator';
   div.innerHTML = `
     <div class="chat-select-wrap" style="visibility: hidden;">
@@ -3951,9 +4096,85 @@ function showTypingIndicator() {
   }
 }
 
-function removeTypingIndicator() {
-  const el = $('typingIndicator');
-  if (el) el.remove();
+async function executeSqlWorkbench(sql, sessionId) {
+  if (!sql || !sql.trim()) return;
+  toast('Running SQL query on dataset...', 'info');
+  try {
+    const fd = new FormData();
+    fd.append('session_id', sessionId);
+    fd.append('query', sql.trim());
+
+    const res = await fetch('/api/query-sql', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok || data.status === 'error') {
+      toast('SQL Query error: ' + (data.detail || data.message || 'Execution failed'), 'error');
+      return;
+    }
+
+    if (els.chatArtifactCanvas && els.artifactCanvasBody) {
+      els.chatArtifactCanvas.classList.remove('hidden');
+      let tableHtml = `<div style="font-size: 0.78rem; font-weight: 700; color: var(--emerald); margin-bottom: 6px;">✓ SQL Query Results (${data.row_count || 0} rows)</div>`;
+      if (data.rows && data.rows.length) {
+        const cols = Object.keys(data.rows[0]);
+        tableHtml += `
+          <div style="overflow-x: auto; max-height: 320px; border: 1px solid var(--border-mid); border-radius: var(--r-sm);">
+            <table class="preview-table" style="width: 100%; font-size: 0.75rem;">
+              <thead>
+                <tr>${cols.map(c => `<th>${escHtml(c)}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${data.rows.map(r => `<tr>${cols.map(c => `<td>${escHtml(r[c])}</td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        tableHtml += `<div style="font-size: 0.8rem; color: var(--text-muted);">Query executed successfully (0 rows returned).</div>`;
+      }
+      els.artifactCanvasBody.innerHTML = tableHtml;
+    }
+    toast('SQL Query executed successfully!', 'success');
+  } catch (err) {
+    toast('Failed to execute SQL: ' + err.message, 'error');
+  }
+}
+
+function renderArtifactCanvasChart(plotUrl) {
+  if (els.chatArtifactCanvas && els.artifactCanvasBody) {
+    els.chatArtifactCanvas.classList.remove('hidden');
+    els.artifactCanvasBody.innerHTML = `
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--violet-light); margin-bottom: 8px;">📊 Active Generated Visualization</div>
+      <img src="${plotUrl}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border-mid); box-shadow: var(--shadow-sm);" />
+      <a href="${plotUrl}" download class="btn-secondary btn-xs" style="margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; text-decoration: none;">
+        <i data-lucide="download" style="width: 12px; height: 12px;"></i> Download High-Res PNG
+      </a>
+    `;
+    if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+  }
+}
+
+function exportChatMarkdown() {
+  const history = state.chatHistory || [];
+  if (!history.length) {
+    toast('No conversation history to export.', 'warning');
+    return;
+  }
+  let md = `# Crewlyze AI Chat Session Export\n\n`;
+  md += `*Generated on ${new Date().toLocaleString()}*\n\n---\n\n`;
+  history.forEach(m => {
+    const role = m.role === 'user' ? '👤 User' : '🤖 Crewlyze AI Copilot';
+    md += `### ${role}\n\n${m.content}\n\n---\n\n`;
+  });
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chat_export_${Date.now()}.md`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Chat exported as Markdown successfully!', 'success');
 }
 
 async function sendChat() {
@@ -3963,11 +4184,9 @@ async function sendChat() {
   const sessionId = state.activeProject?.id || state.uploadedSession;
   if (!sessionId) { toast('No active session. Run an analysis first.', 'warning'); return; }
 
-  // Read API key directly from localStorage (not the hidden input which may be stale)
   const provider = els.llmProvider.value;
   const apiKey = getSavedKey(provider);
 
-  // For non-Ollama providers, warn if no key
   if (provider !== 'ollama' && !apiKey) {
     toast('No API key set. Go to settings to add your key.', 'warning');
     return;
@@ -3975,42 +4194,144 @@ async function sendChat() {
 
   els.chatInput.value = '';
   hideColumnPicker();
+
+  if (!state.chatHistory) state.chatHistory = [];
+  state.chatHistory.push({ role: 'user', content: query });
   appendChatMsg('user', query);
-  showTypingIndicator();
+
+  const msgIdx = state.chatHistory.length;
+  const div = document.createElement('div');
+  div.className = 'chat-msg assistant';
+
+  const avatar = '<img src="/assets/chat_logo.png" style="width: 30px; height: 30px; object-fit: contain;" />';
+  div.innerHTML = `
+    <div class="chat-select-wrap"><input type="checkbox" class="chat-select-check" data-idx="${msgIdx}" /></div>
+    <div class="chat-avatar" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">${avatar}</div>
+    <div class="chat-bubble markdown-body" style="position: relative;">
+      <div class="reasoning-badge"><span class="reasoning-text">Thinking...</span></div>
+      <div class="chat-text-content typing-cursor"></div>
+      <div class="chat-sql-container"></div>
+      <div class="chat-suggestions-container"></div>
+    </div>
+  `;
+  els.chatMessages.appendChild(div);
+  els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+  if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+
+  const reasoningTextEl = div.querySelector('.reasoning-text');
+  const reasoningBadgeEl = div.querySelector('.reasoning-badge');
+  const chatTextEl = div.querySelector('.chat-text-content');
+  const sqlContainerEl = div.querySelector('.chat-sql-container');
+  const suggestionsContainerEl = div.querySelector('.chat-suggestions-container');
+
+  let accumulatedText = '';
+  let activePlotUrl = null;
 
   const fd = new FormData();
   fd.append('session_id', sessionId);
-  fd.append('query',      query);
-  fd.append('provider',   provider);
-  fd.append('model',      els.llmModel.value === '__custom__' ? '' : els.llmModel.value);
-  fd.append('api_key',    apiKey);
+  fd.append('query', query);
+  fd.append('provider', provider);
+  fd.append('model', els.llmModel.value === '__custom__' ? '' : els.llmModel.value);
+  fd.append('api_key', apiKey);
 
   try {
-    const res  = await fetch('/api/copilot', { method: 'POST', body: fd });
-    removeTypingIndicator();
+    const res = await fetch('/api/copilot/stream', { method: 'POST', body: fd });
+    if (!res.ok) throw new Error(`Server status ${res.status}`);
 
-    if (!res.ok) {
-      let errMsg = `Server error (${res.status})`;
-      try {
-        const errData = await res.json();
-        errMsg = errData.detail || errData.message || errMsg;
-      } catch (_) {}
-      appendChatMsg('assistant', `✨ **[AI Chat Auto-Healed]** *Recovered from server error: ${errMsg}*\n\nThe AI Copilot recovered gracefully. You can continue typing commands or check your provider API key in Settings.`);
-      return;
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const jsonStr = line.slice(6).trim();
+        if (!jsonStr) continue;
+
+        try {
+          const payload = JSON.parse(jsonStr);
+          if (payload.type === 'thought') {
+            if (reasoningTextEl) reasoningTextEl.textContent = payload.text;
+          } else if (payload.type === 'token') {
+            if (reasoningBadgeEl) reasoningBadgeEl.style.display = 'none';
+            accumulatedText += payload.text;
+            if (typeof marked !== 'undefined') {
+              chatTextEl.innerHTML = marked.parse(accumulatedText);
+            } else {
+              chatTextEl.textContent = accumulatedText;
+            }
+            els.chatMessages.scrollTop = els.chatMessages.scrollHeight;
+          } else if (payload.type === 'sql') {
+            sqlContainerEl.innerHTML = `
+              <div class="sql-workbench">
+                <div class="sql-workbench-header">
+                  <span>⚡ SQL COPILOT WORKBENCH</span>
+                  <button class="btn-run-sql" data-sql="${escHtml(payload.sql)}">▶ Run SQL</button>
+                </div>
+                <textarea class="sql-workbench-editor" rows="2">${escHtml(payload.sql)}</textarea>
+              </div>
+            `;
+            const btnRun = sqlContainerEl.querySelector('.btn-run-sql');
+            if (btnRun) {
+              btnRun.addEventListener('click', () => {
+                const editedSql = sqlContainerEl.querySelector('.sql-workbench-editor').value;
+                executeSqlWorkbench(editedSql, sessionId);
+              });
+            }
+          } else if (payload.type === 'chart') {
+            activePlotUrl = payload.plot_url;
+            const chartHtml = `
+              <div class="chat-chart-card" style="margin-top: 12px; position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-low); background: rgba(0,0,0,0.2);">
+                <img src="${payload.plot_url}" alt="Generated Visualization" style="width: 100%; display: block; border-radius: 12px;" />
+                <div class="chat-chart-actions" style="position: absolute; bottom: 8px; right: 8px; background: rgba(18, 18, 22, 0.85); padding: 4px 8px; border-radius: 8px; backdrop-filter: blur(8px); border: 1px solid var(--border-low);">
+                  <a href="${payload.plot_url}" download class="btn-xs btn-secondary" style="font-size: 0.72rem; display: flex; align-items: center; gap: 4px; text-decoration: none;">
+                    <i data-lucide="download" style="width: 11px; height: 11px;"></i> Download PNG
+                  </a>
+                </div>
+              </div>
+            `;
+            chatTextEl.insertAdjacentHTML('beforeend', chartHtml);
+            if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+          } else if (payload.type === 'suggestions') {
+            if (payload.items && payload.items.length) {
+              suggestionsContainerEl.innerHTML = `
+                <div class="suggestion-chip-group">
+                  ${payload.items.map(s => `<button class="suggestion-chip" data-query="${escHtml(s)}">${escHtml(s)}</button>`).join('')}
+                </div>
+              `;
+              suggestionsContainerEl.querySelectorAll('.suggestion-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                  els.chatInput.value = btn.dataset.query;
+                  sendChat();
+                });
+              });
+            }
+          } else if (payload.type === 'done') {
+            if (chatTextEl) chatTextEl.classList.remove('typing-cursor');
+            if (reasoningBadgeEl) reasoningBadgeEl.style.display = 'none';
+          }
+        } catch (err) {}
+      }
     }
 
-    const data = await res.json();
-    const text = data.text && data.text.trim() ? data.text : 'Query executed successfully.';
-    appendChatMsg('assistant', text, data.plot_url || null);
-    
-    // Reload dynamic preview if this query modified the dataset
+    state.chatHistory.push({ role: 'assistant', content: accumulatedText, plot_url: activePlotUrl });
+    saveChatHistoryToBackend(sessionId);
+
     const qLower = query.toLowerCase();
     if (qLower.includes('delete') || qLower.includes('rename') || qLower.includes('replace') || qLower.includes('drop') || qLower.includes('fix') || qLower.includes('clean') || qLower.includes('modify') || qLower.includes('update')) {
       await refreshPreviewData(sessionId);
     }
-  } catch (e) {
-    removeTypingIndicator();
-    appendChatMsg('assistant', `✨ **[AI Chat Auto-Healed]** *Intercepted connection issue: ${e.message}*\n\nYour active chat session is maintained. You can continue sending queries or re-submit.`);
+  } catch (err) {
+    if (chatTextEl) chatTextEl.classList.remove('typing-cursor');
+    if (reasoningBadgeEl) reasoningBadgeEl.style.display = 'none';
+    chatTextEl.innerHTML = `✨ **[AI Chat Auto-Healed]** *${escHtml(err.message)}*\n\nThe session was preserved safely. Check your connection or provider settings if persistent.`;
   }
 }
 
@@ -4038,6 +4359,25 @@ $$('.chat-hint-chip').forEach(chip => {
 });
 
 els.clearChatBtn.addEventListener('click', resetChat);
+
+if (els.toggleArtifactCanvasBtn) {
+  els.toggleArtifactCanvasBtn.addEventListener('click', () => {
+    if (els.chatArtifactCanvas) {
+      els.chatArtifactCanvas.classList.toggle('hidden');
+    }
+  });
+}
+if (els.exportChatMarkdownBtn) {
+  els.exportChatMarkdownBtn.addEventListener('click', exportChatMarkdown);
+}
+if (els.exportChatPdfBtn) {
+  els.exportChatPdfBtn.addEventListener('click', exportChatPdf);
+}
+if (els.closeArtifactCanvasBtn) {
+  els.closeArtifactCanvasBtn.addEventListener('click', () => {
+    els.chatArtifactCanvas?.classList.add('hidden');
+  });
+}
 
 // ── /column slash picker ─────────────────────────────────────────────────────
 function showColumnPicker(filter = '') {
@@ -4598,11 +4938,40 @@ function escHtml(str) {
     });
   }
 
-  // Check if a running session exists on page load
-  // (handles F5 refresh during analysis)
+  // Restore active session and page tab on page reload (F5)
   setTimeout(async () => {
     const projects = state.projects;
     const running = projects.find(p => p.status === 'running');
-    if (running) switchToProject(running);
+    if (running) {
+      await switchToProject(running);
+      showScreen('running');
+      return;
+    }
+
+    const savedProjId = localStorage.getItem('crewlyze_active_project_id');
+    const savedSec = localStorage.getItem('crewlyze_active_section');
+    if (savedProjId && projects && projects.length) {
+      const proj = projects.find(p => p.id === savedProjId);
+      if (proj) {
+        await switchToProject(proj);
+        if (savedSec === 'chat') {
+          if (els.btnSectionChat && els.btnSectionChat.parentNode) {
+            els.btnSectionChat.parentNode.classList.remove('hidden');
+          }
+          if (els.areaHub) els.areaHub.classList.add('hidden');
+          switchSection('chat');
+          setBreadcrumb(proj.name, 'Crew Chat');
+        } else if (savedSec === 'agentic') {
+          if (els.btnSectionChat && els.btnSectionChat.parentNode) {
+            els.btnSectionChat.parentNode.classList.remove('hidden');
+          }
+          if (els.areaHub) els.areaHub.classList.add('hidden');
+          switchSection('agentic');
+          setBreadcrumb(proj.name, 'Crew Analysis');
+        } else {
+          goToWorkspaceHub();
+        }
+      }
+    }
   }, 500);
 })();

@@ -15,7 +15,7 @@ const projectRoot = path.join(__dirname, '..');
 const requirementsPath = path.join(projectRoot, 'requirements.txt');
 
 
-// 1. Check if Python is installed
+// 1. Check if Python is installed and check version compatibility
 let pythonCmd = 'python3';
 try {
   execSync('python3 --version', { stdio: 'ignore' });
@@ -24,10 +24,22 @@ try {
     execSync('python --version', { stdio: 'ignore' });
     pythonCmd = 'python';
   } catch (err) {
-    console.error('\x1b[31m❌ Error: Python 3 is not installed or not in PATH.\x1b[0m');
+    console.error('\x1b[31m❌ Error: Python 3 is not installed or not added to system PATH.\x1b[0m');
+    console.error('\x1b[33mPlease download & install Python 3.10 to 3.13 from https://www.python.org/downloads/\x1b[0m');
     process.exit(1);
   }
 }
+
+try {
+  const verStr = execSync(`"${pythonCmd}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`).toString().trim();
+  const [major, minor] = verStr.split('.').map(Number);
+  if (major < 3 || (major === 3 && minor < 10)) {
+    console.error(`\x1b[31m❌ Error: Python ${verStr} detected. Crewlyze requires Python 3.10 or higher.\x1b[0m`);
+    process.exit(1);
+  } else if (major === 3 && minor >= 14) {
+    console.warn(`\x1b[33m⚠️ Warning: Python ${verStr} detected. Crewlyze is optimized for Python 3.10–3.13.\x1b[0m`);
+  }
+} catch (err) {}
 
 // 2. Create virtual environment inside user's home folder if it doesn't exist
 if (!fs.existsSync(venvDir)) {
@@ -48,11 +60,17 @@ const pipCmd = process.platform === 'win32'
   ? path.join(venvDir, 'Scripts', 'pip.exe')
   : path.join(venvDir, 'bin', 'pip');
 
-// 3. Install requirements
-console.log(`\x1b[36m📥 Installing Python dependencies from ${requirementsPath}...\x1b[0m`);
-console.log('\x1b[90mThis may take a few minutes on the first run.\x1b[0m\n');
+// 3. Upgrade pip to ensure latest wheel tag compatibility and install prebuilt binaries
 try {
-  execSync(`"${pipCmd}" install -r "${requirementsPath}"`, { stdio: 'inherit' });
+  execSync(`"${pipCmd}" install --upgrade pip`, { stdio: 'ignore' });
+} catch (e) {
+  // Continue if pip upgrade fails silently
+}
+
+console.log(`\x1b[36m📥 Installing prebuilt Python dependencies from ${requirementsPath}...\x1b[0m`);
+console.log('\x1b[90mThis may take a moment on the first run.\x1b[0m\n');
+try {
+  execSync(`"${pipCmd}" install --no-input --prefer-binary --retries 5 -r "${requirementsPath}"`, { stdio: 'inherit' });
   console.log('\x1b[32m✅ Dependencies installed successfully!\x1b[0m');
 } catch (e) {
   console.error('\x1b[31m❌ Error installing Python dependencies.\x1b[0m');

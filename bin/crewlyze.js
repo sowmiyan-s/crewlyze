@@ -133,14 +133,21 @@ async function getFreePort(startPort) {
   });
 
   const url = `http://127.0.0.1:${port}`;
-  console.log(`🔗 Crewlyze is running at: ${url}`);
+  console.log(`🔗 Crewlyze is starting at: ${url}`);
 
-  setTimeout(() => {
-    const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-    try {
-      spawn(startCmd, [url], { shell: true });
-    } catch (err) {
-      // ignore
+  // Poll port until server is active (handles low-end & high-end devices dynamically)
+  let attempts = 0;
+  const maxAttempts = 100; // up to 20 seconds
+  const interval = setInterval(async () => {
+    attempts++;
+    const isReady = !(await checkPort(port)); // Port occupied = server is listening!
+    if (isReady || attempts >= maxAttempts) {
+      clearInterval(interval);
+      console.log(`\x1b[32m✅ Server ready! Opening workspace at ${url}\x1b[0m`);
+      const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+      try {
+        spawn(startCmd, [url], { shell: true });
+      } catch (err) {}
     }
-  }, 2500);
+  }, 200);
 })();

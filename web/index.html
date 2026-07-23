@@ -587,22 +587,41 @@
             <div
               style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-low); padding-bottom: 12px;">
               <div style="display: flex; align-items: center; gap: 12px;">
-                <button id="chatBackBtn" class="btn-icon"
-                  style="background:var(--bg-elevated); border:1px solid var(--border-mid); border-radius:var(--r-md); padding:10px; cursor:pointer; color:var(--text-primary);"
-                  title="Back to Dashboard"><i data-lucide="arrow-left" style="width:20px; height:20px;"></i></button>
                 <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
                     data-lucide="message-square" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Crew Chat</h3>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
-                <button id="toggleExportModeBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 4px;"><i data-lucide="share-2" style="width:12px; height:12px;"></i> Export Chat</button>
-                <button id="exportChatPdfBtn" class="btn-primary btn-sm" style="display: none; align-items: center; gap: 4px;"><i data-lucide="file-text" style="width:12px; height:12px;"></i> Download PDF</button>
-                <button id="clearChatBtn" class="btn-secondary btn-sm">Clear Conversation</button>
+                <button id="toggleArtifactCanvasBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 4px;" title="Toggle Side Canvas"><i data-lucide="layout-sidebar" style="width:12px; height:12px;"></i> Canvas</button>
+                <button id="exportChatPdfBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 4px;" title="Export Chat to PDF"><i data-lucide="file-text" style="width:12px; height:12px;"></i> PDF</button>
+                <button id="clearChatBtn" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 4px;"><i data-lucide="trash" style="width:12px; height:12px;"></i> Clear</button>
               </div>
             </div>
 
-            <div id="chatMessages" class="chat-messages"
-              style="flex: 1; min-height: 260px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
-              <!-- messages populate here -->
+            <div class="chat-split-container" style="display: flex; gap: 16px; flex: 1; min-height: 380px; overflow: hidden; position: relative;">
+              <div id="chatMessages" class="chat-messages"
+                style="flex: 1; min-height: 300px; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px;">
+                <!-- messages populate here -->
+              </div>
+
+              <!-- Live Split-Pane Artifact Canvas -->
+              <div id="chatArtifactCanvas" class="artifact-canvas hidden"
+                style="width: 420px; flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: var(--r-md); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-md);">
+                <div class="artifact-canvas-header"
+                  style="padding: 10px 14px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-low); display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.82rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="layout" style="width: 14px; height: 14px; color: var(--violet-light);"></i> Active Artifact Canvas
+                  </span>
+                  <div style="display: flex; gap: 6px;">
+                    <button id="closeArtifactCanvasBtn" class="btn-icon btn-xs" title="Close Canvas" style="padding: 2px 6px; font-size: 0.75rem;">✕</button>
+                  </div>
+                </div>
+                <div id="artifactCanvasBody" class="artifact-canvas-body" style="flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+                  <div class="canvas-placeholder" style="text-align: center; margin: auto; color: var(--text-muted); font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                    <i data-lucide="sparkles" style="width: 24px; height: 24px; color: var(--violet-light); opacity: 0.6;"></i>
+                    <span>Charts, SQL execution tables, and data previews will render here side-by-side with your conversation.</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="chat-input-area" style="position: relative;">
@@ -1528,14 +1547,15 @@
           <div id="guideTab-overview" class="guide-modal-panel active">
             <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="play-circle" style="color: var(--violet-light);"></i> Platform Vision &amp; Architecture</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Crewlyze is an **Autonomous Multi-Agent Business Intelligence and Data Engineering Platform**. Unlike traditional static tools that run scripted sequence statements, Crewlyze models a collaborative human data department using role-specific AI agents that share context, self-correct errors, and execute sandboxed code.</p>
+              <p>Crewlyze is an <strong>Autonomous Multi-Agent Business Intelligence and Data Engineering Platform</strong>. Unlike static analytics tools, Crewlyze models a collaborative human data department using role-specific AI agents that share context, self-correct errors, and execute sandboxed code.</p>
               <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-weight: 600; color: #fff; font-size: 0.85rem;">Core Features:</div>
+                <div style="font-weight: 600; color: #fff; font-size: 0.85rem;">Core Platform Capabilities:</div>
                 <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 6px;">
-                  <li><strong>Multi-Agent Swarm Orchestration</strong>: Built using CrewAI for agent scheduling and tasks execution.</li>
-                  <li><strong>Dynamic Delimiter Auto-Healing</strong>: Intelligently handles diverse formats (commas, semicolons, tabs) without user configuration.</li>
-                  <li><strong>Natural Language-to-SQL Compiler</strong>: Talk directly to your SQLite database tables.</li>
-                  <li><strong>Outbound Webhook Channels</strong>: Dispatch reports dynamically to SMTP Email, Slack, Discord, and Custom REST Endpoints.</li>
+                  <li><strong>Zero-SDK One-Line Setup</strong>: Run <code>npx crewlyze</code> on any Windows, macOS, or Linux device without installing C++, Rust, or Java SDK build kits.</li>
+                  <li><strong>Multi-Agent Swarm Orchestration</strong>: Orchestrates specialized agents for data cleaning, correlation mapping, BI insights, and visualization.</li>
+                  <li><strong>Read-Only SQL Copilot &amp; DoS Guard</strong>: Natural language-to-SQL compiler with 3-second query execution timeouts and statement sanitization.</li>
+                  <li><strong>Robust PDF &amp; PowerPoint Export</strong>: ReportLab PDF engine with HTML entity escaping and PowerPoint slide deck generation.</li>
+                  <li><strong>Outbound Automation Hub</strong>: Dispatches executive summary reports automatically to SMTP Email, Slack, Discord, and REST Webhooks.</li>
                 </ul>
               </div>
             </div>
@@ -1550,22 +1570,22 @@
               <div style="display: flex; flex-direction: column; gap: 10px;">
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
                   <strong style="color: #fff; font-size: 0.85rem;">1. Data Quality &amp; Profiling Agent (cleaner.py)</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Evaluates dataset structural health. It drops columns containing more than 60% missing values, infers standard types, standardizes headers (removing spaces/special symbols), and imputes numeric empty fields (NaN) with means/medians based on standard deviation skewness. Writes a structured cleaning log detailing changes.</p>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Evaluates dataset structural health. Drops columns with &gt;60% missing values, standardizes headers, imputes numeric empty fields, and generates structured cleaning audit trails.</p>
                 </div>
                 
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
                   <strong style="color: #fff; font-size: 0.85rem;">2. Relationship &amp; Correlation Analyst (relation.py)</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Maps bivariate and multivariable data relationships. Calculates Pearson linear indices and Spearman rank correlations (detecting non-linear curves). Also runs analysis of variance (ANOVA) tests on categorical attributes to locate statistically significant drivers.</p>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Maps bivariate and multivariable relationships. Calculates Pearson linear indices and Spearman rank correlations, detecting non-linear trends and ANOVA variance drivers.</p>
                 </div>
                 
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
-                  <strong style="color: #fff; font-size: 0.85rem;">3. McKinsey Strategy Consultant (insights.py)</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Translates raw numerical correlations and statistics into strategic action. Generates SWOT matrices, highlights critical operational bottleneck risks, models growth ROI, and writes C-suite action checklists.</p>
+                  <strong style="color: #fff; font-size: 0.85rem;">3. Senior Strategy Consultant (insights.py)</strong>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Translates raw numerical correlations into strategic business action. Generates SWOT matrices, identifies bottleneck risks, and drafts C-suite action items.</p>
                 </div>
                 
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
                   <strong style="color: #fff; font-size: 0.85rem;">4. Plotly Chart Engineer (visualizer.py)</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Reads dataset metadata and dynamically compiles Python scripts to build responsive Plotly visualizations. It outputs HTML/SVG chart snippets rendered directly on your UI dashboard.</p>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Reads dataset profiles and dynamically builds responsive, hoverable Plotly charts rendered directly on your dashboard.</p>
                 </div>
               </div>
             </div>
@@ -1573,24 +1593,24 @@
 
           <!-- TAB 3: Ingestion & Pipelines -->
           <div id="guideTab-analysis" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="trending-up" style="color: #10b981;"></i> Ingestion Engines &amp; Analysis Modes</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="trending-up" style="color: #10b981;"></i> Ingestion Engines &amp; Dataset Diffs</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Crewlyze supports multi-format file parser pipelines and multiple processing speeds:</p>
+              <p>Crewlyze handles multi-format file ingestion and dataset comparison:</p>
               
               <div style="display: flex; flex-direction: column; gap: 10px;">
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
-                  <strong style="color: #fff; font-size: 0.85rem;">Fast (Standard) Execution Mode</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Optimized for speed. Agents run single-turn prompts with fewer structural reflections. It skips complex nested analyses, providing rapid sanitization logs and standard chart dashboards in seconds.</p>
+                  <strong style="color: #fff; font-size: 0.85rem;">Multi-Format Parser (CSV, Excel, SQLite)</strong>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Robust CSV reader auto-detects encoding (UTF-8, Latin1, CP1252) and delimiter formats. Ingests multi-sheet Excel workbooks and extracts SQLite tables with backtick sanitization.</p>
                 </div>
                 
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
-                  <strong style="color: #fff; font-size: 0.85rem;">Deep Execution Mode</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">Forces multi-pass reasoning. Agents evaluate dataset edge-cases, perform extensive outlier checks, audit multivariable interactions, and execute self-correcting logic on visual outputs to draft highly detailed reports.</p>
+                  <strong style="color: #fff; font-size: 0.85rem;">DuckDB High-Performance Profiling</strong>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Uses DuckDB parameterized execution to profile large datasets (5,000+ rows) in milliseconds, avoiding SQL syntax errors on single-quoted file paths.</p>
                 </div>
                 
                 <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 12px;">
-                  <strong style="color: #fff; font-size: 0.85rem;">Ingestion &amp; Delimiter Healing</strong>
-                  <p style="margin-top: 4px; font-size: 0.8rem;">On CSV uploads, the backend analyzes the first 50 lines to detect separators (`,`, `;`, `\t`, `|`). If Excel workbooks have multiple sheets, a tab picker allows selecting the target. Ingesting SQLite database files extracts schemas and lets the user choose target tables dynamically.</p>
+                  <strong style="color: #fff; font-size: 0.85rem;">Dataset Diff Inspector</strong>
+                  <p style="margin-top: 4px; font-size: 0.8rem;">Compare original vs. cleaned datasets side-by-side to review dropped rows, added/removed columns, and data type mutations.</p>
                 </div>
               </div>
             </div>
@@ -1598,13 +1618,16 @@
 
           <!-- TAB 4: Chat AI & SQL Copilot -->
           <div id="guideTab-copilot" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="terminal" style="color: var(--cyan);"></i> Chat AI &amp; SQL Copilot</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="terminal" style="color: var(--cyan);"></i> AI Chat &amp; Custom Visualization Engine</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Interact with your dataset dynamically using our conversational SQL copilot:</p>
+              <p>The AI Chat Copilot provides interactive conversational dataset analysis and instant chart generation:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>NLP-to-SQL Compilation</strong>: Ask questions in plain English (e.g. <em>"What is the average transaction total grouped by region?"</em>). The copilot inspects the schema and compiles a corresponding SQL query.</li>
-                <li><strong>Dynamic Self-Healing Loop</strong>: If the compiled SQL fails (due to join errors or column mismatches), the copilot catches the database exception traceback, feeds it back to the compiler prompt, and automatically rewrites the query on the fly.</li>
-                <li><strong>Dynamic Visualization Engine</strong>: The copilot detects if query outputs (like aggregates) are visual-friendly and renders a corresponding Plotly chart in the chat thread.</li>
+                <li><strong>Real-Time Token &amp; Thought Streaming</strong>: Uses background thread executors (`loop.run_in_executor`) and non-blocking SSE streaming to stream tokens in real-time with a subtle blinking <em>Thinking...</em> status.</li>
+                <li><strong>Slash <code>/</code> Column Picker</strong>: Type <code>/</code> in the chat input bar to trigger an interactive column autocomplete dropdown with data types.</li>
+                <li><strong>Unlimited Custom Visualizations</strong>: Request ANY custom chart type (Histograms, Box/Violin plots, Scatter, Heatmaps, Time-Series line charts, Stacked bar, Pie/Donut, 3D scatter, Radar plots). Rendered via Matplotlib/Seaborn with instant <code>📥 Download PNG</code> buttons.</li>
+                <li><strong>Automatic Project Chat Persistence</strong>: Chat transcripts and generated chart images are saved directly to <code>chat_history.json</code> inside each project's directory and restored on page refresh or project opening.</li>
+                <li><strong>Markdown &amp; PDF Export</strong>: Export AI chat sessions directly into <code>.md</code> markdown files or styled PDF documents.</li>
+                <li><strong>Read-Only SQL Query Workbench</strong>: Natural language-to-SQL compiler with 3-second query execution timeouts and statement sanitization for safe database inspection.</li>
               </ul>
             </div>
           </div>
@@ -1613,76 +1636,76 @@
           <div id="guideTab-sandboxing" class="guide-modal-panel">
             <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" style="color: var(--emerald);"></i> Python Sandboxing &amp; Security</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>To safely run AI-generated data code, Crewlyze implements strict sandboxing architectures:</p>
+              <p>Crewlyze enforces strict security sandboxing to protect host servers:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>Isolated Subprocess Execution</strong>: Pandas cleaning code and Plotly chart scripts run in separate subprocess containers, protecting the main server thread.</li>
-                <li><strong>Import Sanitization Guards</strong>: Scans and blocks code templates containing system calls (`os.system`), shell escapes, filesystem deletions (`shutil`), or outbound network calls (`urllib`, `requests`).</li>
-                <li><strong>Local Directory Layout</strong>: Project workspace directories, original tables, and reports are saved locally at `~/.crewlyze/data/sessions/<session_id>` without cloud storage.</li>
+                <li><strong>Isolated Subprocess Execution</strong>: All generated Python cleaning and chart code runs in an isolated child process via <code>subprocess.run()</code>, avoiding parent <code>exec()</code> risks.</li>
+                <li><strong>Strict Path Traversal Verification</strong>: Session IDs and file paths are verified using <code>.resolve()</code> and <code>.relative_to()</code> checks to prevent directory traversal attacks.</li>
+                <li><strong>Auto-Healing Package Installer</strong>: Missing modules trigger <code>pip install --prefer-binary</code> without requiring manual SDK compilations.</li>
               </ul>
             </div>
           </div>
 
           <!-- TAB 6: Cloud & Local LLMs -->
           <div id="guideTab-gateways" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="key" style="color: var(--amber);"></i> Universal LLM Gateways</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="key" style="color: var(--amber);"></i> Universal LLM Gateways &amp; Configuration</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Crewlyze supports 100+ LLMs via the LiteLLM gateway. Configure providers in the Settings Modal:</p>
+              <p>Crewlyze supports 100+ LLM providers via LiteLLM. Configure your settings in the Sidebar Settings Modal:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>Cloud APIs (OpenAI, Anthropic, Gemini, Groq, Together)</strong>: Input your secure API credentials and enable <em>Show in sidebar</em>. Recommended models are <code>gpt-4o</code>, <code>claude-3-5-sonnet</code>, or <code>gemini/gemini-2.5-flash</code>.</li>
-                <li><strong>Local Offline Execution (Ollama)</strong>: Boot Ollama on your machine (e.g. `ollama run llama3.1`), configure base URL to `http://localhost:11434`, and select model ID matching Ollama registry (e.g. `ollama/llama3.1`). Keep keys blank.</li>
-                <li><strong>Custom Enterprise Proxies</strong>: Use the `custom` provider to route requests to custom, OpenAI-compatible proxy gateways using endpoint URLs and Bearer headers.</li>
+                <li><strong>Cloud AI Gateways</strong>: Configure API keys for OpenAI (<code>gpt-4o</code>), Anthropic (<code>claude-3-5-sonnet</code>), Google Gemini (<code>gemini-1.5-flash</code>), NVIDIA NIM, Minimax, Groq, and DeepSeek.</li>
+                <li><strong>100% Offline Local Execution (Ollama)</strong>: Boot Ollama on your device (<code>ollama run llama3.1</code>), set Base URL to <code>http://localhost:11434</code>, and run 100% private offline analysis with 0 API costs.</li>
+                <li><strong>Custom OpenAI Proxies</strong>: Route requests to custom vLLM or LM Studio servers with custom Bearer tokens.</li>
               </ul>
             </div>
           </div>
 
           <!-- TAB 7: Cooldowns & Throttling -->
           <div id="guideTab-cooldown" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="hourglass" style="color: var(--violet-light);"></i> Cooldowns &amp; 429 Backoff</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="hourglass" style="color: var(--violet-light);"></i> Cooldowns, Throttling &amp; Rate Limits</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Heavy agentic workloads generate rapid consecutive API requests, which often trigger rate limits from cloud LLM hosts:</p>
+              <p>Built-in concurrency and rate-limiting safeguards ensure system stability:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>429 Rate Limits</strong>: Triggered when token-per-minute (TPM) or request-per-minute (RPM) limits are exceeded.</li>
-                <li><strong>API Cooldown Delay</strong>: In General Settings, set the Cooldown timer (1s to 60s). This forces a time buffer between consecutive agent prompts, letting rate limits reset.</li>
-                <li><strong>Mathematical Cooldown Backoff</strong>: When the backend receives a `429` status, it executes an automated retry loop, sleeping for `cooldown * retry_attempt` seconds to recover safely.</li>
+                <li><strong>API Cooldown Delay Buffer</strong>: Set inter-agent request delays (1s to 60s) in Settings to avoid TPM/RPM rate limit spikes on cloud AI providers.</li>
+                <li><strong>Concurrency Limit Guard</strong>: <code>MAX_CONCURRENT_ANALYSES = 2</code> limits simultaneous analysis jobs, returning HTTP 429 if server capacity is reached.</li>
+                <li><strong>Leak-Proof Execution Locks</strong>: Background tasks use <code>try...finally</code> blocks to release execution locks cleanly under all conditions.</li>
               </ul>
             </div>
           </div>
 
           <!-- TAB 8: Integrations Hub -->
           <div id="guideTab-integrations" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="shuffle" style="color: var(--rose);"></i> Outbound Integrations Hub</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="shuffle" style="color: var(--rose);"></i> Outbound Integrations Hub (SMTP &amp; Discord)</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Configure automated dispatch channels in the Integrations tab:</p>
+              <p>Dispatch automated reports and executive alerts to external channels:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>SMTP Email client</strong>: Provide relay parameters (SMTP host, port: 587 STARTTLS / 465 SSL, credentials). Delivers email summaries and attached PDF reports.</li>
-                <li><strong>Slack Webhooks</strong>: Paste channel Webhook URLs. Dispatches key metric summaries directly to your Slack channels.</li>
-                <li><strong>Discord Webhooks</strong>: Delivers embeds featuring customized border styles, warning metrics, and attached PDF reports.</li>
-                <li><strong>REST Endpoint Webhooks</strong>: POSTs JSON metadata payloads and report files to your custom API endpoints.</li>
+                <li><strong>SMTP Email Dispatcher</strong>: Configure host, port (587 STARTTLS / 465 SSL), credentials, and target recipients to automatically email generated PDF executive reports upon analysis completion.</li>
+                <li><strong>Discord Webhook Alerts</strong>: Enter a Discord Webhook URL to post formatted markdown embeds with metric summaries, warning badges, and direct PDF attachments to Discord channels.</li>
+                <li><strong>Slack Webhooks</strong>: Posts formatted markdown summary cards directly to Slack channels.</li>
+                <li><strong>Custom REST Webhooks</strong>: Dispatches JSON metadata payloads and PDF binaries to external API webhooks.</li>
               </ul>
             </div>
           </div>
 
           <!-- TAB 9: Export Formats & ZIP -->
           <div id="guideTab-exports" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="download" style="color: var(--violet-light);"></i> Export Formats &amp; ZIP Portability</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="download" style="color: var(--violet-light);"></i> Export Formats &amp; ZIP Archives</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
-              <p>Crewlyze packages project assets in multiple formats for migration and reporting:</p>
+              <p>Crewlyze generates comprehensive executive deliverables:</p>
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>PDF Executive Report</strong>: Renders a structured ReportLab PDF complete with headers, footers, pagination, SWOT matrices, risk indices, and high-res chart images.</li>
-                <li><strong>Jupyter Notebook (.ipynb)</strong>: Exports a complete Jupyter notebook package containing pandas configurations and Plotly visualization code to re-run locally.</li>
-                <li><strong>ZIP Project Backup</strong>: Bundles the configuration settings, the original dataset, the cleaned dataset, charts, logs, and generated reports into a portable archive.</li>
+                <li><strong>HTML-Escaped PDF Executive Report</strong>: ReportLab PDF document with headers, footers, pagination, SWOT tables, and embedded high-res chart images. Raw text symbols (&lt;, &gt;, &amp;) are HTML-escaped automatically.</li>
+                <li><strong>PowerPoint Presentation (.pptx)</strong>: Generates C-suite ready PowerPoint slide decks summarizing data insights.</li>
+                <li><strong>ZIP Workspace Archive</strong>: Bundles datasets, cleaned tables, charts, logs, PDF reports, and chat transcripts into a single ZIP file.</li>
               </ul>
             </div>
           </div>
 
           <!-- TAB 10: FAQ & Troubleshooting -->
           <div id="guideTab-troubleshooting" class="guide-modal-panel">
-            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="help-circle" style="color: #10b981;"></i> FAQ &amp; Troubleshooting</h4>
+            <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i data-lucide="help-circle" style="color: #10b981;"></i> Page State &amp; Troubleshooting</h4>
             <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6; display: flex; flex-direction: column; gap: 10px;">
               <ul style="margin-left: 18px; display: flex; flex-direction: column; gap: 8px;">
-                <li><strong>Issue: Stale/Orphaned running states</strong>: If page reloads occur during active pipeline execution, the backend recovery hook runs on load, scans the directory, terminates zombie subprocesses, and safely resets records to "failed".</li>
-                <li><strong>Issue: FastAPI CORS Block Errors</strong>: Ensure remote domains are whitelisted in FastAPI's `CORSMiddleware` in `main.py` if hosting the backend on a remote instance.</li>
-                <li><strong>Issue: Large Dataset Crashes (1GB+)</strong>: Ingestion is done in-memory via pandas. For massive datasets, verify that your server is configured with sufficient swap memory, or pre-filter datasets.</li>
+                <li><strong>Stay-On-Page Reload Persistence</strong>: Refreshing your browser (<code>F5</code>) automatically restores your active project session and tab (Crew Chat, Crew Analysis, or Hub).</li>
+                <li><strong>Zero-Compiler Installation</strong>: Installs prebuilt Python binary wheels without requiring C++ or Rust SDK build kits.</li>
+                <li><strong>Server Readiness Scanner</strong>: The CLI launcher polls the server port dynamically, launching the web browser at the exact instant the server wakes up.</li>
               </ul>
             </div>
           </div>

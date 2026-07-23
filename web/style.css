@@ -4916,8 +4916,48 @@ body {
 
 /* --- Guide Modal Override --- */
 #guideModal .modal-box {
-  width: 1050px !important;
-  max-width: 90vw !important;
+  width: 1150px !important;
+  max-width: 92vw !important;
+}
+
+.guide-modal-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.guide-modal-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+
+.guide-modal-tab-btn.active {
+  background: rgba(255, 37, 42, 0.12) !important;
+  border-left-color: var(--crimson, #ff252a) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.guide-modal-panel {
+  display: none !important;
+}
+
+.guide-modal-panel.active {
+  display: flex !important;
+  flex-direction: column;
+  gap: 16px;
+  animation: fadeIn 0.2s ease;
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5011,6 +5051,153 @@ th.sortable-header:hover {
 .chart-card-action-btn:hover {
   background: rgba(255, 255, 255, 0.1) !important;
   color: #ffffff !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Real-Time AI Chat Feature Suite
+   ══════════════════════════════════════════════════════════ */
+
+.reasoning-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-style: italic;
+  padding: 0;
+  margin-bottom: 8px;
+  animation: blink 1.2s infinite;
+}
+
+.typing-cursor::after {
+  display: none !important;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.sql-workbench {
+  background: #090d16;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  margin: 10px 0;
+  overflow: hidden;
+}
+
+.sql-workbench-header {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+  font-family: monospace;
+}
+
+.sql-workbench-editor {
+  width: 100%;
+  background: transparent;
+  color: #38bdf8;
+  border: none;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 0.82rem;
+  padding: 10px 12px;
+  resize: vertical;
+  min-height: 50px;
+}
+
+.sql-workbench-editor:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.btn-run-sql {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.btn-run-sql:hover {
+  background: rgba(16, 185, 129, 0.35);
+  color: #ffffff;
+}
+
+.suggestion-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.suggestion-chip {
+  background: rgba(255, 37, 42, 0.08);
+  border: 1px solid rgba(255, 37, 42, 0.25);
+  color: #ff8587;
+  font-size: 0.76rem;
+  padding: 5px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.suggestion-chip:hover {
+  background: rgba(255, 37, 42, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* --- Sleek Chat Chart Card & Artifact Canvas Polish --- */
+.chat-chart-card {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease !important;
+}
+
+.chat-chart-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.chat-chart-actions button,
+.chat-chart-actions a {
+  opacity: 0.9;
+  transition: all 0.15s ease !important;
+}
+
+.chat-chart-actions button:hover,
+.chat-chart-actions a:hover {
+  opacity: 1;
+  background: var(--bg-surface) !important;
+  color: #fff !important;
+  border-color: var(--border-mid) !important;
+}
+
+.artifact-canvas {
+  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 

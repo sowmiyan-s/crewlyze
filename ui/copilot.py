@@ -33,11 +33,10 @@ from tools.dataset_tools import _run_in_subprocess, _strip_markdown_fences, read
 # Column schema builder
 # ---------------------------------------------------------------------------
 
-def _build_column_context(csv_path: str, max_rows: int = 500) -> str:
+def _build_column_context(csv_path: str, max_rows: int = 100) -> str:
     """
-    Load the CSV and build a compact column schema string for injection into
-    the LLM prompt.  Includes dtypes, missing%, and key statistics so the LLM
-    can write correct, runnable pandas code without hallucinating column names.
+    Load CSV header & dtypes rapidly and build a ultra-compact schema string.
+    Optimized for high-speed LLM inference.
     """
     try:
         df = read_csv_robust(csv_path, nrows=max_rows)
@@ -45,29 +44,20 @@ def _build_column_context(csv_path: str, max_rows: int = 500) -> str:
         return f"[Could not load dataset: {exc}]"
 
     lines = [
-        f"Dataset: {max_rows if len(df) == max_rows else len(df)} rows × {len(df.columns)} columns",
-        "",
-        "Columns (name | dtype | missing% | stats):",
+        f"Dataset Shape: {len(df)} rows × {len(df.columns)} columns",
+        "Columns & Data Types:",
     ]
-    for col in df.columns:
-        dtype    = df[col].dtype
-        miss_pct = round(df[col].isnull().sum() / max(len(df), 1) * 100, 1)
-        if pd.api.types.is_numeric_dtype(dtype):
-            stats = (
-                f"min={df[col].min():.4g}, "
-                f"mean={df[col].mean():.4g}, "
-                f"max={df[col].max():.4g}, "
-                f"std={df[col].std():.4g}"
-            )
-        else:
-            top3 = df[col].dropna().value_counts().head(3).index.tolist()
-            stats = "top: " + ", ".join(str(v) for v in top3) if top3 else "—"
-        lines.append(f"  - {col!r}: {dtype} | missing={miss_pct}% | {stats}")
+    for col in df.columns[:35]:
+        lines.append(f"  - {col}: {df[col].dtype}")
+    
+    if len(df.columns) > 35:
+        lines.append(f"  ... (+ {len(df.columns) - 35} more columns)")
 
     lines.append("")
-    lines.append("Sample rows (first 3):")
-    for _, row in df.head(3).iterrows():
-        lines.append("  " + str(dict(row)))
+    lines.append("Sample Values:")
+    if len(df) > 0:
+        sample = {k: str(v)[:30] for k, v in dict(df.iloc[0]).items()}
+        lines.append("  " + str(sample))
 
     return "\n".join(lines)
 
@@ -267,15 +257,21 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
        - Perform the operation on the DataFrame `df`.
        - Save the modified DataFrame back to the CSV file at the end of the script: `df.to_csv(FILE_PATH, index=False)`.
        - Print a confirmation message to stdout using Markdown (e.g., bulleted list) explaining exactly what dataset modifications were made.
-    6. If the query asks for a chart/plot/graph:
-       - You can use either Matplotlib/Seaborn OR Plotly.
-       - If using Matplotlib/Seaborn: Call `import matplotlib; matplotlib.use('Agg')` BEFORE importing pyplot. Save with `plt.savefig('{plot_path.as_posix()}')`.
-       - If using Plotly: Do NOT use `fig.write_image()`. Instead, you MUST export the figure using the Kaleido API directly:
+    6. IF THE QUERY ASKS FOR A CHART/VISUALIZATION/GRAPH:
+       - You have full capability to generate ANY type of visualization requested by the user:
+         distribution histograms, box/violin plots, scatter plots, correlation heatmaps, stacked/grouped bar charts, time-series line plots, pie/donut charts, pair plots, subplots, 3D scatter plots, radar charts, and custom color themes.
+       - Always include at the top of your code:
          ```python
-         import kaleido
-         kaleido.write_fig_sync(fig, '{plot_path.as_posix()}')
+         import matplotlib
+         matplotlib.use('Agg')
+         import matplotlib.pyplot as plt
+         import seaborn as sns
+         import numpy as np
          ```
-       - Generate a professional chart. Apply any specific styles, colors, layouts, grids, or palettes requested by the user.
+       - Create a visually stunning, professional visualization with a clear title, custom color palette, grid lines, and properly labeled axes.
+       - Save the figure to: `plt.savefig('{plot_path.as_posix()}', dpi=150, bbox_inches='tight')`
+       - Clean up memory with: `plt.close('all')`
+       - CRITICAL OUTPUT RULE: When generating a visualization, print ONLY 1 short concise sentence introducing the chart (e.g., `print("Generated distribution histogram for column X.")`). Do NOT print long bullet points or unasked dataset summary notes alongside the plot.
 
     Return ONLY valid Python code inside a ```python ... ``` block.
     Do NOT include explanations or text outside the code block.
@@ -366,6 +362,100 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
             "text": f"Copilot error: {exc}",
             "plot_path": None,
         }
+
+
+def _generate_suggestions(query: str, csv_path: str) -> list[str]:
+    """Generates 3 contextual next-step suggestion prompt chips based on dataset columns."""
+    try:
+        df = read_csv_robust(csv_path, nrows=5)
+        num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        cat_cols = df.select_dtypes(exclude=["number"]).columns.tolist()
+        
+        suggestions = []
+        if num_cols and cat_cols:
+            suggestions.append(f"📊 Breakdown {num_cols[0]} by {cat_cols[0]}")
+        elif len(num_cols) >= 2:
+            suggestions.append(f"📈 Scatter plot of {num_cols[0]} vs {num_cols[1]}")
+        else:
+            suggestions.append("📈 Plot top correlation trends")
+            
+        if num_cols:
+            suggestions.append(f"⚠️ Check for outliers in {num_cols[0]}")
+        else:
+            suggestions.append("🔍 Show summary of null/missing values")
+            
+        suggestions.append("💼 Summarize 3 key executive takeaways")
+        return suggestions[:3]
+    except Exception:
+        return ["📊 Breakdown top metrics", "⚠️ Check for data outliers", "💼 Summarize executive takeaways"]
+
+
+def stream_copilot_query(
+    query: str,
+    session_id: str,
+    provider: str,
+    model: str,
+    api_key: Optional[str] = None,
+    env_key_name: Optional[str] = None,
+    csv_path: Optional[str] = None,
+    output_dir: Optional[str] = None,
+):
+    """
+    Generator yielding Server-Sent Events (SSE) for real-time dataset analysis streaming,
+    live reasoning thought badges, and dynamic chart rendering.
+    """
+    import json
+    import time
+
+    def sse(event_type: str, data: dict) -> str:
+        payload = {"type": event_type, **data}
+        return f"data: {json.dumps(payload)}\n\n"
+
+    # Step 1: Yield reasoning phase
+    yield sse("thought", {"text": "Thinking..."})
+
+    if not csv_path or not Path(csv_path).exists():
+        yield sse("token", {"text": "Error: Session dataset file not found."})
+        yield sse("done", {})
+        return
+
+    # Check hypothesis engine first
+    hypo = _run_hypothesis_test_engine(query, csv_path)
+    if hypo and hypo.get("text"):
+        for line in hypo["text"].split("\n"):
+            yield sse("token", {"text": line + "\n"})
+        suggestions = _generate_suggestions(query, csv_path)
+        yield sse("suggestions", {"items": suggestions})
+        yield sse("done", {})
+        return
+
+    # Step 2: Processing dataset with Python code engine
+    yield sse("thought", {"text": "Thinking..."})
+
+    # Execute standard copilot dataset query engine (Correct 3-argument signature)
+    res = run_copilot_query(
+        query=query,
+        csv_path=csv_path,
+        output_dir_str=output_dir
+    )
+
+    text_content = res.get("text", "")
+
+    lines = text_content.split("\n")
+    for idx, line in enumerate(lines):
+        yield sse("token", {"text": line + ("\n" if idx < len(lines) - 1 else "")})
+
+    if res.get("plot_path"):
+        plot_name = Path(res["plot_path"]).name
+        import urllib.parse
+        plot_url = f"/api/charts/{session_id}/{urllib.parse.quote(plot_name)}"
+        yield sse("chart", {"plot_url": plot_url})
+
+    # Step 3: Yield smart contextual suggestion chips
+    suggestions = _generate_suggestions(query, csv_path)
+    yield sse("suggestions", {"items": suggestions})
+
+    yield sse("done", {})
 
 
 def _uuid_short() -> str:

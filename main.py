@@ -32,14 +32,6 @@ from typing import Optional
 import pandas as pd
 from tools.dataset_tools import read_csv_robust
 
-# Aspose.Slides for Python import check
-try:
-    import aspose.slides as slides
-    import aspose.pydraw as pydraw
-    ASPOSE_SLIDES_AVAILABLE = True
-except ImportError:
-    ASPOSE_SLIDES_AVAILABLE = False
-
 # Copy assets on startup/reload
 try:
     # 1. Convert bin/crewlyze.js line endings to LF
@@ -1067,167 +1059,167 @@ def run_crew_in_background(
     Orchestrates the CrewAI pipeline in a background thread, writing all
     stdout progress to a tail-able stdout.log file and serializing results.
     """
-    if not is_safe_id(session_id):
-        raise ValueError("Invalid session ID.")
-    session_dir = (SESSIONS_DIR / session_id).resolve()
-    resolved_csv = Path(csv_path).resolve()
+    global active_analyses
     try:
-        resolved_csv.relative_to(session_dir)
-    except ValueError:
-        raise ValueError("Path traversal detected in CSV path.")
+        if not is_safe_id(session_id):
+            raise ValueError("Invalid session ID.")
+        session_dir = (SESSIONS_DIR / session_id).resolve()
+        resolved_csv = Path(csv_path).resolve()
+        try:
+            resolved_csv.relative_to(session_dir)
+        except ValueError:
+            raise ValueError("Path traversal detected in CSV path.")
 
-    # 1. Inject thread-isolated LLM configurations and context variables
-    from config.context import (
-        current_session_id,
-        current_session_csv,
-        current_session_output_dir,
-        current_llm_provider,
-        current_llm_model,
-        current_llm_api_key,
-        current_llm_env_key_name,
-        current_cooldown,
-        current_deep_analysis,
-    )
-    current_session_id.set(session_id)
-    current_session_csv.set(str(resolved_csv))
-    current_session_output_dir.set(str((OUTPUTS_DIR / session_id).resolve()))
-    current_llm_provider.set(provider)
-    current_llm_model.set(model)
-    current_llm_api_key.set(api_key or "")
-    current_llm_env_key_name.set(env_key_name or "")
-    current_cooldown.set(cooldown)
-    current_deep_analysis.set(deep_analysis)
+        # 1. Inject thread-isolated LLM configurations and context variables
+        from config.context import (
+            current_session_id,
+            current_session_csv,
+            current_session_output_dir,
+            current_llm_provider,
+            current_llm_model,
+            current_llm_api_key,
+            current_llm_env_key_name,
+            current_cooldown,
+            current_deep_analysis,
+        )
+        current_session_id.set(session_id)
+        current_session_csv.set(str(resolved_csv))
+        current_session_output_dir.set(str((OUTPUTS_DIR / session_id).resolve()))
+        current_llm_provider.set(provider)
+        current_llm_model.set(model)
+        current_llm_api_key.set(api_key or "")
+        current_llm_env_key_name.set(env_key_name or "")
+        current_cooldown.set(cooldown)
+        current_deep_analysis.set(deep_analysis)
 
-
-
-    # Save or update the report title and goal in project metadata
-    try:
-        meta = get_project_metadata(session_id)
-        if report_title:
-            meta["report_title"] = report_title.strip()
-        
-        user_goal = meta.get("goal", "")
-        if user_goal.strip():
-            print("Optimizing goal grammar...")
-            opt_goal = optimize_goal_grammar(user_goal, provider, model, api_key, env_key_name)
-            meta["optimized_goal"] = opt_goal
-            print(f"Optimized goal: {opt_goal}")
-        else:
-            meta["optimized_goal"] = ""
+        # Save or update the report title and goal in project metadata
+        try:
+            meta = get_project_metadata(session_id)
+            if report_title:
+                meta["report_title"] = report_title.strip()
             
-        save_project_metadata(session_id, meta)
-    except Exception as e:
-        print(f"Error handling metadata goal/title: {e}")
-
-    session_dir = SESSIONS_DIR / session_id
-    log_path = session_dir / "stdout.log"
-    done_path = session_dir / "done.txt"
-    results_path = session_dir / "results.json"
-
-    # Clean up previous state
-    done_path.unlink(missing_ok=True)
-    results_path.unlink(missing_ok=True)
-
-    # Update metadata status to running
-    try:
-        meta = get_project_metadata(session_id)
-        meta["status"] = "running"
-        save_project_metadata(session_id, meta)
-    except Exception:
-        pass
-
-    # 2. Redirect stdout and kickoff
-    with open(log_path, "w", encoding="utf-8", errors="replace") as log_file:
-        import contextlib
-        with contextlib.redirect_stdout(log_file):
-            try:
-                print("Initializing multi-agent workflows...")
-                _load_crew()
-                result = _run_crew(
-                    csv_path,
-                    session_id=session_id,
-                    selected_tasks=selected_tasks or None,
-                    deep_analysis=deep_analysis,
-                )
+            user_goal = meta.get("goal", "")
+            if user_goal.strip():
+                print("Optimizing goal grammar...")
+                opt_goal = optimize_goal_grammar(user_goal, provider, model, api_key, env_key_name)
+                meta["optimized_goal"] = opt_goal
+                print(f"Optimized goal: {opt_goal}")
+            else:
+                meta["optimized_goal"] = ""
                 
-                # Convert results to JSON-serializable structure
-                # Re-map Plotly charts into serializable JSON dictionaries
-                plotly_serializable = []
-                for chart in result.get("plotly_charts", []):
+            save_project_metadata(session_id, meta)
+        except Exception as e:
+            print(f"Error handling metadata goal/title: {e}")
+
+        session_dir = SESSIONS_DIR / session_id
+        log_path = session_dir / "stdout.log"
+        done_path = session_dir / "done.txt"
+        results_path = session_dir / "results.json"
+
+        # Clean up previous state
+        done_path.unlink(missing_ok=True)
+        results_path.unlink(missing_ok=True)
+
+        # Update metadata status to running
+        try:
+            meta = get_project_metadata(session_id)
+            meta["status"] = "running"
+            save_project_metadata(session_id, meta)
+        except Exception:
+            pass
+
+        # 2. Redirect stdout and kickoff
+        with open(log_path, "w", encoding="utf-8", errors="replace") as log_file:
+            import contextlib
+            with contextlib.redirect_stdout(log_file):
+                try:
+                    print("Initializing multi-agent workflows...")
+                    _load_crew()
+                    result = _run_crew(
+                        csv_path,
+                        session_id=session_id,
+                        selected_tasks=selected_tasks or None,
+                        deep_analysis=deep_analysis,
+                    )
+                    
+                    # Convert results to JSON-serializable structure
+                    # Re-map Plotly charts into serializable JSON dictionaries
+                    plotly_serializable = []
+                    for chart in result.get("plotly_charts", []):
+                        try:
+                            plotly_serializable.append({
+                                "title": chart["title"],
+                                "fig_json": json.loads(chart["fig"].to_json())
+                            })
+                        except Exception:
+                            pass
+
+                    # Gather static PNG charts
+                    png_charts_list = [f.name for f in Path(result["output_dir"]).glob("*.png")]
+
+                    serializable_result = {
+                        "cleaning_steps": result["cleaning_steps"],
+                        "relations":      result["relations"],
+                        "insights":       result["insights"],
+                        "code":           result.get("code", ""),
+                        "output_dir":     result["output_dir"],
+                        "plotly_charts":  plotly_serializable,
+                        "png_charts":     png_charts_list,
+                        "rows_count":     int(result["dataframe"].shape[0]),
+                        "cols_count":     int(result["dataframe"].shape[1]),
+                        "numeric_count":  int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
+                        "cat_count":      int(len(result["dataframe"].select_dtypes(include=["object"]).columns))
+                    }
+
+                    # Cache first 100 rows as JSON data preview
+                    preview_data = result["dataframe"].head(100).replace([float('inf'), float('-inf')], float('nan')).fillna("").to_dict(orient="records")
+                    serializable_result["preview"] = preview_data
+
+                    with open(results_path, "w", encoding="utf-8") as f:
+                        json.dump(serializable_result, f, indent=2)
+                    
+                    print("\nAnalysis complete! Ready to render dashboard.")
+
+                    # Update metadata status to completed
                     try:
-                        plotly_serializable.append({
-                            "title": chart["title"],
-                            "fig_json": json.loads(chart["fig"].to_json())
-                        })
+                        meta = get_project_metadata(session_id)
+                        meta["status"] = "completed"
+                        if png_charts_list:
+                            import urllib.parse
+                            meta["thumbnail"] = f"/api/charts/{session_id}/{urllib.parse.quote(png_charts_list[0])}"
+                        save_project_metadata(session_id, meta)
                     except Exception:
                         pass
 
-                # Gather static PNG charts
-                png_charts_list = [f.name for f in Path(result["output_dir"]).glob("*.png")]
+                    # Trigger outbound automations (Email, Slack, Webhook)
+                    try:
+                        run_automation_pipeline(session_id, serializable_result)
+                    except Exception as aut_err:
+                        print(f"[Automation Error] Outbound automations failed: {aut_err}")
 
-                serializable_result = {
-                    "cleaning_steps": result["cleaning_steps"],
-                    "relations":      result["relations"],
-                    "insights":       result["insights"],
-                    "code":           result.get("code", ""),
-                    "output_dir":     result["output_dir"],
-                    "plotly_charts":  plotly_serializable,
-                    "png_charts":     png_charts_list,
-                    "rows_count":     int(result["dataframe"].shape[0]),
-                    "cols_count":     int(result["dataframe"].shape[1]),
-                    "numeric_count":  int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
-                    "cat_count":      int(len(result["dataframe"].select_dtypes(include=["object"]).columns))
-                }
+                except Exception as e:
+                    import traceback
+                    print(f"\nPipeline failed: {e}", file=sys.stderr)
+                    traceback.print_exc(file=log_file)
+                    
+                    error_result = {"error": str(e)}
+                    with open(results_path, "w", encoding="utf-8") as f:
+                        json.dump(error_result, f, indent=2)
 
-                # Cache first 100 rows as JSON data preview
-                preview_data = result["dataframe"].head(100).replace([float('inf'), float('-inf')], float('nan')).fillna("").to_dict(orient="records")
-                serializable_result["preview"] = preview_data
-
-                with open(results_path, "w", encoding="utf-8") as f:
-                    json.dump(serializable_result, f, indent=2)
-                
-                print("\nAnalysis complete! Ready to render dashboard.")
-
-                # Update metadata status to completed
-                try:
-                    meta = get_project_metadata(session_id)
-                    meta["status"] = "completed"
-                    if png_charts_list:
-                        import urllib.parse
-                        meta["thumbnail"] = f"/api/charts/{session_id}/{urllib.parse.quote(png_charts_list[0])}"
-                    save_project_metadata(session_id, meta)
-                except Exception:
-                    pass
-
-                # Trigger outbound automations (Email, Slack, Webhook)
-                try:
-                    run_automation_pipeline(session_id, serializable_result)
-                except Exception as aut_err:
-                    print(f"[Automation Error] Outbound automations failed: {aut_err}")
-
-            except Exception as e:
-                import traceback
-                print(f"\nPipeline failed: {e}", file=sys.stderr)
-                traceback.print_exc(file=log_file)
-                
-                error_result = {"error": str(e)}
-                with open(results_path, "w", encoding="utf-8") as f:
-                    json.dump(error_result, f, indent=2)
-
-                # Update metadata status to failed
-                try:
-                    meta = get_project_metadata(session_id)
-                    meta["status"] = "failed"
-                    save_project_metadata(session_id, meta)
-                except Exception:
-                    pass
-            finally:
-                # Write done sentinel to stop EventSource streams
-                with open(done_path, "w") as f:
-                    f.write("done")
-                global active_analyses
-                with active_analyses_lock:
-                    active_analyses = max(0, active_analyses - 1)
+                    # Update metadata status to failed
+                    try:
+                        meta = get_project_metadata(session_id)
+                        meta["status"] = "failed"
+                        save_project_metadata(session_id, meta)
+                    except Exception:
+                        pass
+                finally:
+                    # Write done sentinel to stop EventSource streams
+                    with open(done_path, "w") as f:
+                        f.write("done")
+    finally:
+        with active_analyses_lock:
+            active_analyses = max(0, active_analyses - 1)
 
 
 # ---------------------------------------------------------------------------
@@ -1346,8 +1338,9 @@ async def select_sqlite_table(session_id: str = Form(...), table_name: str = For
         raise HTTPException(status_code=400, detail="Database upload not found.")
     try:
         import sqlite3
+        safe_table = table_name.replace("`", "``")
         conn = sqlite3.connect(str(db_path))
-        df = pd.read_sql_query(f"SELECT * FROM `{table_name}`", conn)
+        df = pd.read_sql_query(f"SELECT * FROM `{safe_table}`", conn)
         conn.close()
         
         csv_path = session_dir / "original_upload.csv"
@@ -1372,20 +1365,43 @@ async def query_sql_dataset(session_id: str = Form(...), sql_query: str = Form(.
         csv_path = session_dir / "original_upload.csv"
     if not csv_path.exists():
         raise HTTPException(status_code=400, detail="Dataset not found.")
-        
+
+    clean_query = sql_query.strip()
+    if not clean_query:
+        return {"success": False, "error": "Query cannot be empty."}
+
+    # Security check: Enforce read-only SELECT queries
+    first_word = clean_query.split()[0].upper() if clean_query.split() else ""
+    if first_word not in ("SELECT", "EXPLAIN", "WITH"):
+        return {"success": False, "error": "Security Error: Only read-only queries (SELECT) are permitted."}
+
+    forbidden = ["ATTACH", "DETACH", "PRAGMA", "CREATE", "DROP", "ALTER", "INSERT", "UPDATE", "DELETE", "VACUUM", "REINDEX", "TRANSACTION", "COMMIT", "ROLLBACK"]
+    if any(re.search(rf"\b{kw}\b", clean_query, re.IGNORECASE) for kw in forbidden):
+        return {"success": False, "error": "Security Error: Mutating or administrative SQL statements are blocked."}
+
     try:
         import sqlite3
         df = read_csv_robust(csv_path)
         conn = sqlite3.connect(":memory:")
         df.to_sql("dataset", conn, index=False)
-        
-        res_df = pd.read_sql_query(sql_query, conn)
+
+        # Set execution instruction limit to prevent infinite loops / CPU DoS (~3 seconds max)
+        step_counter = [0]
+        def interrupt_handler():
+            step_counter[0] += 1
+            if step_counter[0] > 1000:  # 1,000 progress callbacks ~ 3 seconds
+                return 1
+            return 0
+
+        conn.set_progress_handler(interrupt_handler, 1000)
+
+        res_df = pd.read_sql_query(clean_query, conn)
         conn.close()
-        
+
         res_df = res_df.replace([float('inf'), float('-inf')], float('nan')).fillna("")
         results = res_df.head(100).to_dict(orient="records")
         columns = list(res_df.columns)
-        
+
         return {
             "success": True,
             "columns": columns,
@@ -1393,7 +1409,10 @@ async def query_sql_dataset(session_id: str = Form(...), sql_query: str = Form(.
             "total_count": len(res_df)
         }
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        err_msg = str(e)
+        if "interrupted" in err_msg.lower():
+            err_msg = "Query execution timed out (3s limit exceeded)."
+        return {"success": False, "error": err_msg}
 
 
 @app.get("/api/dataset-diff")
@@ -1737,6 +1756,111 @@ async def ask_copilot(
         "text":    res["text"],
         "plot_url": plot_url
     }
+
+
+@app.post("/api/copilot/stream")
+async def stream_copilot(
+    session_id: str = Form(...),
+    query: str = Form(...),
+    provider: str = Form(...),
+    model: str = Form(...),
+    api_key: Optional[str] = Form("")
+):
+    """Streams copilot reasoning thoughts, tokens, SQL workbench, and dynamic chart suggestions via SSE."""
+    if provider == "ollama":
+        env_key_name = "OLLAMA_BASE_URL"
+    elif provider in ("nvidia", "minimax"):
+        env_key_name = "NVIDIA_API_KEY"
+    else:
+        env_key_name = f"{provider.upper()}_API_KEY"
+    _load_crew()
+    _apply_runtime_llm_settings(provider, model, api_key or "", env_key_name)
+
+    session_dir = get_safe_session_dir(session_id)
+    csv_path = session_dir / "cleaned.csv"
+    output_dir = get_safe_output_dir(session_id)
+
+    if not csv_path.exists():
+        csv_path = session_dir / "original_upload.csv"
+
+    if not csv_path.exists():
+        raise HTTPException(status_code=400, detail="Dataset not uploaded.")
+
+    from config.context import current_session_csv, current_session_output_dir
+    current_session_csv.set(str(csv_path))
+    current_session_output_dir.set(str(output_dir))
+
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def run_sync_stream():
+        try:
+            from ui.copilot import stream_copilot_query
+            for chunk in stream_copilot_query(
+                query=query,
+                session_id=session_id,
+                provider=provider,
+                model=model,
+                api_key=api_key or "",
+                env_key_name=env_key_name,
+                csv_path=str(csv_path),
+                output_dir=str(output_dir)
+            ):
+                fut = asyncio.run_coroutine_threadsafe(queue.put(chunk), loop)
+                fut.result()
+        except Exception as exc:
+            err_json = json.dumps({"type": "token", "text": f"\n\nError generating output: {exc}"})
+            fut = asyncio.run_coroutine_threadsafe(queue.put(f"data: {err_json}\n\n"), loop)
+            try:
+                fut.result()
+            except Exception:
+                pass
+        finally:
+            fut = asyncio.run_coroutine_threadsafe(queue.put(None), loop)
+            try:
+                fut.result()
+            except Exception:
+                pass
+
+    loop.run_in_executor(None, run_sync_stream)
+
+    async def async_generator():
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            yield item
+
+    return StreamingResponse(async_generator(), media_type="text/event-stream")
+
+
+@app.get("/api/chat-history")
+async def get_chat_history(session_id: str):
+    """Retrieves saved project AI chat history."""
+    session_dir = get_safe_session_dir(session_id)
+    history_file = session_dir / "chat_history.json"
+    if not history_file.exists():
+        return {"messages": []}
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return {"messages": data.get("messages", [])}
+    except Exception:
+        return {"messages": []}
+
+
+@app.post("/api/chat-history")
+async def save_chat_history(session_id: str = Form(...), messages_json: str = Form(...)):
+    """Saves project AI chat history to session storage."""
+    session_dir = get_safe_session_dir(session_id)
+    history_file = session_dir / "chat_history.json"
+    try:
+        messages = json.loads(messages_json)
+        with open(history_file, "w", encoding="utf-8") as f:
+            json.dump({"messages": messages}, f, indent=2, ensure_ascii=False)
+        return {"status": "success"}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to save chat history: {exc}")
 
 
 @app.get("/api/export-notebook")
