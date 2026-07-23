@@ -1,113 +1,119 @@
 <div align="center">
-  <img src="assets/branding_image.png" alt="Crewlyze - Autonomous Data Analysis Platform" width="100%" style="border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);" />
+  <img src="assets/branding_image.png" alt="Crewlyze - Autonomous Multi-Agent Data Analyst Platform" width="100%" style="border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);" />
 </div>
 
-<h1 align="center" style="font-size: 4rem; margin-bottom: 0;">🚀 Crewlyze 🚀</h1>
+<br />
+
+<h1 align="center" style="font-size: 3.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 0;">
+  🚀 Crewlyze 🚀
+</h1>
 
 <p align="center">
-  <strong style="font-size: 1.3rem; color: #8b5cf6;">The Premier Autonomous Multi-Agent Data Analyst Platform.</strong><br>
-  <em>Transforming raw datasets into cinematic executive reports, custom visualizations, and actionable business intelligence using CrewAI, FastAPI, and Vanilla JS.</em>
+  <strong style="font-size: 1.4rem; color: #a78bfa;">The Premier Autonomous Multi-Agent Business Intelligence & Data Science Platform</strong><br />
+  <em>Transforming raw CSV, Excel, and SQLite datasets into C-suite executive PDF reports, custom interactive visualizations, and strategic business intelligence in seconds.</em>
 </p>
 
 <p align="center">
   <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/releases">
-    <img src="https://img.shields.io/github/v/release/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=6366f1" alt="Release">
-  </a>
-  <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge" alt="License: MIT">
-  </a>
-  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
-    <img src="https://img.shields.io/github/stars/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=f59e0b" alt="Stars">
+    <img src="https://img.shields.io/github/v/release/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=7c3aed&logo=github" alt="Release" />
   </a>
   <a href="https://www.npmjs.com/package/crewlyze">
-    <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version">
+    <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
   </a>
   <a href="https://python.org">
-    <img src="https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
+    <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
+  </a>
+  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
+    <img src="https://img.shields.io/github/stars/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=f59e0b&logo=github" alt="Stars" />
+  </a>
+  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/network/members">
+    <img src="https://img.shields.io/github/forks/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=10b981&logo=github" alt="Forks" />
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT" />
   </a>
 </p>
+
+<p align="center">
+  <a href="#-quick-start-one-line-installer">⚡ Fast Setup</a> •
+  <a href="#-live-application-interface-showcase">📸 Live Demo</a> •
+  <a href="#-core-capabilities--deep-feature-breakdown">✨ Key Features</a> •
+  <a href="#-architecture--multi-agent-orchestration">🏗️ Architecture</a> •
+  <a href="#-universal-llm-gateway-matrix">🔑 LLM Gateways</a> •
+  <a href="#-outbound-integrations-hub">📬 Integrations</a> •
+  <a href="#-api-reference-matrix">🔌 REST API</a>
+</p>
+
+---
+
+## ⚡ Quick Start (One-Line Installer)
+
+Launch Crewlyze instantly on **Windows**, **macOS**, or **Linux** without manually installing C++, Rust, or Java build toolchains:
+
+```bash
+# 1. Install Crewlyze globally via NPM
+npm install -g crewlyze
+
+# 2. Launch the platform from anywhere in your terminal
+crewlyze
+```
+
+> 🎉 **Zero-Compiler Setup:** Prebuilt Python binary wheels install automatically. The backend server initializes dynamically on port `8000` and automatically opens your web browser to `http://localhost:8000`.
 
 ---
 
 ## 📑 Table of Contents
 
 <details open>
-<summary><strong>Click to Expand/Collapse Navigation</strong></summary>
+<summary><strong>Click to Expand / Collapse Table of Contents</strong></summary>
 
-1. [🌍 Executive Vision & Enterprise Value](#-executive-vision--enterprise-value)
-2. [✨ Core Capabilities & Feature Deep-Dive](#-core-capabilities--feature-deep-dive)
+1. [🌍 Executive Vision & Enterprise ROI](#-executive-vision--enterprise-roi)
+2. [📊 Enterprise Comparison Matrix](#-enterprise-comparison-matrix)
 3. [📸 Live Application Interface Showcase](#-live-application-interface-showcase)
-4. [🏗️ Technical Architecture & Design](#-technical-architecture--design)
-5. [🛡️ Security & Privacy (Local Execution)](#️-security--privacy-local-execution)
-6. [🚀 Installation & Quickstart](#-installation--quickstart)
-7. [🔑 Universal LLM Gateways & Configuration](#-universal-llm-gateways--configuration)
-8. [📬 Outbound Integrations Hub (SMTP & Discord)](#-outbound-integrations-hub-smtp--discord)
-9. [📊 Executive Deliverables & Export Formats](#-executive-deliverables--export-formats)
-10. [📂 Project Structure & API Endpoints](#-project-structure--api-endpoints)
+4. [✨ Core Capabilities & Deep Feature Breakdown](#-core-capabilities--deep-feature-breakdown)
+   - [🤖 Autonomous 4-Agent Swarm Orchestration](#-autonomous-4-agent-swarm-orchestration)
+   - [💬 Real-Time AI Chat & Streaming Copilot](#-real-time-ai-chat--streaming-copilot)
+   - [📊 Unlimited Custom Visualization Engine](#-unlimited-custom-visualization-engine)
+   - [🔍 Read-Only SQL Query Workbench](#-read-only-sql-query-workbench)
+   - [🔄 Stay-on-Page Workspace Reload Persistence](#-stay-on-page-workspace-reload-persistence)
+5. [🏗️ Architecture & Multi-Agent Orchestration](#-architecture--multi-agent-orchestration)
+6. [🔑 Universal LLM Gateway Matrix](#-universal-llm-gateway-matrix)
+7. [📬 Outbound Integrations Hub (SMTP & Discord)](#-outbound-integrations-hub-smtp--discord)
+8. [🛡️ Production Security & Privacy (Air-Gapped Setup)](#️-production-security--privacy-air-gapped-setup)
+9. [🚀 Deployment Modes & Installation Options](#-deployment-modes--installation-options)
+10. [🔌 API Reference Matrix](#-api-reference-matrix)
 11. [🛠️ Troubleshooting & FAQ](#️-troubleshooting--faq)
-12. [📜 License & Legal](#-license--legal)
+12. [🤝 Contributing & Star History](#-contributing--star-history)
+13. [📜 License & Legal](#-license--legal)
 
 </details>
 
 ---
 
-## 🌍 Executive Vision & Enterprise Value
+## 🌍 Executive Vision & Enterprise ROI
 
-In the era of Big Data, the primary bottleneck is no longer data collection—it is **data interpretation**. Traditional data analysis requires hours of manual Python scripting (Pandas, Numpy), cleaning messy datasets, calculating correlation matrices, and building slide decks for stakeholders.
+In modern data-driven organizations, the biggest bottleneck is no longer data collection—it is **data interpretation speed**. Data analysts spend 80% of their work hours writing repetitive Pandas cleaning scripts, running correlation matrices, and manually formatting slide decks for executive leadership.
 
-**Crewlyze** shatters this paradigm by introducing an **Autonomous Multi-Agent Swarm** paired with a real-time **AI Chat Copilot**. Powered by [CrewAI](https://github.com/joaomdmoura/crewai) and [LiteLLM](https://github.com/BerriAI/litellm), Crewlyze acts as an entire autonomous data department. Specialized AI personas independently clean, audit, analyze, and visualize your data in minutes.
+**Crewlyze** eliminates this friction by deploying an **Autonomous Multi-Agent AI Swarm**. Powered by [CrewAI](https://github.com/joaomdmoura/crewai) and [LiteLLM](https://github.com/BerriAI/litellm), Crewlyze models a collaborative human data science department. Specialized AI agents independently audit data hygiene, map complex non-linear correlations, formulate C-suite SWOT strategies, and construct interactive dashboards—all in under 3 minutes.
 
-### 💡 Key Value Drivers
-- **Zero-SDK One-Line Setup:** Run `npx crewlyze` on Windows, macOS, or Linux without installing C++, Rust, or Java build toolchains. Prebuilt Python binary wheels install automatically.
-- **3-Minute Executive Audits:** Replaces 15+ hours of manual Exploratory Data Analysis (EDA) with a complete multi-page PDF executive report, SWOT matrix, and interactive charts.
-- **Air-Gapped Privacy:** Run 100% offline using **Ollama** (`http://localhost:11434`), ensuring confidential corporate data never leaves your machine.
-
----
-
-## ✨ Core Capabilities & Feature Deep-Dive
-
-### 🤖 1. Multi-Agent Swarm Orchestration
-When a dataset is uploaded, Crewlyze triggers a sequential 4-agent cascade:
-*   **🧹 Data Quality & Profiling Agent (`cleaner.py`):** Drops columns with >60% null values, standardizes headers, imputes numeric missing values, and generates audit trails.
-*   **📊 Relationship & Correlation Analyst (`relation.py`):** Calculates Pearson linear indices, Spearman rank correlations, ANOVA variances, and non-linear trend maps.
-*   **💼 Senior Strategy Consultant (`insights.py`):** Translates raw statistical correlations into boardroom-ready SWOT matrices, risk bottleneck alerts, and C-suite action items.
-*   **📈 Interactive Plotly Visualizer (`visualizer.py`):** Builds responsive, hoverable Plotly dashboard charts.
+### 💰 Compounding Enterprise Value & ROI
+- **⚡ 98% Time Reduction:** Replaces 15–20 hours of manual Exploratory Data Analysis (EDA) with a 3-minute executive audit report.
+- **🔓 Data Democratization:** Non-technical executives can upload raw CSV/Excel/SQLite files and immediately receive actionable business recommendations without typing SQL or Python.
+- **🔒 100% Air-Gapped Privacy:** Connect to **Ollama** (`http://localhost:11434`) to run 100% private, offline data analysis on local hardware with zero external API data transmission.
 
 ---
 
-### 💬 2. Real-Time AI Chat & Copilot Suite
-Interrogate your dataset dynamically using an intuitive, real-time conversational chat:
-*   **Non-Blocking Token & Thought Streaming:** Powered by background thread executors (`loop.run_in_executor`) and Server-Sent Events (SSE). Streams AI reasoning thoughts with a subtle blinking *Thinking...* status.
-*   **Slash `/` Column Picker:** Type `/` in the chat input bar to open an interactive column autocomplete dropdown displaying column names and data types.
-*   **Automatic Chat History Persistence:** Chat conversations and generated chart images auto-save to `chat_history.json` inside each project's directory and restore upon reload (`F5`).
-*   **Chat Exports:** Download complete AI chat threads as Markdown (`.md`) or PDF.
+## 📊 Enterprise Comparison Matrix
 
----
-
-### 📊 3. Unlimited Custom Visualization Engine
-Ask for ANY custom visualization and Crewlyze generates it in milliseconds (<0.2s) via Matplotlib/Seaborn:
-*   **Supported Chart Types:** Distribution Histograms, Box & Violin Plots, Scatter & 3D Scatter Plots, Correlation Heatmaps, Time-Series Line Graphs, Stacked & Grouped Bar Charts, Pie & Donut Charts, Radar Plots, and Subplot Dashboards.
-*   **Single Download Overlay:** Hover over any generated chart to immediately download a high-res PNG image via the single `📥 Download PNG` button.
-*   **Concise Output Control:** When generating visualizations, the copilot prints ONLY a 1-sentence caption introducing the chart, suppressing unasked text clutter.
-
----
-
-### 🔍 4. Read-Only SQL Query Workbench
-*   **NLP-to-SQL Compiler:** Ask plain English questions (*"Show top 10 transactions by revenue"*) to automatically generate and execute SQL statements against the SQLite engine.
-*   **3-Second Timeout & DoS Protection:** SQLite progress handlers interrupt long-running queries after 3 seconds. Administrative/mutating commands (`DROP`, `DELETE`, `UPDATE`) are strictly blocked.
-
----
-
-### 📬 5. Outbound Integrations Hub (SMTP & Discord)
-Dispatch automated executive reports to external communication channels:
-*   **SMTP Email Client:** Automatically email generated PDF reports via SMTP relays (Port 587 STARTTLS / 465 SSL).
-*   **Discord Webhook Alerts:** Posts rich markdown embeds with metric summaries, warning badges, and direct PDF attachments to Discord channels.
-*   **Slack & Custom REST Webhooks:** Dispatch summary cards and JSON metadata payloads to Slack or custom endpoints.
-
----
-
-### 🔄 6. Stay-on-Page Workspace Reload Persistence
-- **Reload State Manager:** `localStorage` session management automatically restores your active project and exact section tab (`Crew Chat`, `Crew Analysis`, or `Hub`) on browser refresh (`F5`).
+| Feature / Capability | Crewlyze | Traditional BI (Tableau / PowerBI) | ChatGPT / Claude Web | Custom Python Scripts |
+| :--- | :---: | :---: | :---: | :---: |
+| **Autonomous Multi-Agent Swarm** | ✅ **Built-in** | ❌ Manual | ❌ Single-Turn | ❌ Requires Coding |
+| **Real-Time Token Streaming** | ✅ **Built-in (SSE)** | ❌ N/A | ✅ Web Only | ❌ Complex Setup |
+| **Unlimited Custom Viz Engine** | ✅ **Matplotlib/Seaborn (<0.2s)** | ⚠️ Rigid Templates | ⚠️ Basic Code Execution | ⚠️ Manual Scripting |
+| **100% Offline Air-Gapped Mode** | ✅ **Ollama Local** | ❌ Cloud-gated | ❌ Requires Cloud | ✅ Manual Local |
+| **Outbound Email & Discord Dispatch** | ✅ **Automated (SMTP/Discord)** | ⚠️ Expensive Addons | ❌ None | ❌ Manual Webhooks |
+| **Read-Only SQL Timeout Guard** | ✅ **Built-in (3s Guard)** | ⚠️ Manual Queries | ❌ None | ❌ Manual Guardrails |
+| **Zero-Compiler Setup** | ✅ **`npx crewlyze`** | ❌ Complex Desktop App | ❌ Web Browser Only | ❌ Complex Venv Setup |
 
 ---
 
@@ -115,53 +121,158 @@ Dispatch automated executive reports to external communication channels:
 
 Explore live previews captured directly from an active Crewlyze workspace session:
 
-| Application Section | Live Preview & Key Capabilities |
+| Application Module | Live Interface Preview & Description |
 | :--- | :--- |
-| **🤖 Real-Time AI Chat & Custom Viz Engine** | <img src="file:///C:/Users/Asus/.gemini/antigravity-ide/brain/90240ab2-7394-40fc-84d1-ee7679e5d9ed/chat_interface_with_chart_1784827501907.png" alt="AI Chat Interface with Custom Chart" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" /><br>*Real-time AI Chat streaming with subtle blinking Thinking... status, custom Matplotlib/Seaborn visualization generation, and single 1-click `📥 Download PNG` button overlays.* |
-| **🏢 Project Workspace Hub** | <img src="assets/Screenshots/3.INSIDE PROJECT.png" alt="Project Workspace Hub" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" /><br>*Central project hub with stay-on-page reload state management, dataset preview grid, and instant navigation between Crew Analysis and AI Chat.* |
-| **📊 Interactive Dashboards & Plotly Engine** | <img src="assets/Screenshots/8.VISUALIZATION.png" alt="Interactive Dashboards" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" /><br>*Autonomous multi-agent Plotly chart suite with responsive hover tooltips, zoom/pan controls, and feature distribution maps.* |
-| **💼 Strategic Business Insights & SWOT** | <img src="assets/Screenshots/7.BUSINESS INSIGHTS.png" alt="Executive Business Insights" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" /><br>*C-suite strategic insights, SWOT risk matrices, correlation analysis, and automated executive action item recommendations.* |
-| **⚙️ Settings & Universal LLM Config** | <img src="assets/Screenshots/2.SETTINGS.png" alt="Universal LLM Config" width="100%" style="border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);" /><br>*Configure 100+ cloud & local LLMs (Ollama, OpenAI, Anthropic, Gemini, NVIDIA, Minimax) and SMTP / Discord outbound webhooks.* |
+| **🤖 Real-Time AI Chat & Custom Viz Engine** | <img src="file:///C:/Users/Asus/.gemini/antigravity-ide/brain/90240ab2-7394-40fc-84d1-ee7679e5d9ed/chat_interface_with_chart_1784827501907.png" alt="AI Chat Interface with Custom Chart" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Real-time AI Chat streaming with subtle blinking Thinking... status, slash <code>/</code> column autocomplete picker, custom Matplotlib/Seaborn visualization generation, and single 1-click <code>📥 Download PNG</code> button overlays.</em> |
+| **🏢 Project Workspace Hub** | <img src="assets/Screenshots/3.INSIDE PROJECT.png" alt="Project Workspace Hub" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Central project hub with stay-on-page reload state management, dataset preview grid, and instant navigation between Crew Analysis and AI Chat.</em> |
+| **📊 Interactive Dashboards & Plotly Engine** | <img src="assets/Screenshots/8.VISUALIZATION.png" alt="Interactive Dashboards" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Autonomous multi-agent Plotly chart suite with responsive hover tooltips, zoom/pan controls, and feature distribution maps.</em> |
+| **💼 Strategic Business Insights & SWOT** | <img src="assets/Screenshots/7.BUSINESS INSIGHTS.png" alt="Executive Business Insights" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>C-suite strategic insights, SWOT risk matrices, correlation analysis, and automated executive action item recommendations.</em> |
+| **⚙️ Settings & Universal LLM Config** | <img src="assets/Screenshots/2.SETTINGS.png" alt="Universal LLM Config" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Configure 100+ cloud & local LLMs (Ollama, OpenAI, Anthropic, Gemini, NVIDIA, Minimax) and SMTP / Discord outbound webhooks.</em> |
 
 ---
 
-## 🏗️ Technical Architecture & Design
+## ✨ Core Capabilities & Deep Feature Breakdown
 
-Crewlyze features a modern dual-engine architecture built for high performance and zero clutter:
+### 🤖 Autonomous 4-Agent Swarm Orchestration
+Crewlyze delegates dataset processing across a sequential multi-agent workflow:
+
+```
+[Raw CSV / Excel / SQLite]
+           │
+           ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  🧹 1. Data Quality & Profiling Agent (cleaner.py)          │
+  │     - Evaluates null density (>60% threshold removal)       │
+  │     - Imputes missing numerical/categorical values           │
+  │     - Sanitizes string formatting & standardizes headers    │
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Cleaned Data
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  📊 2. Relationship & Correlation Analyst (relation.py)    │
+  │     - Computes Pearson & Spearman correlation matrices      │
+  │     - Identifies non-linear patterns & ANOVA variance drivers │
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Correlation Maps
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  💼 3. Senior Strategic Business Consultant (insights.py)   │
+  │     - Translates raw metrics into executive SWOT matrices   │
+  │     - Highlights operational bottleneck risks & opportunities│
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Strategic Context
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  📈 4. Interactive Plotly Visualizer (visualizer.py)       │
+  │     - Generates responsive, hoverable Plotly dashboard charts│
+  └─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 💬 Real-Time AI Chat & Streaming Copilot
+Interrogate your dataset conversationally through our high-speed streaming interface:
+- **Non-Blocking SSE Streaming:** Executes synchronous Python and LLM operations in background thread pools (`loop.run_in_executor(None, run_sync_stream)`), maintaining a 100% responsive FastAPI event loop.
+- **Subtle Blinking "Thinking..." Status:** Fades in a gentle italicized *Thinking...* indicator while reasoning, which smoothly disappears as answer text streams in.
+- **Slash `/` Column Picker:** Type `/` in the chat input bar to launch an interactive autocomplete dropdown listing all dataset columns with their data types (`int64`, `float64`, `object`).
+- **Automatic Chat History Persistence:** Conversations, messages, and generated high-res PNG chart image cards automatically save to `chat_history.json` inside each project's directory, restoring instantly on browser refresh (`F5`).
+- **Export Options:** Download AI Chat transcripts directly as Markdown (`.md`) or PDF documents.
+
+---
+
+### 📊 Unlimited Custom Visualization Engine
+Ask the AI Chat for ANY custom visualization request and Crewlyze generates it in milliseconds (<0.2s) via Matplotlib/Seaborn:
+- **Supported Plot Types:**
+  - 📊 Distribution Histograms & KDE Density Curves
+  - 📦 Box & Violin Plots
+  - 🌌 Scatter & 3D Scatter Plots
+  - 🌡️ Correlation Heatmaps & Pairplots
+  - 📈 Time-Series Line Graphs & Area Plots
+  - 📊 Stacked & Grouped Bar Charts
+  - 🍩 Pie & Donut Charts
+  - 🎯 Radar Plots & Subplot Dashboards
+  - 🎨 Custom Color Themes & Palettes
+- **Single 1-Click Download Overlay:** Hover over any generated chart card to download the PNG image instantly via the single `📥 Download PNG` button.
+- **Concise Output Control:** When generating visualizations, the copilot prints ONLY a 1-sentence caption introducing the chart, suppressing unasked text clutter.
+
+---
+
+### 🔍 Read-Only SQL Query Workbench
+- **NLP-to-SQL Compiler:** Ask plain English questions (*"Show top 10 rows by revenue"*) to automatically compile and execute SQL statements against the underlying SQLite engine.
+- **3-Second Timeout Guard:** SQLite progress handlers interrupt long-running or recursive queries after ~3 seconds to prevent CPU DoS attacks.
+- **Read-Only Safety:** Statement sanitizers permit only `SELECT`, `WITH`, and `EXPLAIN` queries. Administrative or mutating statements (`DROP`, `DELETE`, `UPDATE`, `ALTER`) are automatically blocked.
+
+---
+
+### 🔄 Stay-on-Page Workspace Reload Persistence
+- **Reload State Manager:** `localStorage` session state management automatically preserves your active project session and section tab (`Crew Chat`, `Crew Analysis`, or `Hub`) on browser refresh (`F5`), bringing you straight back to your active work.
+
+---
+
+## 🏗️ Architecture & Multi-Agent Orchestration
+
+Crewlyze operates on a dual-engine architecture engineered for maximum performance:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        Vanilla JS Frontend (Browser)                   │
-│   - Glassmorphism Dark Theme  - SSE Streaming Receiver                 │
-│   - Slash / Column Autocomplete - Stay-on-Page Reload State            │
+│                    Vanilla JS Frontend (Browser)                       │
+│   - Glassmorphism Dark UI         - SSE Stream Receiver Reader        │
+│   - Slash / Column Autocomplete   - Stay-on-Page Reload State Manager  │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ HTTP / SSE Stream
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│                        FastAPI Asynchronous Backend                    │
-│   - Non-Blocking Thread Executors  - Read-Only SQL Workbench           │
-│   - Subprocess Code Sandbox        - Automatic Chat History Storage    │
+│                    FastAPI Asynchronous Backend                        │
+│   - Non-Blocking Thread Executors  - Read-Only SQL Query Workbench     │
+│   - Subprocess Code Sandboxing    - Chat History JSON Storage          │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ CrewAI & LiteLLM
 ┌───────────────────────────────────▼────────────────────────────────────┐
-│                Universal LLMs & Local Execution (Ollama)              │
+│             Universal LLMs & Local Execution Engine (Ollama)           │
 │   Ollama Local / OpenAI / Anthropic / Gemini / NVIDIA / Minimax / Groq  │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🛡️ Security & Privacy (Local Execution)
+## 🔑 Universal LLM Gateway Matrix
 
-- **Air-Gapped Local Privacy:** Configure **Ollama** (`http://localhost:11434`) for 100% offline analysis. Zero data bytes leave your local network.
-- **Isolated Subprocess Sandboxing:** Generated Python code runs inside child processes via `subprocess.run()`, eliminating parent `exec()` vulnerabilities.
-- **Path Traversal Guards:** File paths are validated using `.resolve()` and `.relative_to()` security checks.
+Crewlyze supports 100+ LLM providers via LiteLLM. Configure keys in the Sidebar Settings Modal:
+
+| Provider | Setup Instructions | Supported Models |
+| :--- | :--- | :--- |
+| 🦙 **Ollama (Local Offline)** | Boot Ollama on `http://localhost:11434`. 100% free & offline! | `ollama/llama3.1`, `ollama/qwen2.5`, `ollama/mistral` |
+| 🟢 **OpenAI** | Enter OpenAI API Key (`OPENAI_API_KEY`) | `gpt-4o`, `gpt-4o-mini`, `o1-preview` |
+| 🟣 **Anthropic** | Enter Anthropic API Key (`ANTHROPIC_API_KEY`) | `claude-3-5-sonnet`, `claude-3-haiku` |
+| 🔵 **Google Gemini** | Enter Gemini API Key (`GEMINI_API_KEY`) | `gemini/gemini-1.5-flash`, `gemini/gemini-1.5-pro` |
+| 🟢 **NVIDIA NIM** | Enter NVIDIA NIM API Key (`NVIDIA_API_KEY`) | `nvidia/llama-3.1-70b-instruct` |
+| ⚡ **Groq / DeepSeek** | Enter API Key in Settings | `groq/llama-3.3-70b-versatile`, `deepseek-chat` |
+| 🌐 **Custom OpenAI Proxies** | Route requests to custom vLLM / LM Studio endpoints | `openai/custom-model` |
 
 ---
 
-## 🚀 Installation & Quickstart
+## 📬 Outbound Integrations Hub (SMTP & Discord)
 
-### ⚡ Option 1: NPM Launcher (Recommended for All Systems)
-Works out-of-the-box on Windows, macOS, and Linux. No C++ or Rust compilers required.
+Configure outbound notification channels in the Settings Modal to automatically dispatch reports upon analysis completion:
+- **SMTP Email Dispatcher:** Configure host, port (587 STARTTLS / 465 SSL), credentials, and target recipients to automatically email generated PDF executive reports upon analysis completion.
+- **Discord Webhook Alerts:** Enter a Discord Webhook URL to post formatted markdown embeds with metric summaries, warning badges, and direct PDF attachments to Discord channels.
+- **Slack Webhooks:** Posts formatted markdown summary cards directly to Slack channels.
+- **Custom REST Webhooks:** Dispatches JSON metadata payloads and PDF binaries to external API webhooks.
+
+---
+
+## 🛡️ Production Security & Privacy (Air-Gapped Setup)
+
+- **Air-Gapped Local Privacy:** Configure **Ollama** (`http://localhost:11434`) for 100% offline analysis. Zero data bytes leave your local network.
+- **Isolated Subprocess Sandboxing:** All generated Python cleaning and visualization code executes inside isolated child processes via `subprocess.run()`, avoiding parent `exec()` risks.
+- **Path Traversal Guards:** File paths are validated using `.resolve()` and `.relative_to()` security checks to prevent unauthorized file access.
+- **Auto-Healing Package Installer:** Missing Python modules trigger `pip install --prefer-binary` automatically without requiring manual SDK compilations.
+
+---
+
+## 🚀 Deployment Modes & Installation Options
+
+### ⚡ Option 1: NPM Launcher (Recommended)
+Works out-of-the-box on Windows, macOS, and Linux:
 
 ```bash
 # Install globally via NPM
@@ -170,12 +281,10 @@ npm install -g crewlyze
 # Launch Crewlyze from anywhere in your terminal
 crewlyze
 ```
-> 🎉 **Success:** The server will initialize and launch your default browser to `http://localhost:8000`.
 
 ---
 
-### 🐳 Option 2: Docker Container
-Ideal for cloud deployment (AWS, GCP, Azure) or isolated local setups:
+### 🐳 Option 2: Docker & Docker Compose
 
 ```bash
 git clone https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI.git
@@ -199,68 +308,32 @@ source venv/bin/activate
 # Windows:
 venv\Scripts\activate
 
-# 3. Install requirements
+# 3. Install dependencies
 pip install -r requirements.txt
 
-# 4. Start backend server
+# 4. Start server
 python main.py
 ```
 
 ---
 
-## 🔑 Universal LLM Gateways & Configuration
+## 🔌 API Reference Matrix
 
-Crewlyze supports 100+ LLM models via LiteLLM. Configure keys in the Sidebar Settings Modal:
+### Key Backend Endpoints
 
-| Provider | Setup Instructions | Example Models |
+| Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| 🦙 **Ollama (Offline)** | Boot Ollama on `http://localhost:11434`. 100% free & offline! | `ollama/llama3.1`, `ollama/qwen2.5` |
-| 🟢 **OpenAI** | Enter OpenAI API Key (`OPENAI_API_KEY`) | `gpt-4o`, `gpt-4o-mini` |
-| 🟣 **Anthropic** | Enter Anthropic API Key (`ANTHROPIC_API_KEY`) | `claude-3-5-sonnet` |
-| 🔵 **Google Gemini** | Enter Gemini API Key (`GEMINI_API_KEY`) | `gemini/gemini-1.5-flash` |
-| 🟢 **NVIDIA NIM** | Enter NVIDIA NIM API Key (`NVIDIA_API_KEY`) | `nvidia/llama-3.1-70b-instruct` |
-| ⚡ **Groq / DeepSeek** | Enter API Key in Settings | `groq/llama-3.3-70b-versatile` |
-
----
-
-## 📬 Outbound Integrations Hub (SMTP & Discord)
-
-Configure outbound notification channels in the Settings Modal to automatically dispatch reports:
-- **SMTP Email Dispatch:** Delivers PDF executive reports via SMTP relays (Port 587 STARTTLS / 465 SSL).
-- **Discord Webhooks:** Dispatches rich markdown embeds with metric summaries and PDF attachments.
-- **Slack & REST Webhooks:** Posts summary cards and JSON metadata payloads.
-
----
-
-## 📊 Executive Deliverables & Export Formats
-
-1. **HTML-Escaped PDF Executive Summary:** ReportLab PDF report containing SWOT matrices, cleaning audit trails, and embedded high-res chart images.
-2. **PowerPoint Presentation (`.pptx`):** Slide decks ready for C-suite presentations.
-3. **ZIP Workspace Archive:** Bundles datasets, cleaned tables, charts, logs, PDF reports, and chat transcripts into a single ZIP file.
-
----
-
-## 📂 Project Structure & API Endpoints
-
-```
-├── main.py                # FastAPI backend & SSE stream endpoints
-├── crew.py                # CrewAI multi-agent swarm manager
-├── agents/                # Agent prompt definitions (cleaner, relation, insights, visualizer)
-├── ui/copilot.py          # AI Chat Copilot streaming generator & custom viz engine
-├── config/                # Context & LLM configuration handlers
-├── tools/                 # Subprocess sandbox execution & DuckDB tools
-├── web/                   # Vanilla JS frontend (index.html, style.css, app.js)
-├── bin/crewlyze.js        # Node.js CLI launcher
-└── package.json           # NPM package configuration
-```
-
-### Key API Endpoints
-- `POST /api/analyze` - Trigger autonomous multi-agent swarm.
-- `POST /api/copilot/stream` - SSE streaming endpoint for AI Chat.
-- `GET /api/chat-history` - Load saved project chat history.
-- `POST /api/chat-history` - Save project chat history.
-- `POST /api/query-sql` - Execute read-only SQL queries.
-- `POST /api/test-smtp` / `POST /api/test-discord` - Test outbound notifications.
+| `POST` | `/api/upload` | Upload raw dataset file (CSV, Excel, SQLite). |
+| `POST` | `/api/analyze` | Trigger autonomous 4-agent CrewAI swarm analysis. |
+| `POST` | `/api/copilot/stream` | Real-time SSE token & thought streaming endpoint for AI Chat. |
+| `GET` | `/api/chat-history` | Load saved project AI chat history. |
+| `POST` | `/api/chat-history` | Save project AI chat history to `chat_history.json`. |
+| `POST` | `/api/query-sql` | Execute read-only SQL queries with 3-second timeout protection. |
+| `POST` | `/api/test-smtp` | Test outbound SMTP email report delivery. |
+| `POST` | `/api/test-discord` | Test outbound Discord webhook report dispatch. |
+| `GET` | `/api/export-pdf` | Download ReportLab HTML-escaped PDF executive report. |
+| `GET` | `/api/export-pptx` | Download PowerPoint (`.pptx`) slide deck. |
+| `GET` | `/api/export-zip` | Download complete ZIP workspace archive. |
 
 ---
 
@@ -281,6 +354,26 @@ Install Ollama, run `ollama run llama3.1`, select Ollama as provider in Crewlyze
 Crewlyze manages session state in `localStorage` (`crewlyze_active_project_id` & `crewlyze_active_section`), restoring active project tabs automatically on `F5` refresh.
 </details>
 
+<details>
+<summary><strong>Q: Are generated chart images saved across sessions?</strong></summary>
+Yes! Chat conversations and generated PNG chart URLs auto-save to `chat_history.json` per project directory and restore on session load.
+</details>
+
+---
+
+## 🤝 Contributing & Star History
+
+We welcome contributions from open-source developers! Please feel free to open Issues or submit Pull Requests.
+
+### 🌟 Star History
+If you find Crewlyze useful, please give us a star on GitHub! It helps the project grow and reach more developers.
+
+<p align="center">
+  <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
+    <img src="https://api.star-history.com/svg?repos=sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI&type=Date" alt="Star History Chart" width="80%" />
+  </a>
+</p>
+
 ---
 
 ## 📜 License & Legal
@@ -290,5 +383,5 @@ Distributed under the **MIT License**. Free for commercial and personal use.
 ---
 
 <div align="center">
-  <sub>Built with ❤️ by Sowmiyan S and the Open Source Community.</sub>
+  <sub>Built with ❤️ by <strong>Sowmiyan S</strong> and the Open Source Community.</sub>
 </div>

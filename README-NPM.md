@@ -1,12 +1,12 @@
 # 🚀 Crewlyze (NPM Package)
 
-> **The Premier Autonomous Multi-Agent Business Intelligence & Data Engineering Platform.**
+> **The Premier Autonomous Multi-Agent Business Intelligence & Data Science Platform.**
 
 [![NPM Version](https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm)](https://www.npmjs.com/package/crewlyze)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
-Transform raw CSV, Excel, and SQLite datasets into cinematic executive PDF reports, custom interactive visualizations, and strategic business intelligence using **CrewAI**, **FastAPI**, and **Vanilla JS**.
+Transform raw CSV, Excel, and SQLite datasets into C-suite executive PDF reports, custom interactive visualizations, and strategic business intelligence using **CrewAI**, **FastAPI**, and **Vanilla JS**.
 
 ---
 
@@ -22,21 +22,21 @@ npm install -g crewlyze
 crewlyze
 ```
 
-> 🎉 **Success:** The backend server will initialize automatically, polling readiness, and launch your default web browser to `http://localhost:8000`.
+> 🎉 **Success:** The backend server initializes automatically on port `8000`, polling readiness, and launches your default web browser to `http://localhost:8000`.
 
 ---
 
-## ✨ Key Features at a Glance
+## ✨ Core Capabilities & Features
 
-*   **🤖 Multi-Agent Autonomous Swarm:** Orchestrates sequential CrewAI agents for automated data cleaning (`cleaner.py`), correlation mapping (`relation.py`), strategic SWOT mining (`insights.py`), and chart generation (`visualizer.py`).
-*   **💬 Real-Time AI Chat & Copilot:** Non-blocking Server-Sent Events (SSE) token streaming with blinking *Thinking...* status, slash `/` column autocomplete dropdown, Markdown (`.md`) / PDF exports, and automatic chat history persistence (`chat_history.json`).
+*   **🤖 Autonomous 4-Agent Swarm:** Orchestrates sequential CrewAI agents for automated data cleaning (`cleaner.py`), correlation mapping (`relation.py`), strategic SWOT mining (`insights.py`), and chart generation (`visualizer.py`).
+*   **💬 Real-Time AI Chat & Streaming Copilot:** Non-blocking Server-Sent Events (SSE) token streaming with blinking *Thinking...* status, slash `/` column autocomplete dropdown, Markdown (`.md`) / PDF exports, and automatic chat history persistence (`chat_history.json`).
 *   **📊 Unlimited Custom Visualization Engine:** High-speed Matplotlib/Seaborn plot rendering (<0.2s) supporting ANY plot type (Histograms, Box/Violin, Scatter, Heatmaps, Time-Series, Stacked Bar, 3D Scatter, Radar, Subplots) with 1-click `📥 Download PNG` button.
-*   **🦙 100% Offline Privacy via Ollama:** Process datasets air-gapped on your local hardware using Ollama (`http://localhost:11434`) with zero cloud data transmission.
-*   **🔑 Universal LLM Support:** Works out-of-the-box with OpenAI (`gpt-4o`), Anthropic (`claude-3-5-sonnet`), Google Gemini (`gemini-1.5-flash`), NVIDIA NIM, Minimax, Groq, DeepSeek, and custom vLLM proxies.
+*   **🦙 100% Offline Air-Gapped Privacy:** Process datasets locally using **Ollama** (`http://localhost:11434`) with zero cloud data transmission.
+*   **🔑 Universal LLM Gateways:** Works out-of-the-box with OpenAI (`gpt-4o`), Anthropic (`claude-3-5-sonnet`), Google Gemini (`gemini-1.5-flash`), NVIDIA NIM, Minimax, Groq, DeepSeek, and custom vLLM proxies.
 *   **📬 Outbound Integrations Hub:** Automated PDF report dispatching via **SMTP Email** (Port 587 STARTTLS / 465 SSL), **Discord Webhooks** (rich embeds + PDF attachments), **Slack**, and REST APIs.
-*   **🔍 Read-Only SQL Workbench:** Natural language-to-SQL compiler with 3-second query execution timeout protection.
+*   **🔍 Read-Only SQL Query Workbench:** Natural language-to-SQL compiler with 3-second query execution timeout protection.
 *   **🔄 Stay-on-Page Reload State:** `localStorage` session manager automatically restores your active project and tab on browser refresh (`F5`).
-*   **📑 Executive Deliverable Formats:** ReportLab PDF Executive Summaries (with HTML-entity escaping), PowerPoint presentation slide decks (`.pptx`), and full ZIP workspace backups.
+*   **📑 Executive Deliverable Formats:** ReportLab PDF Executive Summaries (with HTML-entity escaping), PowerPoint presentation slide decks (`.pptx`), and full ZIP workspace archives.
 
 ---
 
