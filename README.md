@@ -15,19 +15,19 @@
 
 <p align="center">
   <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/releases">
-    <img src="https://img.shields.io/github/v/release/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=7c3aed&logo=github" alt="Release" />
+    <img src="https://img.shields.io/badge/Release-v1.0.7-7c3aed?style=for-the-badge&logo=github" alt="Release" />
   </a>
   <a href="https://www.npmjs.com/package/crewlyze">
     <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
   </a>
   <a href="https://python.org">
-    <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
+    <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   </a>
   <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/stargazers">
-    <img src="https://img.shields.io/github/stars/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=f59e0b&logo=github" alt="Stars" />
+    <img src="https://img.shields.io/badge/Stars-★%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
   </a>
   <a href="https://github.com/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI/network/members">
-    <img src="https://img.shields.io/github/forks/sowmiyan-s/Multi-Agent-Data-Analysis-System-with-CrewAI?style=for-the-badge&color=10b981&logo=github" alt="Forks" />
+    <img src="https://img.shields.io/badge/Forks-PRs%20Welcome-10b981?style=for-the-badge&logo=github" alt="Forks" />
   </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT" />
@@ -123,7 +123,7 @@ Explore live previews captured directly from an active Crewlyze workspace sessio
 
 | Application Module | Live Interface Preview & Description |
 | :--- | :--- |
-| **🤖 Real-Time AI Chat & Custom Viz Engine** | <img src="file:///C:/Users/Asus/.gemini/antigravity-ide/brain/90240ab2-7394-40fc-84d1-ee7679e5d9ed/chat_interface_with_chart_1784827501907.png" alt="AI Chat Interface with Custom Chart" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Real-time AI Chat streaming with subtle blinking Thinking... status, slash <code>/</code> column autocomplete picker, custom Matplotlib/Seaborn visualization generation, and single 1-click <code>📥 Download PNG</code> button overlays.</em> |
+| **🤖 Real-Time AI Chat & Custom Viz Engine** | <img src="assets/Screenshots/4.CHAT%20AI.png" alt="AI Chat Interface with Custom Chart" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Real-time AI Chat streaming with subtle blinking Thinking... status, slash <code>/</code> column autocomplete picker, custom Matplotlib/Seaborn visualization generation, and single 1-click <code>📥 Download PNG</code> button overlays.</em> |
 | **🏢 Project Workspace Hub** | <img src="assets/Screenshots/3.INSIDE PROJECT.png" alt="Project Workspace Hub" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Central project hub with stay-on-page reload state management, dataset preview grid, and instant navigation between Crew Analysis and AI Chat.</em> |
 | **📊 Interactive Dashboards & Plotly Engine** | <img src="assets/Screenshots/8.VISUALIZATION.png" alt="Interactive Dashboards" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>Autonomous multi-agent Plotly chart suite with responsive hover tooltips, zoom/pan controls, and feature distribution maps.</em> |
 | **💼 Strategic Business Insights & SWOT** | <img src="assets/Screenshots/7.BUSINESS INSIGHTS.png" alt="Executive Business Insights" width="100%" style="border-radius: 10px; border: 1px solid rgba(255,255,255,0.12);" /><br><em>C-suite strategic insights, SWOT risk matrices, correlation analysis, and automated executive action item recommendations.</em> |
