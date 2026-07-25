@@ -8,7 +8,7 @@ const readmeBackupPath = path.join(root, 'README-GITHUB.md');
 try {
   if (fs.existsSync(readmeBackupPath)) {
     if (fs.existsSync(readmePath)) {
-      fs.unlinkSync(readmePath);
+      try { fs.unlinkSync(readmePath); } catch (e) {}
     }
     fs.renameSync(readmeBackupPath, readmePath);
     console.log('Restored original GitHub README.md.');

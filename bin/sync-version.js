@@ -78,14 +78,11 @@ if (fs.existsSync(pyprojectPath)) {
 if (fs.existsSync(mainPyPath)) {
   try {
     let content = fs.readFileSync(mainPyPath, 'utf8');
-    const fastapiVersionRegex = /(\bversion\s*=\s*["'])([^"']*)(["']\s*,?\s*\n?\s*\))/m;
-    const versionMatchRegex = /(\bversion\s*=\s*["'])([^"']*)(["'])/g;
+    const versionMatchRegex = /(\bversion\s*=\s*["'])([^"']*)(["'])/;
     
-    // We want to replace only the version="..." string in FastAPI instantiation or simple declarations
     let updatedContent = content;
     let replaced = false;
     
-    // Specifically target version in FastAPI app declaration
     if (content.includes('FastAPI(')) {
       const startIndex = content.indexOf('FastAPI(');
       const endIndex = content.indexOf(')', startIndex);
@@ -94,15 +91,13 @@ if (fs.existsSync(mainPyPath)) {
         const updatedSnippet = fastapiSnippet.replace(versionMatchRegex, `$1${version}$3`);
         if (fastapiSnippet !== updatedSnippet) {
           updatedContent = content.substring(0, startIndex) + updatedSnippet + content.substring(endIndex + 1);
-          replaced = true;
         }
+        replaced = true;
       }
     }
     
-    // Fallback if not inside FastAPI instantiation specifically
     if (!replaced) {
-      const match = versionMatchRegex.exec(content);
-      if (match) {
+      if (versionMatchRegex.test(content)) {
         updatedContent = content.replace(versionMatchRegex, `$1${version}$3`);
         replaced = true;
       }

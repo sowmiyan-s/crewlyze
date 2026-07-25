@@ -1,6 +1,6 @@
 {
   "name": "crewlyze",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "description": "Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
   "main": "index.js",
   "repository": {
@@ -11,6 +11,23 @@
     "crewlyze": "bin/crewlyze.js"
   },
   "preferGlobal": true,
+  "files": [
+    "bin/",
+    "agents/",
+    "config/",
+    "tools/",
+    "ui/",
+    "web/",
+    "workflows/",
+    "main.py",
+    "crew.py",
+    "index.js",
+    "requirements.txt",
+    "pyproject.toml",
+    "LICENSE",
+    "README.md",
+    "README-NPM.md"
+  ],
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
     "start": "node ./bin/crewlyze.js",
