@@ -8,6 +8,8 @@ const packageJsonPath = path.join(root, 'package.json');
 const packageLockPath = path.join(root, 'package-lock.json');
 const pyprojectPath = path.join(root, 'pyproject.toml');
 const mainPyPath = path.join(root, 'main.py');
+const readmePath = path.join(root, 'README.md');
+const webIndexPath = path.join(root, 'web', 'index.html');
 
 // 1. Read version from package.json
 if (!fs.existsSync(packageJsonPath)) {
@@ -113,6 +115,44 @@ if (fs.existsSync(mainPyPath)) {
     }
   } catch (err) {
     console.error('❌ Error updating main.py:', err.message);
+  }
+}
+
+// 5. Sync README.md Release badge
+if (fs.existsSync(readmePath)) {
+  try {
+    let content = fs.readFileSync(readmePath, 'utf8');
+    const releaseBadgeRegex = /(img\.shields\.io\/badge\/Release-v)[^"-]+(-7c3aed)/;
+    if (releaseBadgeRegex.test(content)) {
+      const updatedContent = content.replace(releaseBadgeRegex, `$1${version}$2`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(readmePath, updatedContent, 'utf8');
+        console.log('✅ Updated README.md release badge');
+      } else {
+        console.log('➖ README.md release badge is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating README.md:', err.message);
+  }
+}
+
+// 6. Sync web/index.html asset query parameters
+if (fs.existsSync(webIndexPath)) {
+  try {
+    let content = fs.readFileSync(webIndexPath, 'utf8');
+    const styleVersionRegex = /(href="\/style\.css\?v=)[^"]+(")/;
+    if (styleVersionRegex.test(content)) {
+      const updatedContent = content.replace(styleVersionRegex, `$1${version}$2`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(webIndexPath, updatedContent, 'utf8');
+        console.log('✅ Updated web/index.html stylesheet version');
+      } else {
+        console.log('➖ web/index.html stylesheet version is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating web/index.html:', err.message);
   }
 }
 
