@@ -26,7 +26,10 @@
     "pyproject.toml",
     "LICENSE",
     "README.md",
-    "README-NPM.md"
+    "README-NPM.md",
+    "!**/__pycache__/**",
+    "!**/*.pyc",
+    "!**/*.pyo"
   ],
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
