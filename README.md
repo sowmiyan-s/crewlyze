@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/sowmiyan-s/crewlyze/releases">
-    <img src="https://img.shields.io/badge/Release-v1.0.9-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+    <img src="https://img.shields.io/badge/Release-v1.1.0-7c3aed?style=for-the-badge&logo=github" alt="Release" />
   </a>
   <a href="https://www.npmjs.com/package/crewlyze">
     <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
@@ -24,7 +24,7 @@
     <img src="https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   </a>
   <a href="https://github.com/sowmiyan-s/crewlyze/stargazers">
-    <img src="https://img.shields.io/badge/Stars-★%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
+    <img src="https://img.shields.io/badge/Stars-%E2%98%85%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
   </a>
   <a href="https://github.com/sowmiyan-s/crewlyze/network/members">
     <img src="https://img.shields.io/badge/Forks-PRs%20Welcome-10b981?style=for-the-badge&logo=github" alt="Forks" />
@@ -71,10 +71,12 @@ crewlyze
 2. [📊 Enterprise Comparison Matrix](#-enterprise-comparison-matrix)
 3. [📸 Live Application Interface Showcase](#-live-application-interface-showcase)
 4. [✨ Core Capabilities & Deep Feature Breakdown](#-core-capabilities--deep-feature-breakdown)
-   - [🤖 Autonomous 4-Agent Swarm Orchestration](#-autonomous-4-agent-swarm-orchestration)
+   - [🤖 Autonomous 7-Agent Swarm Orchestration](#-autonomous-7-agent-swarm-orchestration)
    - [💬 Real-Time AI Chat & Streaming Copilot](#-real-time-ai-chat--streaming-copilot)
    - [📊 Unlimited Custom Visualization Engine](#-unlimited-custom-visualization-engine)
+   - [📄 C-Suite Executive PDF Report Generator](#-c-suite-executive-pdf-report-generator)
    - [🔍 Read-Only SQL Query Workbench](#-read-only-sql-query-workbench)
+   - [💻 Cyberpunk CLI & Universal Environment Manager](#-cyberpunk-cli--universal-environment-manager)
    - [🔄 Stay-on-Page Workspace Reload Persistence](#-stay-on-page-workspace-reload-persistence)
 5. [🏗️ Architecture & Multi-Agent Orchestration](#-architecture--multi-agent-orchestration)
 6. [🔑 Universal LLM Gateway Matrix](#-universal-llm-gateway-matrix)
@@ -94,7 +96,7 @@ crewlyze
 
 In modern data-driven organizations, the biggest bottleneck is no longer data collection—it is **data interpretation speed**. Data analysts spend 80% of their work hours writing repetitive Pandas cleaning scripts, running correlation matrices, and manually formatting slide decks for executive leadership.
 
-**Crewlyze** eliminates this friction by deploying an **Autonomous Multi-Agent AI Swarm**. Powered by [CrewAI](https://github.com/joaomdmoura/crewai) and [LiteLLM](https://github.com/BerriAI/litellm), Crewlyze models a collaborative human data science department. Specialized AI agents independently audit data hygiene, map complex non-linear correlations, formulate C-suite SWOT strategies, and construct interactive dashboards—all in under 3 minutes.
+**Crewlyze** eliminates this friction by deploying an **Autonomous Multi-Agent AI Swarm**. Powered by [CrewAI](https://github.com/joaomdmoura/crewai) and [LiteLLM](https://github.com/BerriAI/litellm), Crewlyze models a collaborative human data science department. Specialized AI agents independently audit data hygiene, map complex non-linear correlations, audit statistical anomalies, forecast temporal trends, train predictive heuristics, formulate C-suite SWOT strategies, and construct interactive dashboards—all in under 3 minutes.
 
 ### 💰 Compounding Enterprise Value & ROI
 - **⚡ 98% Time Reduction:** Replaces 15–20 hours of manual Exploratory Data Analysis (EDA) with a 3-minute executive audit report.
@@ -107,9 +109,11 @@ In modern data-driven organizations, the biggest bottleneck is no longer data co
 
 | Feature / Capability | Crewlyze | Traditional BI (Tableau / PowerBI) | ChatGPT / Claude Web | Custom Python Scripts |
 | :--- | :---: | :---: | :---: | :---: |
-| **Autonomous Multi-Agent Swarm** | ✅ **Built-in** | ❌ Manual | ❌ Single-Turn | ❌ Requires Coding |
+| **Autonomous Multi-Agent Swarm** | ✅ **7 Specialized Agents** | ❌ Manual | ❌ Single-Turn | ❌ Requires Coding |
 | **Real-Time Token Streaming** | ✅ **Built-in (SSE)** | ❌ N/A | ✅ Web Only | ❌ Complex Setup |
 | **Unlimited Custom Viz Engine** | ✅ **Matplotlib/Seaborn (<0.2s)** | ⚠️ Rigid Templates | ⚠️ Basic Code Execution | ⚠️ Manual Scripting |
+| **C-Suite PDF Executive Reports** | ✅ **ReportLab Dynamic PDF** | ⚠️ Manual Export | ❌ Text Only | ❌ Custom Scripting |
+| **Cyberpunk CLI & Env Manager** | ✅ **ANSI 256 Banner & Loader** | ❌ None | ❌ N/A | ❌ Custom Scripting |
 | **100% Offline Air-Gapped Mode** | ✅ **Ollama Local** | ❌ Cloud-gated | ❌ Requires Cloud | ✅ Manual Local |
 | **Outbound Email & Discord Dispatch** | ✅ **Automated (SMTP/Discord)** | ⚠️ Expensive Addons | ❌ None | ❌ Manual Webhooks |
 | **Read-Only SQL Timeout Guard** | ✅ **Built-in (3s Guard)** | ⚠️ Manual Queries | ❌ None | ❌ Manual Guardrails |
@@ -133,8 +137,8 @@ Explore live previews captured directly from an active Crewlyze workspace sessio
 
 ## ✨ Core Capabilities & Deep Feature Breakdown
 
-### 🤖 Autonomous 4-Agent Swarm Orchestration
-Crewlyze delegates dataset processing across a sequential multi-agent workflow:
+### 🤖 Autonomous 7-Agent Swarm Orchestration
+Crewlyze delegates dataset processing across a sequential multi-agent workflow of 7 specialized AI agents:
 
 ```
 [Raw CSV / Excel / SQLite]
@@ -156,16 +160,40 @@ Crewlyze delegates dataset processing across a sequential multi-agent workflow:
                                  │ Correlation Maps
                                  ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  💼 3. Senior Strategic Business Consultant (insights.py)   │
+  │  🚨 3. Anomaly & Risk Auditor Agent (anomaly.py)            │
+  │     - Detects statistical outliers using IQR and Z-score    │
+  │     - Flags extreme values, data drift & operational risks  │
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Outlier & Risk Map
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  📈 4. Time-Series & Trend Analyst Agent (trend.py)         │
+  │     - Analyzes temporal metrics (YoY, MoM, CAGR trajectories)│
+  │     - Forecasts short-term growth and directional momentum   │
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Temporal Projections
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  💼 5. Senior Strategic Business Consultant (insights.py)   │
   │     - Translates raw metrics into executive SWOT matrices   │
   │     - Highlights operational bottleneck risks & opportunities│
   └──────────────────────────────┬──────────────────────────────┘
                                  │ Strategic Context
                                  ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  📈 4. Interactive Plotly Visualizer (visualizer.py)       │
+  │  📉 6. Predictive ML Specialist Agent (predictive.py)       │
+  │     - Formulates regression baselines & feature importance  │
+  │     - Generates machine learning predictive recommendations │
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Predictive Model
+                                 ▼
+  ┌─────────────────────────────────────────────────────────────┐
+  │  🎨 7. Interactive Plotly Visualizer (visualizer.py)        │
   │     - Generates responsive, hoverable Plotly dashboard charts│
-  └─────────────────────────────────────────────────────────────┘
+  └──────────────────────────────┬──────────────────────────────┘
+                                 │ Complete Dashboard
+                                 ▼
+                    [Executive PDF Report & Web UI]
 ```
 
 ---
@@ -197,10 +225,25 @@ Ask the AI Chat for ANY custom visualization request and Crewlyze generates it i
 
 ---
 
+### 📄 C-Suite Executive PDF Report Generator
+- **ReportLab Dynamic PDF Engine:** Generates beautifully structured, multi-page executive summary reports directly from multi-agent output data.
+- **HTML Entity Escaping & Numbered Canvas:** Auto-escapes special characters (`&`, `<`, `>`) in insights to prevent PDF parsing crashes, with dynamic page numbers (`Page X of Y`).
+- **Structured Pillar Cards & Target Tables:** Summarizes top statistical parameters (Min/Max/Mean/Std) and formats C-suite strategic pillars inside executive cards.
+- **Embedded Chart Figures:** Includes high-resolution Matplotlib chart figures alongside qualitative visual intelligence breakdowns.
+
+---
+
 ### 🔍 Read-Only SQL Query Workbench
 - **NLP-to-SQL Compiler:** Ask plain English questions (*"Show top 10 rows by revenue"*) to automatically compile and execute SQL statements against the underlying SQLite engine.
 - **3-Second Timeout Guard:** SQLite progress handlers interrupt long-running or recursive queries after ~3 seconds to prevent CPU DoS attacks.
 - **Read-Only Safety:** Statement sanitizers permit only `SELECT`, `WITH`, and `EXPLAIN` queries. Administrative or mutating statements (`DROP`, `DELETE`, `UPDATE`, `ALTER`) are automatically blocked.
+
+---
+
+### 💻 Cyberpunk CLI & Universal Environment Manager
+- **Cyberpunk Terminal Formatting (`config/cli_formatter.py`):** Features an ANSI 256 color terminal banner, stylized execution log step badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`), and an interactive server ready indicator box.
+- **Universal Environment Manager (`config/env_loader.py`):** Automatically searches and loads configuration from `~/.crewlyze/.env`, project root `.env`, and CWD `.env`; provisions `~/.crewlyze/data` and `~/.crewlyze/outputs` runtime directories across any environment.
+- **Cross-Platform NPM Package Integration (`bin/crewlyze.js`, `bin/install-python.js`):** Run `npx crewlyze` or `npm start` anywhere with automatic virtual environment initialization.
 
 ---
 
@@ -224,6 +267,7 @@ Crewlyze operates on a dual-engine architecture engineered for maximum performan
 │                    FastAPI Asynchronous Backend                        │
 │   - Non-Blocking Thread Executors  - Read-Only SQL Query Workbench     │
 │   - Subprocess Code Sandboxing    - Chat History JSON Storage          │
+│   - ReportLab Executive PDF Engine - ANSI Cyberpunk CLI & Env Manager  │
 └───────────────────────────────────┬────────────────────────────────────┘
                                     │ CrewAI & LiteLLM
 ┌───────────────────────────────────▼────────────────────────────────────┐
@@ -324,7 +368,7 @@ python main.py
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `POST` | `/api/upload` | Upload raw dataset file (CSV, Excel, SQLite). |
-| `POST` | `/api/analyze` | Trigger autonomous 4-agent CrewAI swarm analysis. |
+| `POST` | `/api/analyze` | Trigger autonomous 7-agent CrewAI swarm analysis. |
 | `POST` | `/api/copilot/stream` | Real-time SSE token & thought streaming endpoint for AI Chat. |
 | `GET` | `/api/chat-history` | Load saved project AI chat history. |
 | `POST` | `/api/chat-history` | Save project AI chat history to `chat_history.json`. |
@@ -370,7 +414,7 @@ If you find Crewlyze useful, please give us a star on GitHub! It helps the proje
 
 <p align="center">
   <a href="https://github.com/sowmiyan-s/crewlyze">
-    <img src="https://img.shields.io/badge/⭐%20Star%20Crewlyze%20on%20GitHub-Click%20Here-f59e0b?style=for-the-badge&logo=github" alt="Star Crewlyze on GitHub" />
+    <img src="https://img.shields.io/badge/%E2%AD%90%20Star%20Crewlyze%20on%20GitHub-Click%20Here-f59e0b?style=for-the-badge&logo=github" alt="Star Crewlyze on GitHub" />
   </a>
 </p>
 

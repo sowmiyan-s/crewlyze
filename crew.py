@@ -19,8 +19,10 @@ Performance improvements in this version:
   results in the UI as each stage completes.
 """
 
+import json
 import logging
 import os
+import re
 import shutil
 import sys
 import time
@@ -29,10 +31,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Optional
 
-import pandas as pd
-from dotenv import load_dotenv
 
-load_dotenv()
+import pandas as pd
+try:
+    from config.env_loader import ensure_env_loaded
+    ensure_env_loaded()
+except Exception:
+    from dotenv import load_dotenv
+    load_dotenv()
+
 
 # Suppress noisy loggers
 logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -838,40 +845,47 @@ def run_crew(
         _progress("insights", insights_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 5 — Predictive Auto-ML (sequential, only if deep_analysis=True)
+    # STAGE 5 — Predictive, Anomaly & Trend Specialized Analysis
     # ════════════════════════════════════════════════════════════════════════
-    predictive_output = "Predictive modeling was skipped (Deep Analysis OFF)."
-    if deep_analysis:
+    predictive_output = "Predictive Auto-ML was skipped by selection."
+    anomaly_output    = _run_auto_anomaly_fallback(df)
+    trend_output      = _run_auto_trend_fallback(df)
+
+    if deep_analysis or "predictive" in env_tasks:
         print("[Stage 5/5] Running Predictive Auto-ML ...")
         start_pred_stage = time.time()
-        
         pred_task = tasks[4]
-        pred_crew = Crew(
-            agents=[agents[4]],
-            tasks=[pred_task],
-            max_rpm=15,
-            cache=True,
-            verbose=True,
-        )
+        pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], max_rpm=15, cache=True, verbose=True)
         try:
             pred_crew.kickoff()
             predictive_output = _safe_output(pred_task)
-            try:
-                if hasattr(pred_crew, "usage_metrics") and pred_crew.usage_metrics:
-                    total_tokens += pred_crew.usage_metrics.get("total_tokens", 0)
-            except Exception:
-                pass
         except Exception as e:
             print(f"Predictive Agent error: {e}")
-            if os.getenv("CREWLYZE_DEBUG") == "true":
-                traceback.print_exc()
-            predictive_output = "Predictive analysis encountered an error."
 
         stage_times["predictive"] = time.time() - start_pred_stage
         _progress("predictive", predictive_output)
-        print("[Stage 5/5] Predictive Analysis complete.\n")
-    else:
-        _progress("predictive", predictive_output)
+
+    if "anomaly" in env_tasks or deep_analysis:
+        try:
+            anom_task = tasks[5]
+            anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], max_rpm=15, cache=True, verbose=True)
+            anom_crew.kickoff()
+            anomaly_output = _safe_output(anom_task)
+        except Exception as e:
+            print(f"Anomaly Agent error: {e}")
+            anomaly_output = _run_auto_anomaly_fallback(df)
+        _progress("anomaly", anomaly_output)
+
+    if "trend" in env_tasks or deep_analysis:
+        try:
+            trend_t = tasks[6]
+            tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], max_rpm=15, cache=True, verbose=True)
+            tr_crew.kickoff()
+            trend_output = _safe_output(trend_t)
+        except Exception as e:
+            print(f"Trend Agent error: {e}")
+            trend_output = _run_auto_trend_fallback(df)
+        _progress("trend", trend_output)
 
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
     print("[Stage 4/4] Building interactive Plotly charts ...")
@@ -916,6 +930,8 @@ def run_crew(
         "relations":      relation_output,
         "insights":       insights_output,
         "predictive":     predictive_output,
+        "anomaly":        anomaly_output,
+        "trend":          trend_output,
         "code":           visualize_output,
         "output_dir":     str(session_output_dir),
         "plotly_charts":  plotly_charts,

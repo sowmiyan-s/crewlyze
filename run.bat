@@ -1,34 +1,33 @@
 @echo off
-REM CrewAI requires Python 3.10-3.13 (not 3.14)
+setlocal enabledelayedexpansion
 
-REM Try to find a compatible Python version (3.10 to 3.13) via the py launcher
-py -3.13 -c "import sys" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    py -3.13 main.py
-    exit /b
+echo =========================================================
+echo   Crewlyze - Autonomous Multi-Agent BI Platform Launcher
+echo =========================================================
+echo.
+
+set "USER_HOME=%USERPROFILE%\.crewlyze"
+set "VENV_PYTHON=%USER_HOME%\venv\Scripts\python.exe"
+
+if exist "%VENV_PYTHON%" (
+    echo [INFO] Found virtual environment Python: %VENV_PYTHON%
+    "%VENV_PYTHON%" main.py
+    exit /b %ERRORLEVEL%
 )
 
-py -3.12 -c "import sys" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    py -3.12 main.py
-    exit /b
-)
-
-py -3.11 -c "import sys" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    py -3.11 main.py
-    exit /b
-)
-
-py -3.10 -c "import sys" >nul 2>&1
-if %ERRORLEVEL% EQU 0 (
-    py -3.10 main.py
-    exit /b
+REM Try Python 3.13 down to 3.9 via py launcher
+for %%V in (3.13 3.12 3.11 3.10 3.9) do (
+    py -%%V -c "import sys" >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        echo [INFO] Launching Crewlyze using Python %%V...
+        py -%%V main.py
+        exit /b !ERRORLEVEL!
+    )
 )
 
 REM Fallback if no specific version launcher worked
+echo [INFO] Launching Crewlyze using default system Python...
 python main.py
 if %ERRORLEVEL% NEQ 0 (
     py main.py
 )
-

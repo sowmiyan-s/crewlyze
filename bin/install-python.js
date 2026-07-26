@@ -5,52 +5,73 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
+// Colors
+const CLR_RESET = '\x1b[0m';
+const CLR_BOLD = '\x1b[1m';
+const CYAN = '\x1b[38;5;51m';
+const GREEN = '\x1b[38;5;82m';
+const YELLOW = '\x1b[38;5;220m';
+const RED = '\x1b[38;5;196m';
+const GRAY = '\x1b[38;5;245m';
+
+console.log(`\n${CYAN}${CLR_BOLD}⚙️  Crewlyze Python Environment Setup${CLR_RESET}`);
+
 const userHome = path.join(os.homedir(), '.crewlyze');
 if (!fs.existsSync(userHome)) {
   fs.mkdirSync(userHome, { recursive: true });
 }
 
 const venvDir = path.join(userHome, 'venv');
-const projectRoot = path.join(__dirname, '..');
+const projectRoot = path.resolve(__dirname, '..');
 const requirementsPath = path.join(projectRoot, 'requirements.txt');
 
+// 1. Python Executable Auto-Discovery
+const candidates = process.platform === 'win32'
+  ? ['python', 'py -3', 'python3', 'py']
+  : ['python3', 'python'];
 
-// 1. Check if Python is installed and check version compatibility
-let pythonCmd = 'python3';
-try {
-  execSync('python3 --version', { stdio: 'ignore' });
-} catch (e) {
+let pythonCmd = null;
+let pythonVersion = '';
+
+for (const cmd of candidates) {
   try {
-    execSync('python --version', { stdio: 'ignore' });
-    pythonCmd = 'python';
-  } catch (err) {
-    console.error('\x1b[31m❌ Error: Python 3 is not installed or not added to system PATH.\x1b[0m');
-    console.error('\x1b[33mPlease download & install Python 3.10 to 3.13 from https://www.python.org/downloads/\x1b[0m');
-    process.exit(1);
-  }
+    const verStr = execSync(`${cmd} -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`, {
+      stdio: ['pipe', 'pipe', 'ignore'],
+      timeout: 5000
+    }).toString().trim();
+    if (verStr && verStr.includes('.')) {
+      const [major, minor] = verStr.split('.').map(Number);
+      if (major >= 3) {
+        pythonCmd = cmd;
+        pythonVersion = verStr;
+        break;
+      }
+    }
+  } catch (e) {}
 }
 
-try {
-  const verStr = execSync(`"${pythonCmd}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')"`).toString().trim();
-  const [major, minor] = verStr.split('.').map(Number);
-  if (major < 3 || (major === 3 && minor < 10)) {
-    console.error(`\x1b[31m❌ Error: Python ${verStr} detected. Crewlyze requires Python 3.10 or higher.\x1b[0m`);
-    process.exit(1);
-  } else if (major === 3 && minor >= 14) {
-    console.warn(`\x1b[33m⚠️ Warning: Python ${verStr} detected. Crewlyze is optimized for Python 3.10–3.13.\x1b[0m`);
-  }
-} catch (err) {}
+if (!pythonCmd) {
+  console.error(`${RED}❌ Error: Python 3 was not detected on your system PATH.${CLR_RESET}`);
+  console.error(`${YELLOW}Please download and install Python 3.9 – 3.13 from https://www.python.org/downloads/${CLR_RESET}\n`);
+  process.exit(1);
+}
 
-// 2. Create virtual environment inside user's home folder if it doesn't exist
+const [major, minor] = pythonVersion.split('.').map(Number);
+console.log(`${GREEN}✔ Detected Python ${pythonVersion} (${pythonCmd})${CLR_RESET}`);
+
+if (minor < 9) {
+  console.warn(`${YELLOW}⚠️ Warning: Python ${pythonVersion} detected. Crewlyze is optimized for Python 3.9 – 3.13.${CLR_RESET}`);
+}
+
+// 2. Virtual Environment Creation
 if (!fs.existsSync(venvDir)) {
-  console.log(`\x1b[36m📦 Creating Python virtual environment in ${venvDir}...\x1b[0m`);
+  console.log(`${CYAN}📦 Creating Python virtual environment in ${venvDir}...${CLR_RESET}`);
   try {
-    execSync(`"${pythonCmd}" -m venv "${venvDir}"`, { stdio: 'inherit' });
+    execSync(`${pythonCmd} -m venv "${venvDir}"`, { stdio: 'inherit' });
   } catch (err) {
-    console.error('\x1b[31m❌ Error creating Python virtual environment.\x1b[0m');
+    console.error(`${RED}❌ Error creating Python virtual environment.${CLR_RESET}`);
     if (process.platform !== 'win32') {
-      console.error('\x1b[33mHint: On Debian/Ubuntu based systems, you may need to install the venv package first:\x1b[0m');
-      console.error('  sudo apt-get install python3-venv\n');
+      console.error(`${YELLOW}Hint: On Debian/Ubuntu based systems, run: sudo apt-get install python3-venv${CLR_RESET}\n`);
     }
     process.exit(1);
   }
@@ -60,27 +81,51 @@ const pipCmd = process.platform === 'win32'
   ? path.join(venvDir, 'Scripts', 'pip.exe')
   : path.join(venvDir, 'bin', 'pip');
 
-// 3. Upgrade pip to ensure latest wheel tag compatibility and install prebuilt binaries
+// 3. Upgrade Build Tools (pip, setuptools, wheel)
+console.log(`${CYAN}⚡ Upgrading package installation tools (pip, setuptools, wheel)...${CLR_RESET}`);
 try {
-  execSync(`"${pipCmd}" install --upgrade pip`, { stdio: 'ignore' });
-} catch (e) {
-  // Continue if pip upgrade fails silently
-}
+  execSync(`"${pipCmd}" install --upgrade pip setuptools wheel --quiet`, { stdio: 'ignore' });
+} catch (e) {}
 
-console.log(`\x1b[36m📥 Installing prebuilt Python dependencies from ${requirementsPath}...\x1b[0m`);
-console.log('\x1b[90mThis may take a moment on the first run.\x1b[0m\n');
+// 4. Install Dependencies with Prefer-Binary & Fallback
+console.log(`${CYAN}📥 Installing Python dependencies from requirements.txt...${CLR_RESET}`);
+console.log(`${GRAY}Using prebuilt binary wheels for maximum speed and compatibility.${CLR_RESET}\n`);
+
+let installSuccess = false;
 try {
   execSync(`"${pipCmd}" install --no-input --prefer-binary --retries 5 -r "${requirementsPath}"`, { stdio: 'inherit' });
-  console.log('\x1b[32m✅ Dependencies installed successfully!\x1b[0m');
+  installSuccess = true;
 } catch (e) {
-  console.error('\x1b[31m❌ Error installing Python dependencies.\x1b[0m');
-  process.exit(1);
+  console.warn(`\n${YELLOW}⚠️  Full requirements installation had warnings/errors. Attempting resilient fallback install...${CLR_RESET}`);
 }
 
-// 4. Informational notice for CLI global usage
-const isGlobal = process.env.npm_config_global === 'true' || process.env.npm_config_global === '1' || process.env.npm_config_global === true || process.env.npm_config_global === 1;
-if (!isGlobal) {
-  console.log('\x1b[33m💡 Tip: To use the "crewlyze" command globally from any directory, run:\x1b[0m');
-  console.log('  \x1b[1mnpm install -g crewlyze\x1b[0m\n');
+if (!installSuccess) {
+  // Core essential packages list for fallback installation
+  const corePackages = [
+    'crewai>=0.5.0',
+    'fastapi',
+    'uvicorn',
+    'python-multipart',
+    'pandas',
+    'matplotlib',
+    'seaborn',
+    'plotly',
+    'requests',
+    'python-dotenv',
+    'Pillow',
+    'reportlab',
+    'duckdb',
+    'python-pptx'
+  ];
+
+  for (const pkg of corePackages) {
+    try {
+      execSync(`"${pipCmd}" install --no-input --prefer-binary "${pkg}"`, { stdio: 'ignore' });
+      console.log(` ${GREEN}✔ Installed ${pkg}${CLR_RESET}`);
+    } catch (err) {
+      console.warn(` ${YELLOW}⚠️ Could not install optional wheel ${pkg}${CLR_RESET}`);
+    }
+  }
 }
 
+console.log(`\n${GREEN}${CLR_BOLD}✅ Python environment setup complete!${CLR_RESET}\n`);

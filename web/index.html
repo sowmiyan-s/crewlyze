@@ -12,7 +12,7 @@
   <script src="/libs/plotly-2.35.2.min.js"></script>
   <script src="/libs/marked.min.js"></script>
   <script src="/libs/lucide.min.js"></script>
-  <link rel="stylesheet" href="/style.css?v=1.0.9" />
+  <link rel="stylesheet" href="/style.css?v=1.1.0" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <style>
     /* Settings Sidebar overrides to guarantee no caching collapse */
@@ -341,6 +341,37 @@
               </div>
               <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
             </label>
+
+            <label class="task-card" id="taskCardPredictive">
+              <input type="checkbox" id="taskPredictive" value="predictive" />
+              <div class="task-card-icon"><i data-lucide="cpu"
+                  style="width: 20px; height: 20px; color: #a855f7;"></i></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Predictive Auto-ML</div>
+                <div class="task-card-desc">Feature importance &amp; ML modeling. <em>Optional.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+
+            <label class="task-card" id="taskCardAnomaly">
+              <input type="checkbox" id="taskAnomaly" value="anomaly" />
+              <div class="task-card-icon"><div style="display:inline-block; font-size:16px;">🛡️</div></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Anomaly Risk Audit</div>
+                <div class="task-card-desc">Outlier detection &amp; risk warnings. <em>Optional.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
+
+            <label class="task-card" id="taskCardTrend">
+              <input type="checkbox" id="taskTrend" value="trend" />
+              <div class="task-card-icon"><div style="display:inline-block; font-size:16px;">📈</div></div>
+              <div class="task-card-body">
+                <div class="task-card-title">Trend Forecast</div>
+                <div class="task-card-desc">Temporal growth &amp; momentum projection. <em>Optional.</em></div>
+              </div>
+              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+            </label>
           </div>
 
           <!-- Analysis depth -->
@@ -365,11 +396,15 @@
             </div>
           </div>
 
-          <!-- Report title -->
+          <!-- Analysis Focus & Goal Description -->
           <div class="field-group">
-            <label class="field-label">Report Title</label>
-            <input type="text" id="reportTitle" class="field-input"
-              placeholder="e.g. Q4 2024 Sales Performance Analysis" />
+            <label class="field-label" style="display: flex; align-items: center; justify-content: space-between; font-weight: 600; color: #fff;">
+              <span><i data-lucide="target" style="width: 14px; height: 14px; color: var(--violet-light); vertical-align: middle; margin-right: 4px;"></i> Analysis Focus &amp; Objective Description</span>
+              <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: normal;">Guides AI Agents to achieve project goals</span>
+            </label>
+            <textarea id="configProjectGoal" class="field-input" rows="2"
+              placeholder="Describe your analysis goal or target focus (e.g., Identify top 10% highest-margin segments, audit risk outliers, project growth momentum)..." style="resize: vertical; font-family: inherit; font-size: 0.85rem; padding: 10px 14px;"></textarea>
+            <input type="hidden" id="reportTitle" value="" />
           </div>
 
           <!-- Custom Data Cleaning Rules -->
@@ -458,6 +493,18 @@
         <div class="stage-item" data-stage="visualization">
           <div class="stage-dot"></div>
           <div class="stage-label">Visualization</div>
+        </div>
+        <div class="stage-item" data-stage="predictive">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Predictive ML</div>
+        </div>
+        <div class="stage-item" data-stage="anomaly">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Risk Audit</div>
+        </div>
+        <div class="stage-item" data-stage="trend">
+          <div class="stage-dot"></div>
+          <div class="stage-label">Trends</div>
         </div>
         <div class="stage-item" data-stage="plotly">
           <div class="stage-dot"></div>

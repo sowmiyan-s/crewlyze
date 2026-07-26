@@ -193,10 +193,16 @@ const els = {
   taskRelations:     $('taskRelations'),
   taskInsights:      $('taskInsights'),
   taskViz:           $('taskViz'),
+  taskPredictive:    $('taskPredictive'),
+  taskAnomaly:       $('taskAnomaly'),
+  taskTrend:         $('taskTrend'),
   taskCardCleaning:  $('taskCardCleaning'),
-  taskCardRelations:  $('taskCardRelations'),
+  taskCardRelations: $('taskCardRelations'),
   taskCardInsights:  $('taskCardInsights'),
   taskCardViz:       $('taskCardViz'),
+  taskCardPredictive:$('taskCardPredictive'),
+  taskCardAnomaly:   $('taskCardAnomaly'),
+  taskCardTrend:     $('taskCardTrend'),
 
   // Running
   runningTitle:      $('runningTitle'),
@@ -2323,40 +2329,48 @@ els.configModal.addEventListener('click', e => {
 
 // ── Task card dependency logic ───────────────────────────────────────────────
 function syncTaskCards() {
-  const cleanChecked    = els.taskCleaning.checked;
-  const relationsChecked = els.taskRelations.checked;
+  const cleanChecked     = els.taskCleaning ? els.taskCleaning.checked : true;
+  const relationsChecked = els.taskRelations ? els.taskRelations.checked : true;
 
   // Relations & Insights require Cleaning
   if (!cleanChecked) {
-    els.taskRelations.checked = false;
-    els.taskInsights.checked  = false;
+    if (els.taskRelations) els.taskRelations.checked = false;
+    if (els.taskInsights)  els.taskInsights.checked  = false;
   }
   // Viz requires Relations
-  if (!relationsChecked) {
+  if (!relationsChecked && els.taskViz) {
     els.taskViz.checked = false;
   }
 
   // Update visual state
   [
-    [els.taskCleaning,  els.taskCardCleaning,  true],
-    [els.taskRelations, els.taskCardRelations,  cleanChecked],
-    [els.taskInsights,  els.taskCardInsights,   cleanChecked],
-    [els.taskViz,       els.taskCardViz,        els.taskRelations.checked || relationsChecked],
+    [els.taskCleaning,   els.taskCardCleaning,   true],
+    [els.taskRelations,  els.taskCardRelations,  cleanChecked],
+    [els.taskInsights,   els.taskCardInsights,   cleanChecked],
+    [els.taskViz,        els.taskCardViz,        els.taskRelations ? els.taskRelations.checked : true],
+    [els.taskPredictive, els.taskCardPredictive, true],
+    [els.taskAnomaly,    els.taskCardAnomaly,    true],
+    [els.taskTrend,      els.taskCardTrend,      true],
   ].forEach(([chk, card, enabled]) => {
+    if (!chk || !card) return;
     card.classList.toggle('checked',  chk.checked);
     card.classList.toggle('disabled', !enabled);
     if (!enabled) chk.checked = false;
   });
 }
 
-['taskCleaning','taskRelations','taskInsights','taskViz'].forEach(id => {
-  $(id).closest('.task-card').addEventListener('click', () => {
-    const chk = $(id);
-    if (!$(id).closest('.task-card').classList.contains('disabled')) {
-      chk.checked = !chk.checked;
-      syncTaskCards();
-    }
-  });
+['taskCleaning','taskRelations','taskInsights','taskViz','taskPredictive','taskAnomaly','taskTrend'].forEach(id => {
+  const el = $(id);
+  if (!el) return;
+  const card = el.closest('.task-card');
+  if (card) {
+    card.addEventListener('click', () => {
+      if (!card.classList.contains('disabled')) {
+        el.checked = !el.checked;
+        syncTaskCards();
+      }
+    });
+  }
 });
 syncTaskCards();
 
@@ -2365,6 +2379,13 @@ $$('.depth-option').forEach(opt => {
   opt.addEventListener('click', () => {
     $$('.depth-option').forEach(o => o.classList.remove('active'));
     opt.classList.add('active');
+    const isDeep = opt.querySelector('input')?.value === 'true';
+    if (isDeep) {
+      if (els.taskPredictive) els.taskPredictive.checked = true;
+      if (els.taskAnomaly)    els.taskAnomaly.checked = true;
+      if (els.taskTrend)      els.taskTrend.checked = true;
+      syncTaskCards();
+    }
   });
 });
 
@@ -2372,10 +2393,13 @@ $$('.depth-option').forEach(opt => {
 els.runAnalysisBtn.addEventListener('click', async () => {
   if (!checkApiKeySet()) return;
   const tasks = [];
-  if (els.taskCleaning.checked)  tasks.push('cleaning');
-  if (els.taskRelations.checked) tasks.push('relations');
-  if (els.taskInsights.checked)  tasks.push('insights');
-  if (els.taskViz.checked)       tasks.push('visualization');
+  if (els.taskCleaning && els.taskCleaning.checked)     tasks.push('cleaning');
+  if (els.taskRelations && els.taskRelations.checked)   tasks.push('relations');
+  if (els.taskInsights && els.taskInsights.checked)     tasks.push('insights');
+  if (els.taskViz && els.taskViz.checked)              tasks.push('visualization');
+  if (els.taskPredictive && els.taskPredictive.checked) tasks.push('predictive');
+  if (els.taskAnomaly && els.taskAnomaly.checked)       tasks.push('anomaly');
+  if (els.taskTrend && els.taskTrend.checked)           tasks.push('trend');
 
   if (!tasks.length) { toast('Select at least one task.', 'warning'); return; }
 
@@ -2410,6 +2434,9 @@ els.runAnalysisBtn.addEventListener('click', async () => {
     return;
   }
 
+  const configGoalInput = $('configProjectGoal');
+  const goalVal = configGoalInput ? configGoalInput.value.trim() : (state.newProjectGoal || '');
+
   // 2. Start Analysis Run
   const fd = new FormData();
   fd.append('session_id',     state.uploadedSession);
@@ -2420,6 +2447,7 @@ els.runAnalysisBtn.addEventListener('click', async () => {
   fd.append('selected_tasks', tasks.join(','));
   fd.append('deep_analysis',  String(deep));
   fd.append('report_title',   title);
+  fd.append('goal',           goalVal);
 
   closeConfigModal();
 
@@ -2590,18 +2618,83 @@ function renderStagePov(stage) {
   } else if (stage === 'insights') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="lightbulb" style="width:18px; height:18px; color:var(--amber); vertical-align:middle; margin-right:8px;"></i> Strategic Business Insights</div>
+        <div class="pov-title"><i data-lucide="lightbulb" style="width:20px; height:20px; color:#f59e0b; vertical-align:middle; margin-right:8px;"></i> Strategic Business Insights</div>
         <div class="pov-desc">Correlating discovered patterns to business implications and drafting actionable McKinsey-level recommendation strategies...</div>
       </div>
-      <div class="pov-content">
+      <div class="pov-content pov-insights-panel">
         <div class="pov-insight-bulb">
-          <svg class="pov-bulb-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-          </svg>
+          <div class="pov-bulb-glow-container">
+            <svg class="pov-bulb-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+          </div>
           <div class="pov-insight-bullets">
-            <div class="pov-bullet-text">Identifying key driver columns...</div>
-            <div class="pov-bullet-text">Formulating risk matrices...</div>
-            <div class="pov-bullet-text">Generating recommendations...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Identifying key driver columns & feature dependencies...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Formulating executive risk matrices & market implications...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Generating McKinsey-grade actionable strategic pillars...</div>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (stage === 'predictive') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title"><i data-lucide="cpu" style="width:20px; height:20px; color:#a855f7; vertical-align:middle; margin-right:8px;"></i> Predictive Auto-ML Engine</div>
+        <div class="pov-desc">Training Scikit-Learn Auto-ML models, evaluating Random Forest decision trees, and extracting quantitative feature importance drivers...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-predictive-dashboard">
+          <div class="pred-bar-container">
+            <div class="pred-bar" style="animation-delay: 0s;"></div>
+            <div class="pred-bar" style="animation-delay: 0.4s;"></div>
+            <div class="pred-bar" style="animation-delay: 0.8s;"></div>
+            <div class="pred-bar" style="animation-delay: 1.2s;"></div>
+            <div class="pred-bar" style="animation-delay: 1.6s;"></div>
+          </div>
+          <div class="pov-insight-bullets" style="margin-left: 20px;">
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Auto-Detecting Target Variable...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Training Random Forest Regressor & Classifier...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Ranking Top Feature Importance Drivers...</div>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (stage === 'anomaly') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title"><i data-lucide="shield-alert" style="width:20px; height:20px; color:#f59e0b; vertical-align:middle; margin-right:8px;"></i> Anomaly & Risk Auditor</div>
+        <div class="pov-desc">Scrutinizing distributions for statistical IQR/Z-score outliers, extreme variance, and compliance risk factors...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-anomaly-dashboard">
+          <div class="radar-circle">
+            <div class="radar-sweep-beam"></div>
+            <div style="width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 12px #ef4444; position:absolute; top:25px; left:40px;"></div>
+            <div style="width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 10px #f59e0b; position:absolute; bottom:30px; right:45px;"></div>
+          </div>
+          <div class="pov-insight-bullets" style="margin-left: 20px;">
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Calculating IQR & Z-score Statistical Bounds...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Auditing Outliers & Distribution Skew...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Generating Risk Mitigation Safeguards...</div>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (stage === 'trend') {
+    els.stagePovPanel.innerHTML = `
+      <div class="pov-header">
+        <div class="pov-title"><i data-lucide="trending-up" style="width:20px; height:20px; color:#0ea5e9; vertical-align:middle; margin-right:8px;"></i> Time-Series Trend Analyst</div>
+        <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum & YoY growth projections...</div>
+      </div>
+      <div class="pov-content">
+        <div class="pov-trend-dashboard">
+          <svg class="trend-path-svg" viewBox="0 0 200 80">
+            <path class="trend-line" d="M10 70 Q 50 20, 90 50 T 170 10 T 190 25"></path>
+          </svg>
+          <div class="pov-insight-bullets" style="margin-left: 20px;">
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Identifying Time-Series & Date Columns...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Calculating CAGR & Growth Trajectories...</div>
+            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Forecasting Directional Trend Projections...</div>
           </div>
         </div>
       </div>`;

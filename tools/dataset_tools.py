@@ -204,8 +204,11 @@ def _run_in_subprocess(script: str, timeout: int = 120, is_healed_attempt: bool 
             [sys.executable, tmp_path],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
+
         output = (proc.stdout + proc.stderr).strip()
         success = proc.returncode == 0
         

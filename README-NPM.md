@@ -28,15 +28,17 @@ crewlyze
 
 ## ✨ Core Capabilities & Features
 
-*   **🤖 Autonomous 4-Agent Swarm:** Orchestrates sequential CrewAI agents for automated data cleaning (`cleaner.py`), correlation mapping (`relation.py`), strategic SWOT mining (`insights.py`), and chart generation (`visualizer.py`).
-*   **💬 Real-Time AI Chat & Streaming Copilot:** Non-blocking Server-Sent Events (SSE) token streaming with blinking *Thinking...* status, slash `/` column autocomplete dropdown, Markdown (`.md`) / PDF exports, and automatic chat history persistence (`chat_history.json`).
-*   **📊 Unlimited Custom Visualization Engine:** High-speed Matplotlib/Seaborn plot rendering (<0.2s) supporting ANY plot type (Histograms, Box/Violin, Scatter, Heatmaps, Time-Series, Stacked Bar, 3D Scatter, Radar, Subplots) with 1-click `📥 Download PNG` button.
-*   **🦙 100% Offline Air-Gapped Privacy:** Process datasets locally using **Ollama** (`http://localhost:11434`) with zero cloud data transmission.
-*   **🔑 Universal LLM Gateways:** Works out-of-the-box with OpenAI (`gpt-4o`), Anthropic (`claude-3-5-sonnet`), Google Gemini (`gemini-1.5-flash`), NVIDIA NIM, Minimax, Groq, DeepSeek, and custom vLLM proxies.
-*   **📬 Outbound Integrations Hub:** Automated PDF report dispatching via **SMTP Email** (Port 587 STARTTLS / 465 SSL), **Discord Webhooks** (rich embeds + PDF attachments), **Slack**, and REST APIs.
-*   **🔍 Read-Only SQL Query Workbench:** Natural language-to-SQL compiler with 3-second query execution timeout protection.
-*   **🔄 Stay-on-Page Reload State:** `localStorage` session manager automatically restores your active project and tab on browser refresh (`F5`).
-*   **📑 Executive Deliverable Formats:** ReportLab PDF Executive Summaries (with HTML-entity escaping), PowerPoint presentation slide decks (`.pptx`), and full ZIP workspace archives.
+* **🤖 Autonomous 7-Agent Swarm:** Orchestrates sequential CrewAI agents for automated data cleaning (`cleaner.py`), correlation mapping (`relation.py`), statistical anomaly detection (`anomaly.py`), time-series trend forecasting (`trend.py`), strategic SWOT mining (`insights.py`), predictive ML modeling (`predictive.py`), and chart visualization (`visualizer.py`).
+* **💬 Real-Time AI Chat & Streaming Copilot:** Non-blocking Server-Sent Events (SSE) token streaming with blinking *Thinking...* status, slash `/` column autocomplete dropdown, Markdown (`.md`) / PDF exports, and automatic chat history persistence (`chat_history.json`).
+* **📊 Unlimited Custom Visualization Engine:** High-speed Matplotlib/Seaborn plot rendering (<0.2s) supporting ANY plot type (Histograms, Box/Violin, Scatter, Heatmaps, Time-Series, Stacked Bar, 3D Scatter, Radar, Subplots) with 1-click `📥 Download PNG` button overlay.
+* **📄 C-Suite Executive PDF Reports:** Dynamic ReportLab PDF synthesis featuring HTML entity escaping, numbered page footers, target statistical tables, strategic pillar cards, and embedded chart figures.
+* **💻 Cyberpunk CLI & Environment Engine:** ANSI 256 color terminal formatting (`config/cli_formatter.py`), multi-tier `.env` configuration loader (`config/env_loader.py`), and automatic user home directory provisioning (`~/.crewlyze`).
+* **🦙 100% Offline Air-Gapped Privacy:** Process datasets locally using **Ollama** (`http://localhost:11434`) with zero cloud data transmission.
+* **🔑 Universal LLM Gateways:** Works out-of-the-box with OpenAI (`gpt-4o`), Anthropic (`claude-3-5-sonnet`), Google Gemini (`gemini-1.5-flash`), NVIDIA NIM, Minimax, Groq, DeepSeek, and custom vLLM proxies.
+* **📬 Outbound Integrations Hub:** Automated PDF report dispatching via **SMTP Email** (Port 587 STARTTLS / 465 SSL), **Discord Webhooks** (rich embeds + PDF attachments), **Slack**, and REST APIs.
+* **🔍 Read-Only SQL Query Workbench:** Natural language-to-SQL compiler with 3-second query execution timeout protection.
+* **🔄 Stay-on-Page Reload State:** `localStorage` session manager automatically restores your active project and tab on browser refresh (`F5`).
+* **📑 Executive Deliverable Formats:** ReportLab PDF Executive Summaries, PowerPoint presentation slide decks (`.pptx`), and full ZIP workspace archives.
 
 ---
 
