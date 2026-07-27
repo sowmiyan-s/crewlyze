@@ -72,6 +72,8 @@ crewlyze
 3. [📸 Live Application Interface Showcase](#-live-application-interface-showcase)
 4. [✨ Core Capabilities & Deep Feature Breakdown](#-core-capabilities--deep-feature-breakdown)
    - [🤖 Autonomous 7-Agent Swarm Orchestration](#-autonomous-7-agent-swarm-orchestration)
+   - [⚡ Automated Python Virtual Environment Bootstrapper](#-automated-python-virtual-environment-bootstrapper)
+   - [⚙️ Robust Dataset Processing & Profiling Tools](#%EF%B8%8F-robust-dataset-processing--profiling-tools)
    - [💬 Real-Time AI Chat & Streaming Copilot](#-real-time-ai-chat--streaming-copilot)
    - [📊 Unlimited Custom Visualization Engine](#-unlimited-custom-visualization-engine)
    - [📄 C-Suite Executive PDF Report Generator](#-c-suite-executive-pdf-report-generator)
@@ -237,6 +239,19 @@ Ask the AI Chat for ANY custom visualization request and Crewlyze generates it i
 - **NLP-to-SQL Compiler:** Ask plain English questions (*"Show top 10 rows by revenue"*) to automatically compile and execute SQL statements against the underlying SQLite engine.
 - **3-Second Timeout Guard:** SQLite progress handlers interrupt long-running or recursive queries after ~3 seconds to prevent CPU DoS attacks.
 - **Read-Only Safety:** Statement sanitizers permit only `SELECT`, `WITH`, and `EXPLAIN` queries. Administrative or mutating statements (`DROP`, `DELETE`, `UPDATE`, `ALTER`) are automatically blocked.
+
+---
+
+### ⚡ Automated Python Virtual Environment Bootstrapper
+- **Zero-Compiler Virtual Environment Provisioning (`bin/install-python.js`):** Automatically detects installed system Python runtime versions (3.10–3.13), initializes an isolated Python virtual environment (`.venv`), upgrades core `pip` tools, and silently provisions all required backend dependencies (`requirements.txt`).
+- **Cross-Platform Port & Server Launcher (`bin/crewlyze.js`):** Manages dynamic port selection, checks local service availability, launches FastAPI sub-processes smoothly across Windows, macOS, and Linux, and opens your default browser to `http://localhost:8000`.
+
+---
+
+### ⚙️ Robust Dataset Processing & Profiling Tools
+- **Automated Encoding Detection (`tools/dataset_tools.py`):** Intelligently inspects and decodes raw dataset files across various encodings (UTF-8, Latin-1, CP1252, ISO-8859-1) to eliminate ingestion crashes on complex legacy enterprise files.
+- **Statistical Hygiene & Imputation:** Performs automated missing value density profiling (>60% column pruning threshold), numerical mean/median imputation, and categorical frequency normalization.
+- **Summary Metadata Generation:** Instantly extracts dataset dimensions, numerical statistics (Min, Max, Mean, Std, Quartiles), categorical value distributions, and data type mapping for consumption by the agent swarm.
 
 ---
 
