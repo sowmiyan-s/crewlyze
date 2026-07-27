@@ -1166,11 +1166,14 @@ def run_crew_in_background(
                     png_charts_list = [f.name for f in Path(result["output_dir"]).glob("*.png")]
 
                     serializable_result = {
-                        "cleaning_steps": result["cleaning_steps"],
-                        "relations":      result["relations"],
-                        "insights":       result["insights"],
+                        "cleaning_steps": result.get("cleaning_steps", ""),
+                        "relations":      result.get("relations", ""),
+                        "insights":       result.get("insights", ""),
+                        "predictive":     result.get("predictive", ""),
+                        "anomaly":        result.get("anomaly", ""),
+                        "trend":          result.get("trend", ""),
                         "code":           result.get("code", ""),
-                        "output_dir":     result["output_dir"],
+                        "output_dir":     result.get("output_dir", ""),
                         "plotly_charts":  plotly_serializable,
                         "png_charts":     png_charts_list,
                         "rows_count":     int(result["dataframe"].shape[0]),
@@ -1807,6 +1810,12 @@ async def stream_copilot(
 
     def run_sync_stream():
         try:
+            from config.context import current_session_csv, current_session_output_dir
+            from config.llm_config import apply_runtime_llm_settings
+            apply_runtime_llm_settings(provider, model, api_key or "", env_key_name)
+            current_session_csv.set(str(csv_path))
+            current_session_output_dir.set(str(output_dir))
+
             from ui.copilot import stream_copilot_query
             for chunk in stream_copilot_query(
                 query=query,
@@ -2487,8 +2496,16 @@ async def save_local_config(
                 if api_key.strip():
                     if not api_key.endswith("..."):
                         cfg[key_name] = api_key.strip()
+                        if provider == "gemini":
+                            cfg["GOOGLE_API_KEY"] = api_key.strip()
+                        elif provider in ("nvidia", "minimax"):
+                            cfg["NVIDIA_NIM_API_KEY"] = api_key.strip()
                 else:
                     cfg.pop(key_name, None)
+                    if provider == "gemini":
+                        cfg.pop("GOOGLE_API_KEY", None)
+                    elif provider in ("nvidia", "minimax"):
+                        cfg.pop("NVIDIA_NIM_API_KEY", None)
                     
             if base_url.strip() and provider == "custom":
                 cfg["CUSTOM_BASE_URL"] = base_url.strip()
@@ -2620,17 +2637,22 @@ async def save_automation_config(
             raise HTTPException(status_code=500, detail=f"Failed to write config: {e}")
         return {"status": "success"}
 
+_CACHED_PROVIDERS = None
+_CACHED_MODEL_COST = None
+
 @app.get("/api/llm/providers")
 async def get_llm_providers():
+    global _CACHED_PROVIDERS
+    if _CACHED_PROVIDERS is not None:
+        return {"providers": _CACHED_PROVIDERS}
+
     try:
         import litellm
         import os
         import json
 
-        model_cost = {}
-        if hasattr(litellm, "model_cost"):
-            model_cost = litellm.model_cost
-        else:
+        model_cost = getattr(litellm, "model_cost", {})
+        if not model_cost:
             try:
                 backup_path = os.path.join(os.path.dirname(litellm.__file__), "model_prices_and_context_window_backup.json")
                 with open(backup_path, "r", encoding="utf-8") as f:
@@ -2669,23 +2691,26 @@ async def get_llm_providers():
 
         clean_providers = sorted(list(set(p for p in providers if clean_provider_name(p))))
         
-        # Ensure standard fallbacks are included
         standard_fallbacks = ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama", "cohere", "mistral", "vertex_ai", "bedrock", "openrouter", "deepinfra", "together_ai", "xai"]
         for sf in standard_fallbacks:
             if sf not in clean_providers:
                 clean_providers.append(sf)
 
-        return {"providers": sorted(clean_providers)}
+        _CACHED_PROVIDERS = sorted(clean_providers)
+        return {"providers": _CACHED_PROVIDERS}
     except Exception as e:
-        return {"providers": ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama", "cohere", "mistral", "vertex_ai", "bedrock", "openrouter", "deepinfra", "together_ai", "xai"], "error": str(e)}
+        fallback_list = ["openai", "anthropic", "nvidia", "groq", "gemini", "ollama", "cohere", "mistral", "vertex_ai", "bedrock", "openrouter", "deepinfra", "together_ai", "xai"]
+        _CACHED_PROVIDERS = fallback_list
+        return {"providers": fallback_list, "error": str(e)}
 
 def _is_text_generation_model(model_name: str, info: Optional[dict] = None) -> bool:
     low_name = model_name.lower()
     _EXCLUDE_SUBSTRINGS = (
-        "embed", "ada-002", "dall-e", "stable-diffusion", "imagen", "image-generation",
+        "embed", "ada-002", "dall-e", "stable-diffusion", "diffusion", "imagen", "image-generation",
         "tts", "whisper", "audio", "speech", "realtime", "moderation", "content-filter",
         "shield", "guard", "rerank", "clip", "vit", "siglip", "transcription", "translation",
-        "vector_store", "search-", "encoder", "ocr", "video_generation", "image_edit"
+        "vector_store", "search-", "encoder", "ocr", "video_generation", "image_edit",
+        "deplot", "starcoder", "codeclippy", "fuyu", "neva", "kosmos", "paligemma", "nvaie", "canvas"
     )
     if any(sub in low_name for sub in _EXCLUDE_SUBSTRINGS):
         return False
@@ -2809,23 +2834,44 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
                 if res.status_code == 200:
                     models = [m['id'] for m in res.json().get("data", [])]
                     fetched_successfully = True
+            elif provider == "ollama":
+                base_url = clean_key if clean_key.startswith("http") else os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+                res = requests.get(f"{base_url.rstrip('/')}/api/tags", timeout=3)
+                if res.status_code == 200:
+                    tags = res.json().get("models", [])
+                    raw_names = [m.get("name") for m in tags if m.get("name")]
+                    models = [f"ollama/{name}" if not name.startswith("ollama/") else name for name in raw_names]
+                    fetched_successfully = True
         except Exception:
             pass # Fallback to litellm list if request fails
 
-    import litellm
-    import os
-    
-    # Load litellm dictionary
-    model_cost = {}
-    if hasattr(litellm, "model_cost"):
-        model_cost = litellm.model_cost
-    else:
+    if provider == "ollama" and not fetched_successfully:
         try:
-            backup_path = os.path.join(os.path.dirname(litellm.__file__), "model_prices_and_context_window_backup.json")
-            with open(backup_path, "r", encoding="utf-8") as f:
-                model_cost = json.load(f)
+            import requests
+            base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+            res = requests.get(f"{base_url.rstrip('/')}/api/tags", timeout=3)
+            if res.status_code == 200:
+                tags = res.json().get("models", [])
+                raw_names = [m.get("name") for m in tags if m.get("name")]
+                if raw_names:
+                    models = [f"ollama/{name}" if not name.startswith("ollama/") else name for name in raw_names]
+                    fetched_successfully = True
         except Exception:
             pass
+
+    global _CACHED_MODEL_COST
+    if _CACHED_MODEL_COST is None:
+        try:
+            import litellm
+            _CACHED_MODEL_COST = getattr(litellm, "model_cost", {})
+            if not _CACHED_MODEL_COST:
+                backup_path = os.path.join(os.path.dirname(litellm.__file__), "model_prices_and_context_window_backup.json")
+                with open(backup_path, "r", encoding="utf-8") as f:
+                    _CACHED_MODEL_COST = json.load(f)
+        except Exception:
+            _CACHED_MODEL_COST = {}
+
+    model_cost = _CACHED_MODEL_COST
 
     provider_models = []
     
@@ -2872,31 +2918,24 @@ async def get_llm_models(provider: str, api_key: Optional[str] = None):
         except Exception:
             pass
 
-    provider_models = sorted(list(set(provider_models)))
+    unique_models = list(set(provider_models))
+    
+    def _model_priority(model_name: str) -> tuple:
+        low = model_name.lower()
+        featured_keywords = [
+            "llama-3.3-70b", "llama-3.1-8b", "llama-3.1-70b", "nemotron-70b",
+            "llama-3.1", "llama-3.2", "llama-3.3", "deepseek-r1", "deepseek-chat",
+            "mistral-large", "mistral-small", "gemma-2-27b", "gemma-2-9b",
+            "qwen2.5-72b", "qwen2-7b", "gpt-4o", "claude-3-5-sonnet",
+            "gemini-1.5-flash", "gemini-1.5-pro", "command-r"
+        ]
+        for idx, kw in enumerate(featured_keywords):
+            if kw in low:
+                return (0, idx, low)
+        return (1, 0, low)
 
-    verified_models = []
-    # Upstream active validation check
-    if api_key and api_key.strip() and not api_key.endswith("..."):
-        import concurrent.futures
-        clean_key = api_key.strip()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_model = {
-                executor.submit(_verify_single_model, provider, model, clean_key): model
-                for model in provider_models
-            }
-            for future in concurrent.futures.as_completed(future_to_model):
-                model = future_to_model[future]
-                try:
-                    is_active = future.result()
-                    if is_active:
-                        verified_models.append(model)
-                except Exception:
-                    verified_models.append(model)
-    else:
-        verified_models = provider_models
-
-    verified_models = sorted(list(set(verified_models)))
-    return {"models": verified_models}
+    provider_models = sorted(unique_models, key=_model_priority)
+    return {"models": provider_models}
 
 # Duplicate validate-key endpoint removed in favor of validate_api_key defined at line 1374.
 

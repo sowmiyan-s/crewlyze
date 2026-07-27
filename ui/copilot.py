@@ -411,6 +411,11 @@ def stream_copilot_query(
         payload = {"type": event_type, **data}
         return f"data: {json.dumps(payload)}\n\n"
 
+    # Synchronize context variables with sidebar LLM selection
+    from config.llm_config import apply_runtime_llm_settings
+    if provider and model:
+        apply_runtime_llm_settings(provider, model, api_key or "", env_key_name or "")
+
     # Step 1: Yield reasoning phase
     yield sse("thought", {"text": "Thinking..."})
 

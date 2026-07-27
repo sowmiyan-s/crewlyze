@@ -21,6 +21,8 @@ def make_visualizer_agent() -> Agent:
             "CRITICAL RULE: You will be given a 'RELATIONSHIPS TO VISUALIZE' section in your task. You MUST "
             "generate charts for EXACTLY those specified column pairs (X and Y columns listed). Do NOT invent "
             "different columns. Do NOT skip any pair. Use the chart Type hint given for each pair.\n\n"
+            "DATA TYPE CASTING SAFETY: Before plotting any numeric variable (e.g. for scatter, line, histogram, or bar chart value axis), "
+            "always ensure it is converted using `df[col] = pd.to_numeric(df[col], errors='coerce')` so numbers are never plotted as discrete string ticks on continuous axes.\n\n"
             "Apply a clean white theme: set figure facecolor to 'white', axes facecolor to '#f8fafc', "
             "tick/label colors to '#334155'. Use high-contrast corporate colors like '#4f46e5', '#06b6d4', '#ec4899', '#10b981'."
         ),

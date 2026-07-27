@@ -433,7 +433,7 @@ def _run_auto_relation_fallback(df: pd.DataFrame) -> str:
         return f"- X: {df.columns[0]} | Y: {df.columns[0]} | Type: Bar Chart | Details: Fallback relation due to error: {e}"
 
 
-def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "") -> str:
+def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "", error_reason: str = "") -> str:
     """
     Generate standard fallback consulting report with 5 insights based on dataframe profile.
     """
@@ -441,14 +441,14 @@ def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "") -> str
     num_cols = df.select_dtypes(include=["number"]).columns.tolist()
     cat_cols = df.select_dtypes(exclude=["number"]).columns.tolist()
     
-    goal_sentence = f"Addressing the primary objective: '{project_goal}'" if project_goal else "Standard dataset optimization"
+    goal_sentence = f"Addressing primary objective: '{project_goal}'" if project_goal else "Standard dataset optimization"
     
     report = []
     report.append("### Objectives & Goals")
     report.append(f"Execute comprehensive automated analysis. {goal_sentence}.\n")
     
     report.append("### Dataset Statistics")
-    report.append(f"- Total rows: {n_rows}")
+    report.append(f"- Total rows: {n_rows:,}")
     report.append(f"- Total columns: {n_cols}")
     report.append(f"- Numeric columns: {', '.join(num_cols) if num_cols else 'None'}")
     report.append(f"- Categorical columns: {', '.join(cat_cols) if cat_cols else 'None'}\n")
@@ -461,7 +461,7 @@ def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "") -> str
         strat = "Establish tracking dashboards to monitor column distributions and segment actions accordingly."
         if i == 1 and num_cols:
             obs = f"Descriptive statistical summary of key driver '{num_cols[0]}' shows standard distribution."
-            impl = f"Operational variance in '{num_cols[0]}' direct impacts overall workflow efficiency and revenue metrics."
+            impl = f"Operational variance in '{num_cols[0]}' directly impacts overall workflow efficiency and revenue metrics."
             strat = f"Implement optimization safeguards on '{num_cols[0]}' to minimize operational deviation."
         elif i == 2 and len(num_cols) >= 2:
             obs = f"Correlation analysis shows distinct dependency between '{num_cols[0]}' and '{num_cols[1]}'."
@@ -477,9 +477,104 @@ def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "") -> str
         report.append(f"   **Actionable Strategy**: {strat}\n")
         
     report.append("### Warnings & Alerts")
-    report.append("- [Auto-Healing Fallback Alert]: Active insights agent failed. Showing baseline statistical intelligence insights.")
+    
+    err_lower = str(error_reason).lower()
+    if "401" in err_lower or "unauthorized" in err_lower or "api key" in err_lower or "invalid api" in err_lower:
+        report.append("- ⚠️ **[API Key Error]**: Active AI Insights agent encountered a 401 Authentication Error (Invalid/Expired API Key). Please verify your API Key in the left sidebar settings. Output below was generated via statistical intelligence.")
+    elif "429" in err_lower or "rate limit" in err_lower or "quota" in err_lower:
+        report.append("- ⚠️ **[Rate Limit Alert]**: Active AI Insights agent hit provider rate limits. Output below was generated via statistical intelligence.")
+    elif "connection" in err_lower or "dns" in err_lower or "network" in err_lower:
+        report.append("- ⚠️ **[Network Connection Warning]**: LLM API endpoint was unreachable. Output below was generated via statistical intelligence.")
+    elif error_reason:
+        report.append(f"- ⚠️ **[Auto-Healing Fallback Alert]**: Active Insights agent encountered an execution issue (`{str(error_reason)[:100]}`). Showing statistical intelligence insights.")
+    else:
+        report.append("- [Auto-Healing Fallback Alert]: Active insights agent failed. Showing baseline statistical intelligence insights.")
     
     return "\n".join(report)
+
+
+def _run_auto_anomaly_fallback(df: pd.DataFrame) -> str:
+    """
+    Generate a pure-Python statistical anomaly and risk report using IQR and Z-Score outlier detection.
+    """
+    report = ["### 🛡️ Statistical Anomaly & Risk Audit (Auto-Healing Fallback)\n"]
+    num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+    
+    if not num_cols:
+        report.append("No numeric columns detected in dataset for statistical outlier scanning.")
+        return "\n".join(report)
+    
+    total_anomalies = 0
+    col_reports = []
+    
+    for col in num_cols[:10]:
+        series = df[col].dropna()
+        if len(series) < 5:
+            continue
+        q1 = series.quantile(0.25)
+        q3 = series.quantile(0.75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        outliers = series[(series < lower_bound) | (series > upper_bound)]
+        outlier_count = len(outliers)
+        
+        if outlier_count > 0:
+            total_anomalies += outlier_count
+            pct = (outlier_count / len(series)) * 100
+            min_val = series.min()
+            max_val = series.max()
+            mean_val = series.mean()
+            std_val = series.std()
+            col_reports.append(
+                f"- **{col}**: Detected `{outlier_count}` outliers (`{pct:.1f}%` of values outside IQR range [{lower_bound:.2f}, {upper_bound:.2f}]). "
+                f"Range: `{min_val:.2f}` to `{max_val:.2f}` (Mean: `{mean_val:.2f}`, Std: `{std_val:.2f}`)."
+            )
+            
+    if col_reports:
+        report.append(f"Detected a total of `{total_anomalies}` statistical anomalies across numeric variables:\n")
+        report.extend(col_reports)
+    else:
+        report.append("✅ No extreme statistical outliers detected across numeric columns using 1.5x IQR criteria.")
+        
+    report.append("\n**Risk Advisory**: Monitor extreme values before running predictive modeling to prevent skewed model weights.")
+    return "\n".join(report)
+
+
+def _run_auto_trend_fallback(df: pd.DataFrame) -> str:
+    """
+    Generate a pure-Python statistical time-series and directional trend analysis report.
+    """
+    report = ["### 📈 Time-Series & Trajectory Trend Analysis (Auto-Healing Fallback)\n"]
+    
+    num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+    date_cols = [col for col in df.columns if any(kw in col.lower() for kw in ("date", "time", "year", "month", "day", "quarter"))]
+    
+    if date_cols:
+        report.append(f"- **Temporal Column Detected**: `{date_cols[0]}`")
+        report.append(f"- Total tracking periods: `{len(df[date_cols[0]].dropna())}`")
+        
+    if num_cols:
+        report.append("\n#### **Key Numeric Trajectories & Volatility**")
+        for col in num_cols[:5]:
+            series = df[col].dropna()
+            if len(series) < 2:
+                continue
+            first_val = series.iloc[0]
+            last_val = series.iloc[-1]
+            change = last_val - first_val
+            pct_change = (change / abs(first_val) * 100) if first_val != 0 else 0
+            direction = "📈 Increasing" if change > 0 else ("📉 Decreasing" if change < 0 else "➡️ Stable")
+            
+            report.append(
+                f"- **{col}**: {direction} trajectory over dataset sequence. Start: `{first_val:.2f}`, End: `{last_val:.2f}` (Overall Delta: `{change:+.2f}`, `{pct_change:+.1f}%`)."
+            )
+    else:
+        report.append("No continuous numeric sequence columns available for time-series trend calculation.")
+        
+    report.append("\n**Forward Outlook**: Maintain rolling trend tracking to identify seasonal momentum shifts early.")
+    return "\n".join(report)
+
 
 
 # ---------------------------------------------------------------------------
@@ -835,7 +930,7 @@ def run_crew(
             print(f"Insights Agent error: {e}. Activating auto-healing fallback...")
             if os.getenv("CREWLYZE_DEBUG") == "true":
                 traceback.print_exc()
-            insights_output = _run_auto_insights_fallback(df, project_goal)
+            insights_output = _run_auto_insights_fallback(df, project_goal, error_reason=str(e))
 
         stage_times["insights"] = time.time() - start_ins_stage
         _progress("insights", insights_output)

@@ -77,19 +77,36 @@
 
     <!-- LLM Settings -->
     <div class="sidebar-section">
-      <div class="sidebar-section-header"><span>LLM CONFIGURATION</span></div>
+      <div class="sidebar-section-header" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>LLM CONFIGURATION</span>
+        <button id="sidebarAddProviderBtn" type="button" class="sidebar-add-provider-btn" title="Configure API keys & custom providers">
+          <i data-lucide="plus" style="width: 11px; height: 11px; vertical-align: middle;"></i> Add Provider
+        </button>
+      </div>
 
       <label class="field-label">Provider</label>
       <select id="llmProvider" class="field-select">
         <!-- Dynamically populated -->
       </select>
 
-      <label class="field-label">Model</label>
+      <label class="field-label" style="margin-top: 8px;">Model</label>
       <input type="text" id="llmModel" class="field-input" list="modelList" placeholder="Select or type model..." />
       <datalist id="modelList"></datalist>
+
+      <!-- Ollama / Missing Model Warning Banner -->
+      <div id="ollamaWarning" class="hidden" style="font-size: 0.72rem; color: #f59e0b; background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: var(--r-sm); padding: 8px; margin-top: 8px; line-height: 1.4; text-align: left;">
+        <i data-lucide="alert-triangle" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 3px;"></i>
+        <span id="ollamaWarningText">Model not detected in local Ollama library. Please download it using <code>ollama pull &lt;model&gt;</code>.</span>
+      </div>
+
       <div id="sidebarApiKeyStatus"
         style="font-size: 0.75rem; margin-top: 10px; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
       </div>
+
+      <!-- Save Model Button -->
+      <button id="sidebarSaveLlmBtn" type="button" class="btn-primary" style="width: 100%; margin-top: 10px; padding: 8px 12px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; border-radius: var(--r-sm);">
+        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Model Selection
+      </button>
 
       <!-- Hidden elements to ensure backward compatibility in app.js -->
       <input type="hidden" id="apiKey" />
@@ -287,177 +304,135 @@
     <div id="configModal" class="modal-overlay hidden">
       <div class="modal-box">
         <div class="modal-header">
-          <h2><i data-lucide="settings"
-              style="width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;"></i> Analysis Configuration
+          <h2><i data-lucide="cpu"
+              style="width: 22px; height: 22px; color: var(--violet-light);"></i> Analysis &amp; Agent Configuration
           </h2>
           <button id="closeConfigModal" class="btn-icon">✕</button>
         </div>
 
         <div class="modal-body">
-          <p class="modal-hint">Select which stages to run. Dependencies are enforced automatically.</p>
+          <!-- Dataset Statistics & Quality Alert Banner -->
+          <div id="configDatasetBanner" class="config-dataset-banner"></div>
 
-          <!-- Task cards -->
-          <div class="task-grid" id="taskGrid">
-            <label class="task-card" id="taskCardCleaning">
-              <input type="checkbox" id="taskCleaning" value="cleaning" checked />
-              <div class="task-card-icon"><i data-lucide="brush"
-                  style="width: 20px; height: 20px; color: var(--violet-light);"></i></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Data Cleaning</div>
-                <div class="task-card-desc">Fix quality issues: missing values, types, duplicates.</div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
+          <div>
+            <div class="config-section-title" style="margin-bottom: 6px;"><i data-lucide="layers" style="width: 15px; height: 15px; color: var(--violet-light);"></i> Select AI Agents &amp; Pipeline Stages</div>
+            <p class="modal-hint" style="margin-top: 0; margin-bottom: 16px; color: var(--text-secondary); font-size: 0.82rem; line-height: 1.4;">Choose which AI agents to include in this analysis run. Stage dependencies are enforced automatically.</p>
 
-            <label class="task-card" id="taskCardRelations">
-              <input type="checkbox" id="taskRelations" value="relations" checked />
-              <div class="task-card-icon"><i data-lucide="link"
-                  style="width: 20px; height: 20px; color: var(--cyan);"></i></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Relationship Analysis</div>
-                <div class="task-card-desc">Discover correlations &amp; patterns. <em>Requires Cleaning.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-
-            <label class="task-card" id="taskCardInsights">
-              <input type="checkbox" id="taskInsights" value="insights" checked />
-              <div class="task-card-icon"><i data-lucide="lightbulb"
-                  style="width: 20px; height: 20px; color: var(--amber);"></i></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Business Insights</div>
-                <div class="task-card-desc">Strategic recommendations. <em>Requires Cleaning.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-
-            <label class="task-card" id="taskCardViz">
-              <input type="checkbox" id="taskViz" value="visualization" checked />
-              <div class="task-card-icon"><i data-lucide="trending-up"
-                  style="width: 20px; height: 20px; color: var(--rose);"></i></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Visualization</div>
-                <div class="task-card-desc">Interactive charts &amp; PNGs. <em>Requires Relations.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-
-            <label class="task-card" id="taskCardPredictive">
-              <input type="checkbox" id="taskPredictive" value="predictive" />
-              <div class="task-card-icon"><i data-lucide="cpu"
-                  style="width: 20px; height: 20px; color: #a855f7;"></i></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Predictive Auto-ML</div>
-                <div class="task-card-desc">Feature importance &amp; ML modeling. <em>Optional.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-
-            <label class="task-card" id="taskCardAnomaly">
-              <input type="checkbox" id="taskAnomaly" value="anomaly" />
-              <div class="task-card-icon"><div style="display:inline-block; font-size:16px;">🛡️</div></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Anomaly Risk Audit</div>
-                <div class="task-card-desc">Outlier detection &amp; risk warnings. <em>Optional.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-
-            <label class="task-card" id="taskCardTrend">
-              <input type="checkbox" id="taskTrend" value="trend" />
-              <div class="task-card-icon"><div style="display:inline-block; font-size:16px;">📈</div></div>
-              <div class="task-card-body">
-                <div class="task-card-title">Trend Forecast</div>
-                <div class="task-card-desc">Temporal growth &amp; momentum projection. <em>Optional.</em></div>
-              </div>
-              <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
-            </label>
-          </div>
-
-          <!-- Analysis depth -->
-          <div class="depth-selector">
-            <div class="depth-label"><i data-lucide="search"
-                style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Analysis Depth</div>
-            <div class="depth-options">
-              <label class="depth-option active" id="depthStandard">
-                <input type="radio" name="depth" value="false" checked />
-                <span class="depth-icon"><i data-lucide="zap"
-                    style="width: 14px; height: 14px; color: var(--violet-light);"></i></span>
-                <span class="depth-name">Standard</span>
-                <span class="depth-desc">Faster, concise</span>
+            <!-- Task cards Grid (3-column spacious layout) -->
+            <div class="task-grid" id="taskGrid">
+              <label class="task-card" id="taskCardCleaning">
+                <input type="checkbox" id="taskCleaning" value="cleaning" checked />
+                <div class="task-card-icon"><i data-lucide="brush"
+                    style="width: 22px; height: 22px; color: var(--violet-light);"></i></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Data Cleaning</div>
+                  <div class="task-card-desc">Fix quality issues: missing values, types, duplicates.</div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
               </label>
-              <label class="depth-option" id="depthDeep">
-                <input type="radio" name="depth" value="true" />
-                <span class="depth-icon"><i data-lucide="microscope"
-                    style="width: 14px; height: 14px; color: var(--cyan);"></i></span>
-                <span class="depth-name">Deep</span>
-                <span class="depth-desc">Richer analysis &amp; detail</span>
+
+              <label class="task-card" id="taskCardRelations">
+                <input type="checkbox" id="taskRelations" value="relations" checked />
+                <div class="task-card-icon"><i data-lucide="link"
+                    style="width: 22px; height: 22px; color: var(--cyan);"></i></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Relationship Analysis</div>
+                  <div class="task-card-desc">Discover correlations &amp; patterns. <em>Requires Cleaning.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+              </label>
+
+              <label class="task-card" id="taskCardInsights">
+                <input type="checkbox" id="taskInsights" value="insights" checked />
+                <div class="task-card-icon"><i data-lucide="lightbulb"
+                    style="width: 22px; height: 22px; color: var(--amber);"></i></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Business Insights</div>
+                  <div class="task-card-desc">Strategic recommendations. <em>Requires Cleaning.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+              </label>
+
+              <label class="task-card" id="taskCardViz">
+                <input type="checkbox" id="taskViz" value="visualization" checked />
+                <div class="task-card-icon"><i data-lucide="trending-up"
+                    style="width: 22px; height: 22px; color: var(--rose);"></i></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Visualization</div>
+                  <div class="task-card-desc">Interactive charts &amp; PNGs. <em>Requires Relations.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+              </label>
+
+              <label class="task-card" id="taskCardPredictive">
+                <input type="checkbox" id="taskPredictive" value="predictive" />
+                <div class="task-card-icon"><i data-lucide="cpu"
+                    style="width: 22px; height: 22px; color: #a855f7;"></i></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Predictive Auto-ML</div>
+                  <div class="task-card-desc">Feature importance &amp; ML modeling. <em>Optional.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+              </label>
+
+              <label class="task-card" id="taskCardAnomaly">
+                <input type="checkbox" id="taskAnomaly" value="anomaly" />
+                <div class="task-card-icon"><div style="display:inline-block; font-size:18px;">🛡️</div></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Anomaly Risk Audit</div>
+                  <div class="task-card-desc">Outlier detection &amp; risk warnings. <em>Optional.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+              </label>
+
+              <label class="task-card" id="taskCardTrend">
+                <input type="checkbox" id="taskTrend" value="trend" />
+                <div class="task-card-icon"><div style="display:inline-block; font-size:18px;">📈</div></div>
+                <div class="task-card-body">
+                  <div class="task-card-title">Trend Forecast</div>
+                  <div class="task-card-desc">Temporal growth &amp; momentum projection. <em>Optional.</em></div>
+                </div>
+                <div class="task-card-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
               </label>
             </div>
           </div>
 
-          <!-- Analysis Focus & Goal Description -->
-          <div class="field-group">
-            <label class="field-label" style="display: flex; align-items: center; justify-content: space-between; font-weight: 600; color: #fff;">
-              <span><i data-lucide="target" style="width: 14px; height: 14px; color: var(--violet-light); vertical-align: middle; margin-right: 4px;"></i> Analysis Focus &amp; Objective Description</span>
-              <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: normal;">Guides AI Agents to achieve project goals</span>
-            </label>
-            <textarea id="configProjectGoal" class="field-input" rows="2"
-              placeholder="Describe your analysis goal or target focus (e.g., Identify top 10% highest-margin segments, audit risk outliers, project growth momentum)..." style="resize: vertical; font-family: inherit; font-size: 0.85rem; padding: 10px 14px;"></textarea>
-            <input type="hidden" id="reportTitle" value="" />
-          </div>
-
-          <!-- Custom Data Cleaning Rules -->
-          <div class="field-group" style="margin-top: 16px;">
-            <div id="cleaningRulesToggle" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px 14px; border: 1px dashed var(--border-mid); border-radius: var(--r-md); background: rgba(255,255,255,0.01); transition: all 0.2s;" onclick="toggleConfigCleaningRules()">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="brush" style="width: 14px; height: 14px; color: var(--violet-light);"></i> Custom Cleaning Rules (Optional)
-              </span>
-              <i id="cleaningRulesChevron" data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary); transition: transform 0.2s;"></i>
+          <!-- Secondary Row: Depth Selector + Objective Goal -->
+          <div class="config-secondary-row">
+            <!-- Analysis Depth -->
+            <div class="depth-selector">
+              <div class="depth-label"><i data-lucide="search" style="width: 14px; height: 14px; color: var(--violet-light);"></i> Analysis Depth</div>
+              <div class="depth-options">
+                <label class="depth-option active" id="depthStandard">
+                  <input type="radio" name="depth" value="false" checked />
+                  <span class="depth-name"><i data-lucide="zap" style="width: 14px; height: 14px; color: var(--violet-light); vertical-align: middle; margin-right: 4px;"></i> Standard</span>
+                  <span class="depth-desc">Faster, concise execution</span>
+                </label>
+                <label class="depth-option" id="depthDeep">
+                  <input type="radio" name="depth" value="true" />
+                  <span class="depth-name"><i data-lucide="microscope" style="width: 14px; height: 14px; color: var(--cyan); vertical-align: middle; margin-right: 4px;"></i> Deep</span>
+                  <span class="depth-desc">Richer analysis &amp; detail</span>
+                </label>
+              </div>
             </div>
-            
-            <div id="cleaningRulesOptions" class="hidden" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px; padding: 12px 14px; border: 1px solid var(--border-low); border-radius: var(--r-md); background: rgba(0, 0, 0, 0.15);">
-              
-              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="cleanRuleDateFormat" checked style="margin-top: 3px;" />
-                <div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #fff;">Standardize Dates</div>
-                  <div style="font-size: 0.72rem; color: var(--text-secondary);">Convert varying date formats to unified YYYY-MM-DD.</div>
-                </div>
-              </label>
 
-              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="cleanRuleFillNumeric" checked style="margin-top: 3px;" />
-                <div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #fff;">Fill Missing Numbers with Median</div>
-                  <div style="font-size: 0.72rem; color: var(--text-secondary);">Impute numeric blanks automatically using column medians.</div>
-                </div>
+            <!-- Analysis Focus & Goal Description -->
+            <div class="field-group-objective">
+              <label class="field-label">
+                <span><i data-lucide="target" style="width: 14px; height: 14px; color: var(--violet-light); vertical-align: middle; margin-right: 4px;"></i> Analysis Focus &amp; Objective Description</span>
+                <span class="field-badge">Guides AI Agents</span>
               </label>
-
-              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="cleanRuleDropDuplicates" checked style="margin-top: 3px;" />
-                <div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #fff;">Drop Duplicate Rows</div>
-                  <div style="font-size: 0.72rem; color: var(--text-secondary);">Filter out duplicate row records across the entire dataset.</div>
-                </div>
-              </label>
-
-              <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; margin: 0;">
-                <input type="checkbox" id="cleanRuleStripStrings" checked style="margin-top: 3px;" />
-                <div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: #fff;">Normalize Whitespaces &amp; Text</div>
-                  <div style="font-size: 0.72rem; color: var(--text-secondary);">Strip outer padding spaces and clean standard text columns.</div>
-                </div>
-              </label>
-
+              <textarea id="configProjectGoal" class="field-input" rows="2"
+                placeholder="Describe your target focus (e.g., Identify top 10% margin segments, audit risk outliers)..."></textarea>
+              <input type="hidden" id="reportTitle" value="" />
             </div>
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button id="cancelConfigBtn" class="btn-secondary">Cancel</button>
-          <button id="runAnalysisBtn" class="btn-primary"><i data-lucide="play"
-              style="width: 14px; height: 14px; fill: currentColor; vertical-align: middle; margin-right: 4px;"></i>
+        <div class="modal-footer" style="padding: 18px 32px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; align-items: center; justify-content: flex-end; gap: 14px;">
+          <button id="cancelConfigBtn" class="btn-secondary" style="padding: 10px 20px; font-weight: 600;">Cancel</button>
+          <button id="runAnalysisBtn" class="btn-primary" style="padding: 10px 26px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 0 20px rgba(255, 37, 42, 0.3);"><i data-lucide="play"
+              style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
             Start Analysis</button>
         </div>
       </div>
@@ -742,7 +717,7 @@
         <div class="stats-row" id="statsRow" style="margin-bottom: 20px;"></div>
 
         <!-- Tabs -->
-        <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px;">
+        <div class="tabs-bar" id="agenticTabsBar" style="margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap;">
           <button class="tab-btn active" data-tab="cleaning"><i data-lucide="brush"
               style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Cleaning
             Report</button>
@@ -754,6 +729,12 @@
             Insights</button>
           <button class="tab-btn" data-tab="charts"><i data-lucide="trending-up"
               style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Visualizations</button>
+          <button class="tab-btn tab-agent-animated" data-tab="predictive"><i data-lucide="cpu"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Predictive Auto-ML</button>
+          <button class="tab-btn tab-agent-animated" data-tab="anomaly"><i data-lucide="shield-alert"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Risk Audit</button>
+          <button class="tab-btn tab-agent-animated" data-tab="trend"><i data-lucide="line-chart"
+              style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Trend Forecast</button>
           <button class="tab-btn" data-tab="logs"><i data-lucide="clipboard-list"
               style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> Agent Logs</button>
         </div>
@@ -828,49 +809,84 @@
             </details>
           </div>
 
+          <!-- PREDICTIVE AUTO-ML PANEL -->
+          <div class="tab-panel" id="panel-predictive">
+            <div class="panel-header-animated predictive-header" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+              <h3 class="panel-title" style="margin: 0;"><i data-lucide="cpu" style="width: 18px; height: 18px; color: var(--cyan); vertical-align: middle; margin-right: 6px;"></i> Predictive Auto-ML Engine</h3>
+              <span class="animated-agent-badge cyan-pulse"><i data-lucide="zap" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Auto-ML Active</span>
+            </div>
+            
+            <div class="predictive-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 20px;">
+              <div class="predictive-card glow-cyan" style="padding: 18px; background: rgba(6, 182, 212, 0.05); border: 1px solid rgba(6, 182, 212, 0.2); border-radius: var(--r-md); transition: all 0.3s;">
+                <div class="card-tag" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Target Feature Inferred</div>
+                <div id="predTargetCol" class="card-value-lg" style="font-size: 1.25rem; font-weight: 700; color: var(--cyan); margin: 6px 0;">Primary Dependent Variable</div>
+                <div class="card-sub" style="font-size: 0.74rem; color: var(--text-secondary);">Calculated via RandomForest Feature Importances</div>
+              </div>
+              <div class="predictive-card glow-violet" style="padding: 18px; background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: var(--r-md); transition: all 0.3s;">
+                <div class="card-tag" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Model Accuracy Score</div>
+                <div id="predModelScore" class="card-value-lg" style="font-size: 1.25rem; font-weight: 700; color: var(--violet-light); margin: 6px 0;">Cross-Validated Auto-ML</div>
+                <div class="card-sub" style="font-size: 0.74rem; color: var(--text-secondary);">RandomForest &amp; Decision Tree feature weights</div>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md);">
+              <h4 style="margin: 0 0 16px 0; color: #fff; font-size: 0.98rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="bar-chart-3" style="width: 16px; height: 16px; color: var(--cyan);"></i> Feature Importance Rankings &amp; Key Drivers</h4>
+              <div id="predFeatureImportanceList" class="feature-importance-bars" style="margin-bottom: 16px;"></div>
+              <div id="predAgentText" class="markdown-body" style="font-size: 0.85rem; line-height: 1.6; color: #d4d4d8;"></div>
+            </div>
+          </div>
+
+          <!-- ANOMALY RISK AUDIT PANEL -->
+          <div class="tab-panel" id="panel-anomaly">
+            <div class="panel-header-animated anomaly-header" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+              <h3 class="panel-title" style="margin: 0;"><i data-lucide="shield-alert" style="width: 18px; height: 18px; color: #f59e0b; vertical-align: middle; margin-right: 6px;"></i> Quantitative Anomaly &amp; Risk Audit</h3>
+              <span class="animated-agent-badge amber-pulse"><i data-lucide="shield" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Outlier Scanner Active</span>
+            </div>
+
+            <div id="anomalyStatusCard" class="card anomaly-status-banner warning-glow" style="margin-bottom: 20px; padding: 16px 20px; border-radius: var(--r-md); display: flex; align-items: center; gap: 14px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2);">
+              <div class="status-icon"><i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: #fbbf24;"></i></div>
+              <div>
+                <h4 style="margin: 0 0 4px 0; color: #fff; font-size: 1rem;">Data Risk Assessment</h4>
+                <p id="anomalyStatusText" style="margin: 0; font-size: 0.84rem; color: var(--text-secondary);">Scanned continuous numeric variables for IQR &amp; Z-score distribution outliers.</p>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md);">
+              <h4 style="margin: 0 0 16px 0; color: #fff; font-size: 0.98rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="activity" style="width: 16px; height: 16px; color: #fbbf24;"></i> Outlier Breakdown &amp; Mitigation Advisory</h4>
+              <div id="anomalyAgentText" class="markdown-body" style="font-size: 0.85rem; line-height: 1.6; color: #e4e4e7;"></div>
+            </div>
+          </div>
+
+          <!-- TREND FORECAST PANEL -->
+          <div class="tab-panel" id="panel-trend">
+            <div class="panel-header-animated trend-header" style="margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between;">
+              <h3 class="panel-title" style="margin: 0;"><i data-lucide="line-chart" style="width: 18px; height: 18px; color: #10b981; vertical-align: middle; margin-right: 6px;"></i> Time-Series Trend &amp; Momentum Projection</h3>
+              <span class="animated-agent-badge emerald-pulse"><i data-lucide="trending-up" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i> Trajectory Forecaster Active</span>
+            </div>
+
+            <div class="trend-summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
+              <div class="trend-card glow-emerald" style="padding: 18px; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--r-md); transition: all 0.3s;">
+                <div class="card-tag" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Overall Growth Momentum</div>
+                <div id="trendDirectionVal" class="card-value-lg text-emerald" style="font-size: 1.25rem; font-weight: 700; color: #34d399; margin: 6px 0;">📈 Positive Trajectory</div>
+                <div class="card-sub" style="font-size: 0.74rem; color: var(--text-secondary);">Based on sequential time-series momentum</div>
+              </div>
+              <div class="trend-card glow-blue" style="padding: 18px; background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: var(--r-md); transition: all 0.3s;">
+                <div class="card-tag" style="font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600;">Primary Time-Series Key</div>
+                <div id="trendTimeCol" class="card-value-lg" style="font-size: 1.25rem; font-weight: 700; color: #38bdf8; margin: 6px 0;">Sequence Order</div>
+                <div class="card-sub" style="font-size: 0.74rem; color: var(--text-secondary);">Calculated YoY / MoM trajectory delta</div>
+              </div>
+            </div>
+
+            <div class="card" style="padding: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md);">
+              <h4 style="margin: 0 0 16px 0; color: #fff; font-size: 0.98rem; display: flex; align-items: center; gap: 8px;"><i data-lucide="compass" style="width: 16px; height: 16px; color: #10b981;"></i> Forward-Looking Strategic Forecast</h4>
+              <div id="trendAgentText" class="markdown-body" style="font-size: 0.85rem; line-height: 1.6; color: #e4e4e7;"></div>
+            </div>
+          </div>
+
           <!-- AGENT LOGS -->
           <div class="tab-panel" id="panel-logs">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <h3 class="panel-title" style="margin: 0;"><i data-lucide="clipboard-list"
-                  style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Agent Execution Logs &amp; Pipeline Status
-              </h3>
-            </div>
-
-            <!-- Multi-Agent Execution Progress Stepper -->
-            <div id="pipelineProgressStepper" class="pipeline-stepper-card" style="margin-bottom: 16px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--r-md); padding: 14px 18px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="font-size: 0.8rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 6px;">
-                  <i data-lucide="cpu" style="width: 15px; height: 15px; color: var(--violet-light);"></i> Multi-Agent Orchestrator Stepper
-                </span>
-                <span id="stepperStatusBadge" style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 3px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">Idle</span>
-              </div>
-              
-              <div class="stepper-track" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">
-                <div class="stepper-item" data-agent="cleaner" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
-                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">1. Cleaner</div>
-                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Data Healing</div>
-                </div>
-                <div class="stepper-item" data-agent="relation" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
-                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">2. Relation</div>
-                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Schema Map</div>
-                </div>
-                <div class="stepper-item" data-agent="insights" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
-                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">3. Insights</div>
-                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Executive Plan</div>
-                </div>
-                <div class="stepper-item" data-agent="predictive" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
-                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">4. Risk</div>
-                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Anomalies</div>
-                </div>
-                <div class="stepper-item" data-agent="visualizer" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 8px; text-align: center;">
-                  <div class="stepper-icon" style="font-weight: 700; font-size: 0.75rem; color: #a1a1aa; margin-bottom: 2px;">5. Visuals</div>
-                  <div class="stepper-label" style="font-size: 0.68rem; color: var(--text-secondary);">Charts Suite</div>
-                </div>
-              </div>
-            </div>
-
+            <h3 class="panel-title" style="margin-bottom: 14px;"><i data-lucide="clipboard-list" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;"></i> Live Multi-Agent Log</h3>
             <div id="resultsLogOutput" class="log-output" style="max-height: 460px; overflow-y: auto; padding: 16px; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.6; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md);"></div>
-          </div>
           </div>
         </div>
       </div>

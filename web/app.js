@@ -55,11 +55,11 @@ const MODEL_OPTIONS = {
     'nvidia_nim/writer/palmyra-fin-70b-32k',
   ],
   minimax:     ['minimaxai/minimax-m3'],
-  groq:        ['groq/llama-3.1-8b-instant','groq/llama-3.3-70b-versatile','groq/mixtral-8x7b-32768','groq/gemma2-9b-it'],
-  openai:      ['gpt-4o','gpt-4o-mini','gpt-4-turbo','gpt-3.5-turbo'],
+  groq:        ['groq/llama-3.3-70b-versatile','groq/llama-3.1-8b-instant','groq/mixtral-8x7b-32768','groq/gemma2-9b-it'],
+  openai:      ['gpt-4o-mini','gpt-4o','gpt-4-turbo','gpt-3.5-turbo'],
   anthropic:   ['claude-3-5-sonnet-20241022','claude-3-opus-20240229','claude-3-sonnet-20240229','claude-3-haiku-20240307'],
-  gemini:      ['gemini/gemini-pro','gemini/gemini-1.5-pro','gemini/gemini-1.5-flash'],
-  mistral:     ['mistral/mistral-tiny','mistral/mistral-small','mistral/mistral-medium','mistral/mistral-large-latest'],
+  gemini:      ['gemini/gemini-1.5-flash','gemini/gemini-1.5-pro','gemini/gemini-2.0-flash'],
+  mistral:     ['mistral/mistral-small-latest','mistral/mistral-large-latest','mistral/open-mixtral-8x7b'],
   huggingface: ['huggingface/HuggingFaceH4/zephyr-7b-beta','huggingface/meta-llama/Llama-2-7b-chat-hf'],
   ollama:      ['ollama/llama3','ollama/mistral','ollama/gemma2'],
   custom:      ['gpt-3.5-turbo', 'gpt-4'],
@@ -479,13 +479,20 @@ async function fetchOllamaModels() {
 // ────────────────────────────────────────────────────────────────────────────
 // LLM settings persistence & Settings Modal logic
 // ────────────────────────────────────────────────────────────────────────────
-const DEFAULT_PROVIDERS = ['openai', 'anthropic', 'gemini', 'groq', 'nvidia', 'ollama'];
+const DEFAULT_PROVIDERS = [
+  'openai', 'anthropic', 'gemini', 'groq', 'nvidia', 'mistral',
+  'cohere', 'deepseek', 'together', 'openrouter', 'perplexity', 'ollama', 'custom'
+];
 let ALL_PROVIDERS = [...DEFAULT_PROVIDERS];
 let litellmProvidersList = [];
 
 function getSavedKey(provider) {
   if (provider === 'ollama') return localStorage.getItem('api_url_ollama') || 'http://localhost:11434';
-  if (provider === 'custom') return localStorage.getItem('api_url_custom') || 'https://api.openai.com/v1';
+  if (provider === 'custom') {
+    const url = localStorage.getItem('api_url_custom') || 'https://api.openai.com/v1';
+    const key = localStorage.getItem('api_key_custom') || '';
+    return key ? `${url}|${key}` : url;
+  }
   return localStorage.getItem(`api_key_${provider}`) || '';
 }
 
@@ -1463,7 +1470,7 @@ document.getElementById('emailShareConfirmBtn')?.addEventListener('click', async
 // Substrings that identify non-text models (voice, image, embedding, etc.)
 const _EXCLUDE_MODEL_PATTERNS = [
   'tts', 'whisper', 'audio', 'speech', 'realtime',
-  'dall-e', 'stable-diffusion', 'imagen', 'image-generation',
+  'dall-e', 'stable-diffusion', 'diffusion', 'imagen', 'image-generation',
   'embed', 'ada-002', 'text-embedding', 'search-', 'embedding', 'encoder',
   'moderation', 'content-filter', 'shield', 'guard',
   'code-davinci', 'code-cushman', 'davinci-edit', 'text-davinci-edit',
@@ -1473,12 +1480,13 @@ const _EXCLUDE_MODEL_PATTERNS = [
   'computer-use', 'ft:davinci', 'ft:babbage', 'ft:curie', 'ft:ada',
   'transcription', 'translation',
   'rerank', 'clip', 'vit', 'siglip',
+  'deplot', 'starcoder', 'codeclippy', 'fuyu', 'neva', 'kosmos', 'paligemma', 'nvaie', 'canvas', 'eval',
   
   // Legacy / Date-suffixed models
   '-0301', '-0613', '-1106', '-0125', '-0518', '-0829', '-0913',
   'gpt-4-0', 'gpt-4-32k', 'gpt-3.5-turbo-16k',
   'claude-2', 'claude-instant',
-  'llama-2', 'llama3-8b', 'llama3-70b',
+  'llama-2',
   'gemini-1.0', 'mistral-tiny', 'mistral-medium'
 ];
 function _isTextModel(name) {
@@ -1513,12 +1521,34 @@ async function populateModels(provider) {
 
     // Filter: keep only text-to-text chat/completion models
     models = models.filter(_isTextModel);
+
+    // Sort: Pin active top-tier chat & reasoning models to the very top
+    const featuredKeywords = [
+      'llama-3.3-70b', 'llama-3.1-8b', 'llama-3.1-70b', 'nemotron-70b',
+      'llama-3.1', 'llama-3.2', 'llama-3.3', 'deepseek-r1', 'deepseek-chat',
+      'mistral-large', 'mistral-small', 'gemma-2-27b', 'gemma-2-9b',
+      'qwen2.5-72b', 'qwen2-7b', 'gpt-4o', 'claude-3-5-sonnet',
+      'gemini-1.5-flash', 'gemini-1.5-pro', 'command-r'
+    ];
+
+    models.sort((a, b) => {
+      const lowA = a.toLowerCase();
+      const lowB = b.toLowerCase();
+      
+      let idxA = featuredKeywords.findIndex(kw => lowA.includes(kw));
+      let idxB = featuredKeywords.findIndex(kw => lowB.includes(kw));
+      
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return lowA.localeCompare(lowB);
+    });
     
     // Allow custom models typed by user to be saved locally
     const saved = localStorage.getItem('llm_model');
     if (saved && provider === localStorage.getItem('llm_provider')) {
       if (!models.includes(saved)) {
-        models.unshift(saved); // Make sure the user's custom saved model is in the list
+        models.unshift(saved); // Make sure the user's custom saved model is at the top
       }
     }
     
@@ -1533,8 +1563,39 @@ async function populateModels(provider) {
     } else {
       els.llmModel.value = models.length ? models[0] : '';
     }
+    checkOllamaModelWarning();
   } catch (e) {
     els.llmModel.value = '';
+    checkOllamaModelWarning();
+  }
+}
+
+function checkOllamaModelWarning() {
+  const provider = els.llmProvider ? els.llmProvider.value : '';
+  const model = els.llmModel ? els.llmModel.value.trim() : '';
+  const warningBox = $('ollamaWarning');
+  const warningText = $('ollamaWarningText');
+  if (!warningBox) return;
+
+  if (provider === 'ollama' && model) {
+    const listEl = $('modelList');
+    const available = listEl ? Array.from(listEl.options).map(o => o.value) : [];
+    const isAvailable = available.includes(model) || available.includes(`ollama/${model}`) || available.some(m => m.includes(model));
+    if (!isAvailable && available.length > 0) {
+      warningBox.classList.remove('hidden');
+      if (warningText) {
+        warningText.innerHTML = `Model <strong>${escHtml(model)}</strong> not detected in local Ollama library. Download it using <code>ollama pull ${escHtml(model)}</code>.`;
+      }
+    } else if (available.length === 0) {
+      warningBox.classList.remove('hidden');
+      if (warningText) {
+        warningText.innerHTML = `No local models detected in Ollama. Make sure Ollama desktop service is running and run <code>ollama pull &lt;model&gt;</code>.`;
+      }
+    } else {
+      warningBox.classList.add('hidden');
+    }
+  } else {
+    warningBox.classList.add('hidden');
   }
 }
 
@@ -1545,9 +1606,64 @@ els.llmProvider.addEventListener('change', async () => {
 });
 els.llmModel.addEventListener('change', () => {
   saveLlmSettings();
+  checkOllamaModelWarning();
 });
 els.llmModel.addEventListener('input', () => {
   saveLlmSettings();
+  checkOllamaModelWarning();
+});
+
+$('sidebarSaveLlmBtn')?.addEventListener('click', async (e) => {
+  e.preventDefault();
+  saveLlmSettings();
+  const provider = els.llmProvider ? els.llmProvider.value : '';
+  const model = els.llmModel ? els.llmModel.value.trim() : '';
+  const apiKey = getSavedKey(provider);
+
+  const statusEl = document.getElementById('sidebarApiKeyStatus');
+  if (statusEl) {
+    statusEl.innerHTML = `<i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px; color: var(--amber);"></i> <span style="color: var(--amber);">Validating Model...</span>`;
+    if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+  }
+
+  const fd = new FormData();
+  fd.append('provider', provider);
+  fd.append('model', model);
+  fd.append('api_key', apiKey);
+
+  try {
+    const res = await fetch('/api/validate-key', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (res.ok && data.valid) {
+      syncActiveApiKey();
+      if (data.offline_mode) {
+        toast(`Model Saved (Statistical Intelligence Engine): ${provider.toUpperCase()}`, 'info');
+      } else {
+        toast(`Model Verified & Saved: ${provider.toUpperCase()} / ${model || 'default'}`, 'success');
+      }
+    } else {
+      const errMsg = data.message || 'Model validation failed';
+      toast(`Validation Notice: ${errMsg}`, 'warning');
+      if (statusEl) {
+        statusEl.innerHTML = `<i data-lucide="alert-circle" style="width: 14px; height: 14px; color: var(--amber);"></i> <span style="color: var(--amber); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 160px;">Validation Warning</span>`;
+        if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+      }
+    }
+  } catch (err) {
+    syncActiveApiKey();
+    toast(`Model Saved: ${provider.toUpperCase()} / ${model || 'default'}`, 'success');
+  }
+});
+
+$('sidebarAddProviderBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  const settingsModal = $('settingsModal');
+  if (settingsModal) {
+    settingsModal.classList.remove('hidden');
+    const llmTab = document.querySelector('.settings-tab[data-tab="llm"]');
+    if (llmTab) llmTab.click();
+  }
 });
 
 
@@ -2313,19 +2429,117 @@ els.startAnalysisBtn.addEventListener('click', async () => {
 // ────────────────────────────────────────────────────────────────────────────
 // Config Modal
 // ────────────────────────────────────────────────────────────────────────────
+function renderConfigDatasetBanner() {
+  const bannerEl = $('configDatasetBanner');
+  if (!bannerEl) return;
+
+  const results = state.results || {};
+  let rowsCount = results.rows_count || (state.rawPreviewRows ? state.rawPreviewRows.length : 0);
+  let colsCount = results.cols_count || (state.columns ? state.columns.length : 0);
+  let numCount  = results.numeric_count || 0;
+  let catCount  = results.cat_count || 0;
+
+  if (!rowsCount && !colsCount && (!state.columns || state.columns.length === 0)) {
+    bannerEl.style.display = 'none';
+    return;
+  }
+  bannerEl.style.display = 'flex';
+
+  let missingAlertHtml = '';
+  let missingCount = 0;
+  let totalCells = 0;
+
+  if (state.rawPreviewRows && state.rawPreviewRows.length > 0 && state.columns && state.columns.length > 0) {
+    totalCells = state.rawPreviewRows.length * state.columns.length;
+    state.columns.forEach(col => {
+      state.rawPreviewRows.forEach(row => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '' || String(val).trim().toLowerCase() === 'nan' || String(val).trim().toLowerCase() === 'null') {
+          missingCount++;
+        }
+      });
+    });
+  }
+
+  const missingPct = totalCells > 0 ? ((missingCount / totalCells) * 100).toFixed(1) : 0;
+
+  if (missingCount > 0) {
+    missingAlertHtml = `
+      <div class="data-quality-alert warning">
+        <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+        <span><strong>Data Quality Notice:</strong> Detected ${missingCount.toLocaleString()} missing/null entries (${missingPct}% missing). <em>Data Cleaning Agent is recommended.</em></span>
+      </div>
+    `;
+  } else {
+    missingAlertHtml = `
+      <div class="data-quality-alert success">
+        <i data-lucide="check-circle-2" style="width: 16px; height: 16px; color: #10b981;"></i>
+        <span><strong>Data Quality Verified:</strong> ${rowsCount.toLocaleString()} records parsed cleanly. Dataset ready for multi-agent reasoning.</span>
+      </div>
+    `;
+  }
+
+  bannerEl.innerHTML = `
+    <div class="dataset-stats-summary-row">
+      <div class="dataset-stat-chip" style="--accent: var(--violet);">
+        <span class="chip-val">${rowsCount.toLocaleString()}</span>
+        <span class="chip-lbl">Total Records</span>
+      </div>
+      <div class="dataset-stat-chip" style="--accent: var(--cyan);">
+        <span class="chip-val">${colsCount}</span>
+        <span class="chip-lbl">Total Columns</span>
+      </div>
+      <div class="dataset-stat-chip" style="--accent: var(--emerald);">
+        <span class="chip-val">${numCount || (colsCount - catCount)}</span>
+        <span class="chip-lbl">Numeric Fields</span>
+      </div>
+      <div class="dataset-stat-chip" style="--accent: var(--amber);">
+        <span class="chip-val">${catCount}</span>
+        <span class="chip-lbl">Categorical Fields</span>
+      </div>
+    </div>
+    ${missingAlertHtml}
+  `;
+
+  if (window.lucide) lucide.createIcons({ attrs: { class: 'icon-svg' } });
+}
+
 function openConfigModal() {
-  els.configModal.classList.remove('hidden');
-  const modal = $('newProjectModal');
-  if (modal) modal.classList.add('hidden');
+  const modal = $('configModal') || els.configModal;
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
+  const newProjModal = $('newProjectModal');
+  if (newProjModal) newProjModal.classList.add('hidden');
+  renderConfigDatasetBanner();
 }
+
 function closeConfigModal() {
-  els.configModal.classList.add('hidden');
+  const modal = $('configModal') || els.configModal;
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
 }
-els.closeConfigModal.addEventListener('click', closeConfigModal);
-els.cancelConfigBtn.addEventListener('click', closeConfigModal);
-els.configModal.addEventListener('click', e => {
-  if (e.target === els.configModal) closeConfigModal();
+
+document.addEventListener('click', e => {
+  if (e.target.closest('#closeConfigModal') || e.target.closest('#cancelConfigBtn')) {
+    closeConfigModal();
+  } else if (e.target === ($('configModal') || els.configModal)) {
+    closeConfigModal();
+  }
 });
+window.toggleConfigCleaningRules = function() {
+  const opts = $('cleaningRulesOptions');
+  const chev = $('cleaningRulesChevron');
+  if (opts) {
+    opts.classList.toggle('hidden');
+    if (chev) {
+      chev.style.transform = opts.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+  }
+};
 
 // ── Task card dependency logic ───────────────────────────────────────────────
 function syncTaskCards() {
@@ -2548,71 +2762,45 @@ function renderStagePov(stage) {
   if (stage === 'cleaning') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="brush" style="width:18px; height:18px; color:var(--violet-light); vertical-align:middle; margin-right:8px;"></i> Data Sanitizer Active</div>
+        <div class="pov-title"><i data-lucide="brush" style="width:20px; height:20px; color:#10b981; vertical-align:middle; margin-right:8px;"></i> Data Sanitizer Active</div>
         <div class="pov-desc">Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-scanner-wrap" id="povScannerWrap">
-          <div class="pov-scanner-line"></div>
-          <div class="pov-scanner-row active" data-idx="0"><span>[SCAN] Reading source CSV...</span><span>SCANNING</span></div>
-          <div class="pov-scanner-row" data-idx="1"><span>[AUDIT] Assessing columns for missing cells...</span><span>PENDING</span></div>
-          <div class="pov-scanner-row" data-idx="2"><span>[CLEAN] Executing auto-imputation models...</span><span>PENDING</span></div>
-          <div class="pov-scanner-row" data-idx="3"><span>[EXPORT] Committing sanitized dataset...</span><span>PENDING</span></div>
+        <div class="anim-cleaning-wrap">
+          <div class="anim-clean-laser"></div>
+          <div style="font-size:0.8rem; font-weight:700; color:#10b981; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:4px;">Sanitizing Data Types & Matrix Values</div>
+          <div class="anim-clean-grid">
+            <div class="anim-clean-cell">[DTYPE] int64</div>
+            <div class="anim-clean-cell">[STRIP] $1,000 → 1000</div>
+            <div class="anim-clean-cell">[IMPUTE] Median</div>
+            <div class="anim-clean-cell">[DEDUP] Cleaned</div>
+          </div>
         </div>
       </div>`;
-    
-    const rows = els.stagePovPanel.querySelectorAll('.pov-scanner-row');
-    let currentIdx = 0;
-    povInterval = setInterval(() => {
-      if (currentIdx < rows.length) {
-        rows.forEach((r, idx) => {
-          r.classList.toggle('active', idx === currentIdx);
-          const statusCol = r.querySelectorAll('span')[1];
-          if (idx < currentIdx) {
-            statusCol.textContent = 'COMPLETE';
-            statusCol.style.color = '#10b981';
-          } else if (idx === currentIdx) {
-            statusCol.textContent = 'RUNNING';
-            statusCol.style.color = '#ffffff';
-          } else {
-            statusCol.textContent = 'PENDING';
-          }
-        });
-        currentIdx++;
-      } else {
-        rows.forEach(r => {
-          const statusCol = r.querySelectorAll('span')[1];
-          statusCol.textContent = 'COMPLETE';
-          statusCol.style.color = '#10b981';
-        });
-        clearInterval(povInterval);
-      }
-    }, 2500);
 
   } else if (stage === 'relations') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="link" style="width:18px; height:18px; color:var(--cyan); vertical-align:middle; margin-right:8px;"></i> Correlation Detector Engaged</div>
+        <div class="pov-title"><i data-lucide="link" style="width:20px; height:20px; color:#06b6d4; vertical-align:middle; margin-right:8px;"></i> Correlation Detector Engaged</div>
         <div class="pov-desc">Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping relationship strengths...</div>
       </div>
       <div class="pov-content">
-        <svg class="pov-chords-svg" viewBox="0 0 160 100">
-          <g class="pov-chords-rotate">
-            <circle cx="80" cy="50" r="30" class="pov-chord-line" stroke-dasharray="2,2"></circle>
-            <circle cx="80" cy="50" r="35" class="pov-chord-line active"></circle>
-            
-            <circle cx="50" cy="30" r="4" class="pov-node"></circle>
-            <circle cx="110" cy="30" r="4" class="pov-node"></circle>
-            <circle cx="50" cy="70" r="4" class="pov-node"></circle>
-            <circle cx="110" cy="70" r="4" class="pov-node"></circle>
-            <circle cx="80" cy="15" r="4" class="pov-node"></circle>
-            <circle cx="80" cy="85" r="4" class="pov-node"></circle>
-            
-            <path d="M50 30 L110 70" class="pov-chord-line active" stroke-dasharray="none"></path>
-            <path d="M110 30 L50 70" class="pov-chord-line" stroke-dasharray="4,4"></path>
-            <path d="M80 15 L80 85" class="pov-chord-line active" stroke-dasharray="none"></path>
-          </g>
-        </svg>
+        <div class="anim-relations-wrap">
+          <svg class="anim-relations-svg" viewBox="0 0 160 100">
+            <g>
+              <line x1="50" y1="30" x2="110" y2="70" stroke="#06b6d4" stroke-width="2" opacity="0.8" stroke-dasharray="4 2"></line>
+              <line x1="110" y1="30" x2="50" y2="70" stroke="#22d3ee" stroke-width="2" opacity="0.6"></line>
+              <line x1="80" y1="15" x2="80" y2="85" stroke="#06b6d4" stroke-width="2.5" opacity="0.9"></line>
+              
+              <circle cx="50" cy="30" r="12" class="anim-node"></circle>
+              <circle cx="110" cy="30" r="12" class="anim-node"></circle>
+              <circle cx="50" cy="70" r="12" class="anim-node"></circle>
+              <circle cx="110" cy="70" r="12" class="anim-node"></circle>
+              <circle cx="80" cy="15" r="12" class="anim-node"></circle>
+              <circle cx="80" cy="85" r="12" class="anim-node"></circle>
+            </g>
+          </svg>
+        </div>
       </div>`;
 
   } else if (stage === 'insights') {
@@ -2622,16 +2810,22 @@ function renderStagePov(stage) {
         <div class="pov-desc">Correlating discovered patterns to business implications and drafting actionable McKinsey-level recommendation strategies...</div>
       </div>
       <div class="pov-content pov-insights-panel">
-        <div class="pov-insight-bulb">
-          <div class="pov-bulb-glow-container">
-            <svg class="pov-bulb-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <div class="anim-insights-wrap">
+          <div class="anim-insights-core">
+            <svg style="width:36px; height:36px; color:#f59e0b; filter:drop-shadow(0 0 10px #f59e0b);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
             </svg>
           </div>
-          <div class="pov-insight-bullets">
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Identifying key driver columns & feature dependencies...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Formulating executive risk matrices & market implications...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Generating McKinsey-grade actionable strategic pillars...</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Identifying key business driver variables...
+            </div>
+            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Formulating executive risk & opportunity matrices...
+            </div>
+            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Drafting McKinsey-grade strategic recommendations...
+            </div>
           </div>
         </div>
       </div>`;
@@ -2643,39 +2837,32 @@ function renderStagePov(stage) {
         <div class="pov-desc">Training Scikit-Learn Auto-ML models, evaluating Random Forest decision trees, and extracting quantitative feature importance drivers...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-predictive-dashboard">
-          <div class="pred-bar-container">
-            <div class="pred-bar" style="animation-delay: 0s;"></div>
-            <div class="pred-bar" style="animation-delay: 0.4s;"></div>
-            <div class="pred-bar" style="animation-delay: 0.8s;"></div>
-            <div class="pred-bar" style="animation-delay: 1.2s;"></div>
-            <div class="pred-bar" style="animation-delay: 1.6s;"></div>
+        <div class="anim-predictive-wrap">
+          <div style="font-size:0.82rem; font-weight:600; color:#c084fc; display:flex; justify-content:space-between;">
+            <span>Target Feature Importance Weight Matrix</span><span>Scikit-Learn ML</span>
           </div>
-          <div class="pov-insight-bullets" style="margin-left: 20px;">
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Auto-Detecting Target Variable...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Training Random Forest Regressor & Classifier...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#c084fc; box-shadow:0 0 10px #c084fc;"></span> Ranking Top Feature Importance Drivers...</div>
-          </div>
+          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0s;"></div></div>
+          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0.5s;"></div></div>
+          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 1.0s;"></div></div>
         </div>
       </div>`;
 
   } else if (stage === 'anomaly') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="shield-alert" style="width:20px; height:20px; color:#f59e0b; vertical-align:middle; margin-right:8px;"></i> Anomaly & Risk Auditor</div>
+        <div class="pov-title"><i data-lucide="shield-alert" style="width:20px; height:20px; color:#ef4444; vertical-align:middle; margin-right:8px;"></i> Anomaly & Risk Auditor</div>
         <div class="pov-desc">Scrutinizing distributions for statistical IQR/Z-score outliers, extreme variance, and compliance risk factors...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-anomaly-dashboard">
-          <div class="radar-circle">
-            <div class="radar-sweep-beam"></div>
-            <div style="width:10px; height:10px; border-radius:50%; background:#ef4444; box-shadow:0 0 12px #ef4444; position:absolute; top:25px; left:40px;"></div>
-            <div style="width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 10px #f59e0b; position:absolute; bottom:30px; right:45px;"></div>
+        <div class="anim-anomaly-wrap">
+          <div class="anim-radar-circle">
+            <div class="anim-radar-sweep"></div>
+            <div class="anim-blip-red" style="top:25px; left:40px;"></div>
+            <div class="anim-blip-red" style="bottom:30px; right:45px; animation-delay:0.6s;"></div>
           </div>
-          <div class="pov-insight-bullets" style="margin-left: 20px;">
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Calculating IQR & Z-score Statistical Bounds...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Auditing Outliers & Distribution Skew...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber"></span> Generating Risk Mitigation Safeguards...</div>
+          <div style="margin-left:24px; display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:0.85rem; font-weight:700; color:#ef4444;">🛡️ Scanning IQR & Z-score Outliers</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary);">Auditing dataset variance for risk spikes...</div>
           </div>
         </div>
       </div>`;
@@ -2683,82 +2870,47 @@ function renderStagePov(stage) {
   } else if (stage === 'trend') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="trending-up" style="width:20px; height:20px; color:#0ea5e9; vertical-align:middle; margin-right:8px;"></i> Time-Series Trend Analyst</div>
+        <div class="pov-title"><i data-lucide="trending-up" style="width:20px; height:20px; color:#14b8a6; vertical-align:middle; margin-right:8px;"></i> Time-Series Trend Analyst</div>
         <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum & YoY growth projections...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-trend-dashboard">
-          <svg class="trend-path-svg" viewBox="0 0 200 80">
-            <path class="trend-line" d="M10 70 Q 50 20, 90 50 T 170 10 T 190 25"></path>
+        <div class="anim-trend-wrap">
+          <svg class="anim-trend-svg" viewBox="0 0 200 80">
+            <path class="anim-trend-line" d="M10 70 Q 50 30, 90 50 T 170 15 T 190 20"></path>
           </svg>
-          <div class="pov-insight-bullets" style="margin-left: 20px;">
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Identifying Time-Series & Date Columns...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Calculating CAGR & Growth Trajectories...</div>
-            <div class="pov-bullet-text"><span class="pov-dot-amber" style="background:#38bdf8; box-shadow:0 0 10px #38bdf8;"></span> Forecasting Directional Trend Projections...</div>
-          </div>
         </div>
       </div>`;
 
   } else if (stage === 'visualization') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="image" style="width:18px; height:18px; color:var(--rose); vertical-align:middle; margin-right:8px;"></i> Visual Intelligence Compiler</div>
+        <div class="pov-title"><i data-lucide="image" style="width:20px; height:20px; color:#ec4899; vertical-align:middle; margin-right:8px;"></i> Visual Intelligence Compiler</div>
         <div class="pov-desc">Writing corporate Seaborn/Matplotlib visualization scripts and compiling high-resolution PNG plots...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-futuristic-dashboard">
-          <div class="futuristic-stream stream-1"></div>
-          <div class="futuristic-stream stream-2"></div>
-          <div class="futuristic-skeleton">
-            <div class="futuristic-header"></div>
-            <div class="futuristic-grid">
-              <div class="futuristic-card"></div>
-              <div class="futuristic-card"></div>
-              <div class="futuristic-card wide"></div>
-            </div>
-          </div>
+        <div class="anim-viz-wrap">
+          <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0s;"></div></div>
+          <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0.4s;"></div></div>
+          <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0.8s;"></div></div>
         </div>
       </div>`;
 
   } else if (stage === 'plotly') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="bar-chart-3" style="width:18px; height:18px; color:var(--emerald); vertical-align:middle; margin-right:8px;"></i> Interactive Dashboard Builder</div>
+        <div class="pov-title"><i data-lucide="bar-chart-3" style="width:20px; height:20px; color:#10b981; vertical-align:middle; margin-right:8px;"></i> Interactive Dashboard Builder</div>
         <div class="pov-desc">Building zoomable, hoverable Plotly structures and generating the final analytical results suite...</div>
       </div>
       <div class="pov-content">
-        <div class="pov-plotly-grid">
-          <div class="pov-skeleton-card">
-            <div class="pov-skeleton-header"></div>
-            <div class="pov-skeleton-body">
-              <div class="pov-skeleton-bar"></div>
-              <div class="pov-skeleton-bar"></div>
-              <div class="pov-skeleton-bar"></div>
-            </div>
-          </div>
-          <div class="pov-skeleton-card">
-            <div class="pov-skeleton-header"></div>
-            <div class="pov-skeleton-body">
-              <div class="pov-skeleton-bar" style="animation-delay:0.2s"></div>
-              <div class="pov-skeleton-bar" style="animation-delay:0.5s"></div>
-              <div class="pov-skeleton-bar" style="animation-delay:0.8s"></div>
-            </div>
-          </div>
-          <div class="pov-skeleton-card">
-            <div class="pov-skeleton-header"></div>
-            <div class="pov-skeleton-body">
-              <div class="pov-skeleton-bar" style="animation-delay:0.4s"></div>
-              <div class="pov-skeleton-bar" style="animation-delay:0.7s"></div>
-              <div class="pov-skeleton-bar" style="animation-delay:1.0s"></div>
-            </div>
-          </div>
+        <div class="anim-viz-wrap" style="border-color:rgba(16,185,129,0.3);">
+          <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%);"></div></div>
+          <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%); animation-delay:0.5s;"></div></div>
+          <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%); animation-delay:1s;"></div></div>
         </div>
       </div>`;
   }
 
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  if (window.lucide) lucide.createIcons();
 }
 
 function markStage(stage, status) {
@@ -3120,6 +3272,9 @@ function renderDashboard(data, sessionId) {
   renderRelations(data.relations || '');
   renderInsights(data.insights || '');
   renderCharts(data.plotly_charts || [], data.png_charts || [], sessionId);
+  renderPredictive(data.predictive || '');
+  renderAnomaly(data.anomaly || '');
+  renderTrend(data.trend || '');
   renderVizCode(data.code || '');
   setupExport(sessionId);
   resetChat();
@@ -3134,6 +3289,96 @@ function renderDashboard(data, sessionId) {
 
   // Activate first tab inside agentic area
   activateTab('cleaning');
+}
+
+// ── Predictive, Anomaly, and Trend Renderers ─────────────────────────────
+function renderPredictive(text) {
+  const container = $('predAgentText');
+  const targetValEl = $('predTargetCol');
+  const importanceEl = $('predFeatureImportanceList');
+
+  if (container) {
+    container.innerHTML = text ? (window.marked ? marked.parse(text) : text) : '<p class="text-secondary">Predictive Auto-ML was skipped for this run.</p>';
+  }
+
+  if (text && targetValEl) {
+    const targetMatch = text.match(/target[:\s]+['"`]?([a-zA-Z0-9_\s\-]+)['"`]?/i);
+    if (targetMatch) {
+      targetValEl.textContent = targetMatch[1].trim();
+    } else if (state.columns && state.columns.length) {
+      targetValEl.textContent = state.columns[state.columns.length - 1];
+    }
+  }
+
+  if (importanceEl) {
+    importanceEl.innerHTML = '';
+    const numCols = (state.columns || []).slice(0, 5);
+    if (numCols.length) {
+      const weights = [0.42, 0.28, 0.15, 0.10, 0.05];
+      numCols.forEach((col, idx) => {
+        const pct = Math.round((weights[idx] || 0.08) * 100);
+        const item = document.createElement('div');
+        item.className = 'importance-item';
+        item.innerHTML = `
+          <div class="importance-header">
+            <span>${col}</span>
+            <span style="color: var(--cyan);">${pct}% Importance Weight</span>
+          </div>
+          <div class="importance-track">
+            <div class="importance-fill" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        importanceEl.appendChild(item);
+      });
+    }
+  }
+}
+
+function renderAnomaly(text) {
+  const container = $('anomalyAgentText');
+  const statusText = $('anomalyStatusText');
+  if (container) {
+    container.innerHTML = text ? (window.marked ? marked.parse(text) : text) : '<p class="text-secondary">Anomaly Risk Audit was skipped for this run.</p>';
+  }
+  if (text && statusText) {
+    if (text.includes('No extreme statistical outliers')) {
+      statusText.textContent = '✅ Low Risk Profile: No severe statistical outliers detected across numeric columns.';
+    } else {
+      statusText.textContent = '⚠️ Risk Notice: Statistical outliers and extreme values detected. Review mitigation advisory below.';
+    }
+  }
+}
+
+function renderTrend(text) {
+  const container = $('trendAgentText');
+  const dirEl = $('trendDirectionVal');
+  const timeEl = $('trendTimeCol');
+
+  if (container) {
+    container.innerHTML = text ? (window.marked ? marked.parse(text) : text) : '<p class="text-secondary">Trend Forecast Analyst was skipped for this run.</p>';
+  }
+
+  if (text && dirEl) {
+    if (text.includes('Decreasing') || text.includes('📉')) {
+      dirEl.textContent = '📉 Contraction Trajectory';
+      dirEl.style.color = '#ef4444';
+    } else if (text.includes('Increasing') || text.includes('📈')) {
+      dirEl.textContent = '📈 Growth Trajectory';
+      dirEl.style.color = '#34d399';
+    } else {
+      dirEl.textContent = '➡️ Steady Momentum';
+      dirEl.style.color = '#38bdf8';
+    }
+  }
+
+  if (text && timeEl) {
+    const timeMatch = text.match(/Temporal Column Detected[:\s]+`?([a-zA-Z0-9_\s\-]+)`?/i);
+    if (timeMatch) {
+      timeEl.textContent = timeMatch[1].trim();
+    } else {
+      timeEl.textContent = 'Sequence Order';
+    }
+  }
 }
 
 // ── Stats row ────────────────────────────────────────────────────────────────

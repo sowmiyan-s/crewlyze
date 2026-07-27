@@ -115,6 +115,11 @@ if (!installSuccess) {
     'Pillow',
     'reportlab',
     'duckdb',
+    'scikit-learn',
+    'scipy',
+    'statsmodels',
+    'openpyxl',
+    'xlrd',
     'python-pptx'
   ];
 
