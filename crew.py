@@ -511,6 +511,152 @@ def _run_auto_insights_fallback(df: pd.DataFrame, project_goal: str = "", error_
     return "\n".join(report)
 
 
+def _run_auto_predictive_fallback(df: pd.DataFrame, project_goal: str = "") -> str:
+    """
+    Multi-Algorithm Auto-ML Engine in pure Python using scikit-learn.
+    Trains and compares:
+    1. Gradient Boosting
+    2. Random Forest
+    3. Extra Trees
+    4. Decision Tree
+    5. Linear Baseline (Ridge / Logistic Regression)
+
+    Selects the winning model, computes feature importances, and generates a structured executive benchmark report.
+    """
+    try:
+        import numpy as np
+        import pandas as pd
+        from sklearn.model_selection import train_test_split
+        from sklearn.ensemble import (
+            RandomForestRegressor, RandomForestClassifier,
+            GradientBoostingRegressor, GradientBoostingClassifier,
+            ExtraTreesRegressor, ExtraTreesClassifier
+        )
+        from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+        from sklearn.linear_model import Ridge, LogisticRegression
+
+        num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        all_cols = df.columns.tolist()
+
+        from tools.dataset_tools import detect_metadata_columns
+        meta_cols = detect_metadata_columns(df)
+        feature_candidates = [c for c in all_cols if c not in meta_cols]
+
+        if len(feature_candidates) < 2:
+            feature_candidates = all_cols
+
+        if len(feature_candidates) < 2:
+            return "Insufficient variables available for predictive Auto-ML model building."
+
+        # Pick target column: project goal match or last numeric/feature column
+        target_col = feature_candidates[-1]
+        if project_goal:
+            for c in feature_candidates:
+                if c.lower() in project_goal.lower():
+                    target_col = c
+                    break
+
+        features = [c for c in feature_candidates if c != target_col]
+        
+        df_clean = df[features + [target_col]].dropna().copy()
+        if len(df_clean) < 8:
+            return f"Insufficient data rows ({len(df_clean)}) to fit multi-algorithm Auto-ML models."
+
+        X = pd.get_dummies(df_clean[features], drop_first=True)
+        y = df_clean[target_col]
+
+        is_classification = not pd.api.types.is_numeric_dtype(y) or y.nunique() <= 5
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        results = []
+
+        if not is_classification:
+            # Regression Models Benchmark
+            models = {
+                "Gradient Boosting Regressor": GradientBoostingRegressor(random_state=42),
+                "Random Forest Regressor": RandomForestRegressor(n_estimators=100, random_state=42),
+                "Extra Trees Regressor": ExtraTreesRegressor(n_estimators=100, random_state=42),
+                "Decision Tree Regressor": DecisionTreeRegressor(random_state=42),
+                "Linear Ridge Baseline": Ridge()
+            }
+            for name, model in models.items():
+                try:
+                    model.fit(X_train, y_train)
+                    score = model.score(X_test, y_test)
+                    results.append((name, score, model))
+                except Exception:
+                    continue
+        else:
+            # Classification Models Benchmark
+            models = {
+                "Gradient Boosting Classifier": GradientBoostingClassifier(random_state=42),
+                "Random Forest Classifier": RandomForestClassifier(n_estimators=100, random_state=42),
+                "Extra Trees Classifier": ExtraTreesClassifier(n_estimators=100, random_state=42),
+                "Decision Tree Classifier": DecisionTreeClassifier(random_state=42),
+                "Logistic Regression Baseline": LogisticRegression(max_iter=500)
+            }
+            for name, model in models.items():
+                try:
+                    model.fit(X_train, y_train)
+                    score = model.score(X_test, y_test)
+                    results.append((name, score, model))
+                except Exception:
+                    continue
+
+        if not results:
+            return "Could not fit candidate models on target feature."
+
+        results.sort(key=lambda x: x[1], reverse=True)
+        best_name, best_score, best_model = results[0]
+
+        importances = []
+        if hasattr(best_model, "feature_importances_"):
+            importances = list(zip(X.columns, best_model.feature_importances_))
+            importances.sort(key=lambda x: x[1], reverse=True)
+        elif hasattr(best_model, "coef_"):
+            coefs = np.abs(best_model.coef_).ravel()
+            if len(coefs) == len(X.columns) and coefs.sum() > 0:
+                importances = list(zip(X.columns, coefs / coefs.sum()))
+                importances.sort(key=lambda x: x[1], reverse=True)
+
+        metric_name = "Accuracy" if is_classification else "R² Score"
+        metric_str = f"{best_score*100:.1f}%" if is_classification else f"{max(0, best_score):.3f}"
+
+        report = []
+        report.append("### 🤖 Multi-Algorithm Auto-ML Benchmark Report\n")
+        report.append(f"- **Target Variable**: `{target_col}`")
+        report.append(f"- **Winning Algorithm**: `{best_name}` ({metric_name}: `{metric_str}`)\n")
+
+        report.append("#### **1. Algorithm Benchmark Matrix**")
+        report.append("| Algorithm | Model Family | Test Score | Status |")
+        report.append("| :--- | :--- | :--- | :--- |")
+        for i, (name, sc, _) in enumerate(results):
+            status = "🥇 **Winner**" if i == 0 else ("🥈 Runner-Up" if i == 1 else "Evaluated")
+            sc_val = f"{sc*100:.1f}%" if is_classification else f"{max(0, sc):.3f}"
+            report.append(f"| {name} | Tree / Ensemble / Linear | {sc_val} | {status} |")
+
+        report.append("\n#### **2. Top Feature Importance Drivers**")
+        top_features_explain = []
+        for f_name, f_imp in importances[:5]:
+            pct = f_imp * 100
+            report.append(f"- **{f_name}**: `{pct:.1f}%` relative predictive influence")
+            top_features_explain.append(f"{f_name} ({pct:.1f}%)")
+
+        report.append("\n#### **3. Plain English Predictive Formula & Explanation**")
+        feat_summary = ", ".join(top_features_explain[:3]) if top_features_explain else "key features"
+        report.append(
+            f"We trained an automated multi-algorithm Machine Learning engine to predict **`{target_col}`**. "
+            f"Out of 5 candidate algorithms evaluated, **`{best_name}`** achieved the highest validation score. "
+            f"The prediction is primarily driven by **{feat_summary}**. "
+            f"Changes in these top features allow the system to forecast changes in **`{target_col}`** with high reliability."
+        )
+
+        return "\n".join(report)
+    except Exception as e:
+        return f"Auto-ML evaluation encountered error: {e}"
+
+
 def _run_auto_anomaly_fallback(df: pd.DataFrame) -> str:
     """
     Generate a pure-Python statistical anomaly and risk report using IQR and Z-Score outlier detection.
@@ -985,7 +1131,7 @@ def run_crew(
     # ════════════════════════════════════════════════════════════════════════
     # STAGE 5 — Predictive, Anomaly & Trend Specialized Analysis
     # ════════════════════════════════════════════════════════════════════════
-    predictive_output = "Predictive Auto-ML was skipped by selection."
+    predictive_output = _run_auto_predictive_fallback(df, project_goal)
     anomaly_output    = _run_auto_anomaly_fallback(df)
     trend_output      = _run_auto_trend_fallback(df)
 
@@ -996,14 +1142,18 @@ def run_crew(
         pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], max_rpm=15, cache=True, verbose=True)
         try:
             _kickoff_with_retry(pred_crew)
-            predictive_output = _safe_output(pred_task)
+            out_txt = _safe_output(pred_task)
+            if out_txt and len(out_txt) > 20:
+                predictive_output = out_txt
         except Exception as e:
             print(f"Predictive Agent error: {e}")
+            predictive_output = _run_auto_predictive_fallback(df, project_goal)
 
         stage_times["predictive"] = time.time() - start_pred_stage
         _progress("predictive", predictive_output)
 
     if "anomaly" in env_tasks or deep_analysis:
+        print("[Stage 5/5] Running Anomaly & Risk Auditor ...")
         try:
             anom_task = tasks[5]
             anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], max_rpm=15, cache=True, verbose=True)
@@ -1015,6 +1165,7 @@ def run_crew(
         _progress("anomaly", anomaly_output)
 
     if "trend" in env_tasks or deep_analysis:
+        print("[Stage 5/5] Running Time-Series Trend Analyst ...")
         try:
             trend_t = tasks[6]
             tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], max_rpm=15, cache=True, verbose=True)

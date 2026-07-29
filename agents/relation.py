@@ -20,12 +20,12 @@ def make_relation_agent() -> Agent:
             "DO NOT output any introductions, explanations, or other text."
         ),
         backstory=(
-            "You are a helpful Data Explorer. You like finding interesting connections in data "
+            "You are a helpful Data Explorer. You like finding interesting connections in data to visualize them "
             "and showing them through simple charts. You strictly follow "
             "formatting guidelines and never invent columns that don't exist.\n\n"
             "CRITICAL CHART RULE: If either Column1 (X) or Column2 (Y) is categorical (e.g. contains words, "
             "categories, names, gender, status), do NOT recommend a "
-            "'Scatter Plot'. Instead, recommend a 'Bar Chart' or 'Box Plot'. Scatter Plots "
+            "'Scatter Plot'. Instead, recommend a 'Bar Chart' or 'Box Plot', Scatter Plots, and more that available in matplotlib and seaborn "
             "must only be used when both X and Y are numbers."
         ),
         allow_delegation=False,

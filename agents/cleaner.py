@@ -15,7 +15,7 @@ def make_cleaner_agent() -> Agent:
         backstory=(
             "You are an expert data cleaning specialist. First, analyze the dataset schema and 4-5 actual sample data rows "
             "for each column. Carefully inspect column contents to identify hidden numeric or date values disguised as strings/objects "
-            "(e.g. formatted currency '$1,000', percentages '95%', trailing spaces, or numbers stored as strings). "
+            "(e.g. formatted currency '$1,000' to 1000, percentages '95%' to 95, trailing spaces, or numbers stored as strings). "
             "Write a Python script using 'Clean Dataset with Python Code' to convert these columns into true numeric (int64/float64) "
             "or datetime types so that downstream visualizers plot continuous numeric scales rather than discrete character labels."
         ),

@@ -379,6 +379,19 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
     return "\n".join(lines)
 
 
+def _save_plotly_png_safe(fig, png_path: str, timeout_sec: int = 2) -> None:
+    """Safely export Plotly figure to PNG without blocking if Kaleido hangs or is missing."""
+    import concurrent.futures
+    def _write():
+        fig.write_image(png_path, width=800, height=500)
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(_write)
+            future.result(timeout=timeout_sec)
+    except Exception as e:
+        print(f"[Plotly] Non-blocking PNG export skipped/timed out: {e}")
+
+
 def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5000, output_dir: str = "") -> list:
     """Parse agent relation output and generate interactive Plotly figures.
 
@@ -465,46 +478,36 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
             if sample.empty:
                 continue
 
-            if "scatter" in ptype or "plot" in ptype:
-                fig = px.scatter(
-                    sample, x=x_col, y=y_col, title=title,
-                    color_discrete_sequence=[color], opacity=0.75,
-                    labels=lbls
-                )
-                fig.update_traces(marker=dict(size=6, line=dict(width=0.5, color="rgba(255,255,255,0.3)")))
-            elif "bar" in ptype:
-                if pd.api.types.is_numeric_dtype(df[x_col]):
-                    # numeric x → bin it, then aggregate
-                    agg = sample.groupby(x_col)[y_col].mean().reset_index()
-                else:
-                    agg = sample.groupby(x_col)[y_col].mean().reset_index()
+            if ptype in ("bar", "bar chart", "column"):
+                agg = sample.groupby(x_col)[y_col].mean().reset_index()
                 fig = px.bar(
-                    agg.head(25), x=x_col, y=y_col, title=title,
+                    agg.head(20), x=x_col, y=y_col, title=title,
                     color_discrete_sequence=[color], labels=lbls
                 )
-            elif "line" in ptype:
+            elif ptype in ("line", "line chart"):
+                sample_sorted = sample.sort_values(x_col)
                 fig = px.line(
-                    sample.sort_values(x_col), x=x_col, y=y_col, title=title,
+                    sample_sorted, x=x_col, y=y_col, title=title,
                     color_discrete_sequence=[color], labels=lbls
                 )
-            elif "box" in ptype:
-                fig = px.box(
-                    sample, x=x_col if not pd.api.types.is_numeric_dtype(df[x_col]) else None,
-                    y=y_col, title=title,
-                    color_discrete_sequence=[color], labels=lbls
-                )
-            elif "hist" in ptype:
+            elif ptype in ("histogram", "distribution"):
                 fig = px.histogram(
-                    sample, x=x_col, nbins=30,
-                    title=f"Distribution of {clean_x}",
+                    sample, x=x_col, title=f"Distribution of {clean_x}",
+                    color_discrete_sequence=[color], labels=lbls
+                )
+            elif ptype in ("box", "boxplot"):
+                fig = px.box(
+                    sample, x=x_col, y=y_col, title=title,
                     color_discrete_sequence=[color], labels=lbls
                 )
             else:
                 # Default: scatter
                 fig = px.scatter(
                     sample, x=x_col, y=y_col, title=title,
-                    color_discrete_sequence=[color], opacity=0.75, labels=lbls
+                    color_discrete_sequence=[color], opacity=0.75,
+                    labels=lbls
                 )
+                fig.update_traces(marker=dict(size=6, line=dict(width=0.5, color="rgba(255,255,255,0.3)")))
                 
             # Center title
             fig.update_layout(title_x=0.5)
@@ -512,14 +515,14 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
             fig.update_layout(**_dark)
             figures.append({"title": title, "fig": fig, "x": x_col, "y": y_col, "type": ptype})
             
-            # Export to PNG for PDF (white theme)
+            # Safe non-blocking Export to PNG for PDF (white theme)
             if output_dir:
                 try:
                     import copy
                     fig_white = copy.deepcopy(fig)
                     fig_white.update_layout(template="plotly_white", paper_bgcolor="white", plot_bgcolor="white", font=dict(color="black"))
                     png_path = os.path.join(output_dir, f"plotly_{x_col}_vs_{y_col}.png".replace("/", "_"))
-                    fig_white.write_image(png_path, width=800, height=500)
+                    _save_plotly_png_safe(fig_white, png_path, timeout_sec=2)
                 except Exception as e:
                     print(f"[Plotly] Could not save PNG for {title}: {e}")
 

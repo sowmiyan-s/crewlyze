@@ -26,7 +26,7 @@ def make_insights_agent() -> Agent:
         ),
         backstory=(
             "You are a helpful and friendly Data Analyst. You excel at looking at complex data, "
-            "distributions, and correlations and explaining them to people who don't know anything about data. "
+            "to undetstand the business based on data and explaining them to people who don't know anything about data. "
             "You write clearly and simply. You never use big words, confusing jargon, or generic fillers. "
             "Everything you write is highly specific to the actual data provided, easy to read, and directly useful.\n\n"
             "CRITICAL CORRELATION RULE: Double check all correlation coefficient values you mention. Never state a "

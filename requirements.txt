@@ -15,8 +15,7 @@ python-multipart
 pandas>=1.5
 matplotlib>=3.6
 seaborn>=0.12
-plotly>=5.0
-kaleido>=0.2.1
+# kaleido removed to avoid C++ build errors and freezes on new systems
 
 # ── Utilities ────────────────────────────────────────────────────────────────
 requests

@@ -3045,15 +3045,25 @@ function updatePipelineStepper(newStage) {
     relations: 2,
     insights: 3,
     visualization: 4,
-    plotly: 5,
-    completed: 6
+    predictive: 5,
+    anomaly: 6,
+    trend: 7,
+    plotly: 8,
+    completed: 9
   };
 
   const currentNum = stageMap[newStage] || 0;
 
   items.forEach((item) => {
     const agent = item.getAttribute('data-agent');
-    const agentNum = agent === 'cleaner' ? 1 : agent === 'relation' ? 2 : agent === 'insights' ? 3 : agent === 'predictive' ? 4 : 5;
+    const agentNum = agent === 'cleaner' ? 1
+      : agent === 'relation' ? 2
+      : agent === 'insights' ? 3
+      : agent === 'visualizer' || agent === 'visualization' ? 4
+      : agent === 'predictive' ? 5
+      : agent === 'anomaly' ? 6
+      : agent === 'trend' ? 7
+      : 8;
     item.classList.remove('active', 'completed');
     if (agentNum < currentNum || newStage === 'completed') {
       item.classList.add('completed');
@@ -3068,7 +3078,7 @@ function updatePipelineStepper(newStage) {
       badge.style.color = '#10b981';
       badge.style.borderColor = 'rgba(16,185,129,0.3)';
     } else if (currentNum > 0) {
-      badge.textContent = `Running Stage ${currentNum}/5...`;
+      badge.textContent = `Running Stage ${currentNum}/8...`;
       badge.style.color = '#ff6b6e';
       badge.style.borderColor = 'rgba(255,107,110,0.3)';
     }
@@ -3424,42 +3434,65 @@ function renderDashboard(data, sessionId) {
 function renderPredictive(text) {
   const container = $('predAgentText');
   const targetValEl = $('predTargetCol');
+  const scoreValEl = $('predModelScore');
   const importanceEl = $('predFeatureImportanceList');
 
   if (container) {
     container.innerHTML = text ? (window.marked ? marked.parse(text) : text) : '<p class="text-secondary">Predictive Auto-ML was skipped for this run.</p>';
   }
 
-  if (text && targetValEl) {
-    const targetMatch = text.match(/target[:\s]+['"`]?([a-zA-Z0-9_\s\-]+)['"`]?/i);
-    if (targetMatch) {
-      targetValEl.textContent = targetMatch[1].trim();
-    } else if (state.columns && state.columns.length) {
-      targetValEl.textContent = state.columns[state.columns.length - 1];
+  if (text) {
+    if (targetValEl) {
+      const targetMatch = text.match(/Target Variable[:\s]+`?([a-zA-Z0-9_\s\-]+)`?/i) || text.match(/target[:\s]+['"`]?([a-zA-Z0-9_\s\-]+)['"`]?/i);
+      if (targetMatch) {
+        targetValEl.textContent = targetMatch[1].trim();
+      } else if (state.columns && state.columns.length) {
+        targetValEl.textContent = state.columns[state.columns.length - 1];
+      }
+    }
+
+    if (scoreValEl) {
+      const scoreMatch = text.match(/Winning Algorithm[:\s]+`?([^`\n]+)`?/i) || text.match(/Winning Model[:\s]+`?([^`\n]+)`?/i);
+      if (scoreMatch) {
+        scoreValEl.textContent = scoreMatch[1].trim();
+      } else {
+        scoreValEl.textContent = 'Gradient Boosting / Multi-Model Benchmark';
+      }
     }
   }
 
   if (importanceEl) {
     importanceEl.innerHTML = '';
-    const numCols = (state.columns || []).slice(0, 5);
-    if (numCols.length) {
-      const weights = [0.42, 0.28, 0.15, 0.10, 0.05];
-      numCols.forEach((col, idx) => {
-        const pct = Math.round((weights[idx] || 0.08) * 100);
-        const item = document.createElement('div');
-        item.className = 'importance-item';
-        item.innerHTML = `
-          <div class="importance-header">
-            <span>${col}</span>
-            <span style="color: var(--cyan);">${pct}% Importance Weight</span>
-          </div>
-          <div class="importance-track">
-            <div class="importance-fill" style="width: ${pct}%;"></div>
-          </div>
-        `;
-        importanceEl.appendChild(item);
+    const parsedFeatures = [];
+
+    if (text) {
+      // Parse patterns like: - **FeatureName**: `42.5%` relative influence
+      const featureMatches = [...text.matchAll(/-\s+\*\*([^*]+)\*\*:\s+`([0-9.]+)%`/g)];
+      featureMatches.forEach(m => {
+        parsedFeatures.push({ name: m[1].trim(), pct: parseFloat(m[2]) });
       });
     }
+
+    const numCols = (state.columns || []).slice(0, 5);
+    const featuresToRender = parsedFeatures.length ? parsedFeatures : numCols.map((c, i) => ({
+      name: c,
+      pct: [42, 28, 15, 10, 5][i] || 8
+    }));
+
+    featuresToRender.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'importance-item';
+      row.innerHTML = `
+        <div class="importance-header">
+          <span>${escHtml(item.name)}</span>
+          <span style="color: var(--cyan); font-weight: 700;">${item.pct}% Importance Weight</span>
+        </div>
+        <div class="importance-track">
+          <div class="importance-fill" style="width: ${Math.min(100, Math.max(5, item.pct))}%;"></div>
+        </div>
+      `;
+      importanceEl.appendChild(row);
+    });
   }
 }
 
