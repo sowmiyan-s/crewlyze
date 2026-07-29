@@ -40,30 +40,40 @@ from agents.trend      import make_trend_agent
 # ---------------------------------------------------------------------------
 
 _RATE_LIMIT_SIGNALS = ("rate limit", "429", "too many requests", "quota")
+_failures_count = 0
 
-def make_cooldown_callback(min_sleep: int = 5):
+def cooldown_task_callback(task_output) -> None:
     """
-    Return a task callback that sleeps adaptively based on API feedback.
+    Module-level task callback that sleeps adaptively based on API feedback.
+    Using a module-level named function allows proper serialization/checkpointing
+    and prevents Pydantic UserWarnings.
     """
-    state = {"failures": 0}
+    global _failures_count
+    from config.context import current_cooldown
+    ctx_cooldown = current_cooldown.get()
+    min_sleep = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "5"))
 
-    def _callback(task_output) -> None:
-        output_str = str(task_output).lower() if task_output else ""
-        hit_rate_limit = any(sig in output_str for sig in _RATE_LIMIT_SIGNALS)
+    output_str = str(task_output).lower() if task_output else ""
+    hit_rate_limit = any(sig in output_str for sig in _RATE_LIMIT_SIGNALS)
 
-        if hit_rate_limit:
-            state["failures"] += 1
-            delay = min(max(min_sleep, 10) * (2 ** (state["failures"] - 1)), 120)
-            print(f"\nRate-limit detected. Back-off sleep: {delay}s ...")
-            time.sleep(delay)
-        elif min_sleep > 0:
-            state["failures"] = max(0, state["failures"] - 1)
-            print(f"\nTask complete. Cooldown: {min_sleep}s ...")
-            time.sleep(min_sleep)
-        else:
-            print("\nTask complete. No cooldown (min_sleep=0).")
+    if hit_rate_limit:
+        _failures_count += 1
+        delay = min(max(min_sleep, 10) * (2 ** (_failures_count - 1)), 120)
+        print(f"\nRate-limit detected. Back-off sleep: {delay}s ...")
+        time.sleep(delay)
+    elif min_sleep > 0:
+        _failures_count = max(0, _failures_count - 1)
+        print(f"\nTask complete. Cooldown: {min_sleep}s ...")
+        time.sleep(min_sleep)
+    else:
+        print("\nTask complete. No cooldown (min_sleep=0).")
 
-    return _callback
+
+def make_cooldown_callback(min_sleep: int = 1):
+    """
+    Return the module-level task callback for backward compatibility.
+    """
+    return cooldown_task_callback
 
 
 # ---------------------------------------------------------------------------

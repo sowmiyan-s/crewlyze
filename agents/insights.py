@@ -39,6 +39,6 @@ def make_insights_agent() -> Agent:
             DatasetTools.get_dataset_info,
             DatasetTools.get_correlation_matrix,
         ],
-        max_iter=3,
+        max_iter=2,
         verbose=True,
     )

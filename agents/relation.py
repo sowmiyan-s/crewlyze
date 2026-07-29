@@ -31,6 +31,6 @@ def make_relation_agent() -> Agent:
         allow_delegation=False,
         llm=LLM(**get_llm_params()),
         tools=[DatasetTools.read_dataset_head, DatasetTools.get_correlation_matrix],
-        max_iter=3,
+        max_iter=2,
         verbose=True,
     )

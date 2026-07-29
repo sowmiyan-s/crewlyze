@@ -1,64 +1,81 @@
-# 🚀 Crewlyze (NPM Package)
+# 🚀 Crewlyze
 
-> **The Premier Autonomous Multi-Agent Business Intelligence & Data Science Platform.**
+> **The Autonomous Multi-Agent Data Analysis & Business Intelligence Engine.**
 
 [![NPM Version](https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm)](https://www.npmjs.com/package/crewlyze)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 
-Transform raw CSV, Excel, and SQLite datasets into C-suite executive PDF reports, custom interactive visualizations, and strategic business intelligence using **CrewAI**, **FastAPI**, and **Vanilla JS**.
+**Crewlyze** transforms raw CSV, Excel, and SQLite datasets into executive PDF reports, interactive charts, and strategic business recommendations in seconds—**no programming or data science experience required!**
 
 ---
 
-## ⚡ Instant Quickstart (Zero-SDK Setup)
+## ⚡ Quickstart (1-Line Setup)
 
-Install and run Crewlyze globally across **Windows**, **macOS**, and **Linux** without compiling C++, Rust, or Java build toolchains:
+Install and run Crewlyze globally on **Windows**, **macOS**, or **Linux** with one command:
 
 ```bash
-# 1. Install Crewlyze globally via NPM
+# 1. Install globally via NPM
 npm install -g crewlyze
 
-# 2. Launch from anywhere in your terminal
+# 2. Launch the application
 crewlyze
 ```
 
-> 🎉 **Success:** The backend server initializes automatically on port `8000`, polling readiness, and launches your default web browser to `http://localhost:8000`.
+🎉 **That's it!** Crewlyze automatically sets up the environment, launches the web interface at `http://localhost:8000`, and opens your default browser.
 
 ---
 
-## ✨ Core Capabilities & Features
+## 🌟 Why Choose Crewlyze? (Key Advantages)
 
-* **🤖 Autonomous 7-Agent Swarm:** Orchestrates sequential CrewAI agents for automated data cleaning (`cleaner.py`), correlation mapping (`relation.py`), statistical anomaly detection (`anomaly.py`), time-series trend forecasting (`trend.py`), strategic SWOT mining (`insights.py`), predictive ML modeling (`predictive.py`), and chart visualization (`visualizer.py`).
-* **⚡ Automated Python Environment Setup:** Zero-compiler, zero-configuration setup with automated Python virtual environment (`venv`) creation, pip dependency resolution (`bin/install-python.js`), and cross-platform launcher (`bin/crewlyze.js`).
-* **⚙️ Robust Dataset Processing Tools:** Automated file encoding detection (UTF-8, Latin-1, CP1252), missing value density profiling, and statistical metadata extraction (`tools/dataset_tools.py`).
-* **💻 Cyberpunk CLI & Environment Engine:** ANSI 256 color terminal formatting (`config/cli_formatter.py`), multi-tier `.env` configuration loader (`config/env_loader.py`), and automatic user home directory provisioning (`~/.crewlyze`).
-* **💬 Real-Time AI Chat & Streaming Copilot:** Non-blocking Server-Sent Events (SSE) token streaming with blinking *Thinking...* status, slash `/` column autocomplete dropdown, Markdown (`.md`) / PDF exports, and automatic chat history persistence (`chat_history.json`).
-* **📊 Unlimited Custom Visualization Engine:** High-speed Matplotlib/Seaborn plot rendering (<0.2s) supporting ANY plot type (Histograms, Box/Violin, Scatter, Heatmaps, Time-Series, Stacked Bar, 3D Scatter, Radar, Subplots) with 1-click `📥 Download PNG` button overlay.
-* **📄 C-Suite Executive PDF Reports:** Dynamic ReportLab PDF synthesis featuring HTML entity escaping, numbered page footers, target statistical tables, strategic pillar cards, and embedded chart figures.
-* **🦙 100% Offline Air-Gapped Privacy:** Process datasets locally using **Ollama** (`http://localhost:11434`) with zero cloud data transmission.
-* **🔑 Universal LLM Gateways:** Works out-of-the-box with OpenAI (`gpt-4o`), Anthropic (`claude-3-5-sonnet`), Google Gemini (`gemini-1.5-flash`), NVIDIA NIM, Minimax, Groq, DeepSeek, and custom vLLM proxies.
-* **📬 Outbound Integrations Hub:** Automated PDF report dispatching via **SMTP Email** (Port 587 STARTTLS / 465 SSL), **Discord Webhooks** (rich embeds + PDF attachments), **Slack**, and REST APIs.
-* **🔍 Read-Only SQL Query Workbench:** Natural language-to-SQL compiler with 3-second query execution timeout protection.
-* **🔄 Stay-on-Page Reload State:** `localStorage` session manager automatically restores your active project and tab on browser refresh (`F5`).
-* **📑 Executive Deliverable Formats:** ReportLab PDF Executive Summaries, PowerPoint presentation slide decks (`.pptx`), and full ZIP workspace archives.
+* 🎯 **Zero Code Needed:** Upload any CSV or Excel spreadsheet and let AI handle cleaning, modeling, and visualization automatically.
+* 🔒 **100% Offline Air-Gapped Privacy:** Run completely local offline analyses using **Ollama** (`llama3`, `mistral`, `phi3`) with zero cloud data transmission.
+* 📄 **C-Suite PDF Reports:** Download polished, McKinsey/BCG-style PDF briefing reports with 1 click.
+* 🤖 **7 Specialized AI Agents:** A team of dedicated AI specialists collaborates to audit and analyze your data from every angle.
+* 🔑 **Universal AI Support:** Compatible with OpenAI (GPT-4o), Anthropic (Claude 3.5), Google Gemini, NVIDIA NIM, DeepSeek, and custom LLM providers.
+* 💬 **Interactive AI Data Copilot:** Ask questions about your dataset in plain English and receive instant chart updates and SQL analysis.
 
 ---
 
-## 💻 Python Source Setup (Alternative for Developers)
+## 🤖 The 7 Autonomous AI Agents Explained
 
-If you prefer installing directly from Python source:
+Crewlyze deploys a team of 7 specialized AI agents that work sequentially on your dataset:
+
+| Agent Icon & Name | What It Does (Non-Tech Explanation) |
+| :--- | :--- |
+| 🧹 **1. Data Cleaning Agent** | **Fixes messy data.** Automatically repairs missing entries, strips currency symbols, strips whitespace, casts data types, and removes duplicate rows. |
+| 🔗 **2. Relationship Analyst** | **Finds hidden connections.** Computes statistical correlations and identifies how key columns in your dataset influence each other. |
+| 💡 **3. Business Insights Agent** | **Acts as your strategy consultant.** Synthesizes findings into McKinsey-style executive pillars, risk warnings, and actionable growth opportunities. |
+| 🤖 **4. Predictive Auto-ML Agent** | **Discovers key growth drivers.** Trains automated machine learning models to rank variable importance and identify primary success drivers. |
+| 🛡️ **5. Anomaly Risk Auditor** | **Detects red flags & outlier spikes.** Scans distributions using IQR & Z-score statistics to alert you to unexpected data anomalies. |
+| 📈 **6. Trend Forecast Analyst** | **Projects future momentum.** Tracks time-series data to calculate trajectory growth vectors and momentum directions. |
+| 🎨 **7. Visual Intelligence Agent** | **Creates beautiful charts.** Generates high-resolution Matplotlib/Seaborn plots and interactive, zoomable Plotly dashboards. |
+
+---
+
+## 💡 How to Use Crewlyze in 3 Easy Steps
+
+1. **Upload Dataset:** Drag & drop any CSV or Excel file on the home dashboard.
+2. **Select AI Agents:** Pick which agents you want to run (or leave default to run full pipeline).
+3. **Explore Results:** View interactive dashboards, chat live with your AI Copilot, or click **Export PDF Report**.
+
+---
+
+## 💻 Developer & Source Installation
+
+To run directly from Python source:
 
 ```bash
 git clone https://github.com/sowmiyan-s/crewlyze.git
 cd crewlyze
 python -m venv venv
-# Linux/macOS: source venv/bin/activate | Windows: venv\Scripts\activate
+# Windows: venv\Scripts\activate | macOS/Linux: source venv/bin/activate
 pip install -r requirements.txt
 python main.py
 ```
 
 ---
 
-## 📜 License & Author
+## 📜 License
 
-Distributed under the **MIT License**. Created by [Sowmiyan S](https://github.com/sowmiyan-s).
+Distributed under the **MIT License**. Created with ❤️ by [Sowmiyan S](https://github.com/sowmiyan-s).

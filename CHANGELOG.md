@@ -5,6 +5,19 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-07-28
+
+### Added & Enhanced
+- **Wide Horizontal Agent Selection Layout**: Re-engineered task selection modal with a 7-column horizontal rectangle strip display (`repeat(7, minmax(0, 1fr))`) and compact task cards.
+- **Single-Line Agent Output Tabs**: Enforced single-line horizontal alignment with smooth scrolling for `#agenticTabsBar`.
+- **8-Stage Pipeline & 7-Agent Animations**: Complete tracking across all 8 stages (`cleaning`, `relations`, `insights`, `predictive`, `anomaly`, `trend`, `visualization`, `plotly`) with distinct, borderless CSS/SVG animations.
+- **Non-Technical Documentation Overhaul**: Re-wrote `README-NPM.md` with 1-line installation, advantages, 100% local air-gapped privacy setup, and plain-language breakdowns of all 7 AI agents.
+
+### Fixed
+- **Partial Run PDF Export Crash**: Resolved `ZeroDivisionError` in `/api/export-pdf` when optional agents are skipped, ensuring executive PDF export succeeds for any subset of selected agents.
+- **Page Reload Navigation Bug**: Refactored `init()` so refreshing (`F5`) on the landing page retains landing view instead of jumping into an old project.
+- **Notification Toast Positioning**: Shifted `.analysis-notification-toast` offset to the left of the bell icon (`right: 140px`).
+
 ## [3.0.0] - 2026-06-27
 
 ### Architecture Refactor

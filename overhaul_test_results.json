@@ -1,0 +1,33 @@
+{
+  "passed": [
+    [
+      "ID & Metadata Detection",
+      "Detected metadata columns: ['user_id', 'zipcode']"
+    ],
+    [
+      "Guided AutoML Engine",
+      "Verified classification and regression tasks cleanly"
+    ],
+    [
+      "Relational SQL Engine",
+      "Engine: duckdb, Returned 3 rows from JOIN"
+    ],
+    [
+      "FastAPI /api/clean/preview",
+      "Preview returned actions: 0"
+    ],
+    [
+      "FastAPI /api/clean/apply",
+      "Applied transformations: 1"
+    ],
+    [
+      "FastAPI /api/query-relational-sql",
+      "Executed relational SQL query successfully"
+    ],
+    [
+      "FastAPI /api/export-notebook",
+      "Generated notebook cells count: 8"
+    ]
+  ],
+  "failed": []
+}

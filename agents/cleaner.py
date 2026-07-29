@@ -30,6 +30,6 @@ def make_cleaner_agent() -> Agent:
             DatasetTools.get_dataset_info,
             DatasetTools.clean_dataset_with_python,
         ],
-        max_iter=5,
+        max_iter=2,
         verbose=True,
     )

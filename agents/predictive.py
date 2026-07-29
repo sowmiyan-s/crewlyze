@@ -20,6 +20,7 @@ def make_predictive_agent() -> Agent:
             "on the dataset, analyze the feature importances, and explain them to business users."
         ),
         allow_delegation=False,
+        max_iter=2,
         tools=[DatasetTools.run_python_script],
         llm=LLM(**get_llm_params()),
     )

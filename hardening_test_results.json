@@ -1,0 +1,21 @@
+{
+  "passed": [
+    [
+      "Thread-Safe Matplotlib Figure Rendering",
+      "5 concurrent threads executed figure rendering with zero collisions"
+    ],
+    [
+      "High-Cardinality AutoML Feature Cap",
+      "Successfully filtered out 100-unique-value string column to prevent matrix explosion"
+    ],
+    [
+      "SQL Column Name Sanitization",
+      "Sanitized column names with spaces/dashes for DuckDB/SQLite execution"
+    ],
+    [
+      "Kickoff Retry Helper",
+      "_kickoff_with_retry helper executed cleanly"
+    ]
+  ],
+  "failed": []
+}

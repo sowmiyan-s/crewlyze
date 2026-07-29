@@ -1,0 +1,66 @@
+{
+  "passed": [
+    [
+      "Env Loader",
+      "Home: C:\\Users\\Asus\\.crewlyze, Data: C:\\Users\\Asus\\.crewlyze\\data"
+    ],
+    [
+      "LLM Config",
+      "Default model configuration: nvidia_nim/meta/llama-3.1-8b-instruct"
+    ],
+    [
+      "Dataset Tools",
+      "Profile length: 565 chars, Plotly Charts count: 0"
+    ],
+    [
+      "Visualizer Fallback",
+      "Generated 3 PNG chart(s) in fallback mode"
+    ],
+    [
+      "UI Copilot Engine",
+      "Engine response status: True"
+    ],
+    [
+      "FastAPI App Root Mount",
+      "HTML UI served successfully (Status 200)"
+    ],
+    [
+      "FastAPI /api/config",
+      "GET status: 200, POST update status: 200"
+    ],
+    [
+      "FastAPI /api/upload",
+      "Uploaded session_id: 4a6404d4fe9b, filename: test_data.csv"
+    ],
+    [
+      "FastAPI /api/results",
+      "Status code: 200, Session state retrieved"
+    ],
+    [
+      "FastAPI /api/copilot",
+      "API response status: 200"
+    ],
+    [
+      "FastAPI /api/projects/{id}/export-pdf",
+      "PDF report generated: 306385 bytes"
+    ],
+    [
+      "FastAPI /api/projects/{id}/export-zip",
+      "ZIP archive generated: 1651741 bytes"
+    ],
+    [
+      "FastAPI /api/projects",
+      "Active projects found: 23"
+    ],
+    [
+      "FastAPI /api/metrics",
+      "Metrics retrieved successfully"
+    ],
+    [
+      "FastAPI /api/llm/providers",
+      "LLM Providers count: 1"
+    ]
+  ],
+  "failed": [],
+  "warnings": []
+}

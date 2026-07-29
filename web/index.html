@@ -12,7 +12,7 @@
   <script src="/libs/plotly-2.35.2.min.js"></script>
   <script src="/libs/marked.min.js"></script>
   <script src="/libs/lucide.min.js"></script>
-  <link rel="stylesheet" href="/style.css?v=1.1.0" />
+  <link rel="stylesheet" href="/style.css?v=1.1.1" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <style>
     /* Settings Sidebar overrides to guarantee no caching collapse */
@@ -193,10 +193,16 @@
             <div class="notif-details" style="font-size: 0.62rem; color: var(--text-secondary); margin: 0; line-height: 1.1;"><span id="notifActiveJob">Cleaning...</span> | <span id="notifTimer">00:00</span></div>
           </div>
           <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
-            <button id="btnMaximizeNotif" class="btn-primary btn-xs" style="padding: 2px 6px; font-size: 0.65rem; font-weight: 600; border-radius: var(--r-sm); height: 20px; line-height: 20px; display: flex; align-items: center;">View</button>
+            <button id="btnMaximizeNotif" class="btn-primary btn-xs" style="padding: 3px 10px; font-size: 0.68rem; font-weight: 600; border-radius: var(--r-sm); height: 22px; display: flex; align-items: center;">View</button>
             <button id="dismissNotif" class="notif-close-btn" style="font-size: 0.95rem; line-height: 1; color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 0 2px;">✕</button>
           </div>
         </div>
+
+        <!-- Single Red Stop Analysis Button (Next to Bell Icon) -->
+        <button id="topbarStopBtn" class="topbar-stop-btn hidden">
+          <i data-lucide="square" style="width: 11px; height: 11px; fill: currentColor;"></i>
+          <span>Stop</span>
+        </button>
 
         <!-- Bell Notification Button -->
         <button id="notifBellBtn" class="btn-icon" style="position: relative; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-mid); display: flex; align-items: center; justify-content: center; cursor: pointer; background: var(--bg-elevated); transition: all 0.2s;">

@@ -120,56 +120,111 @@ def _run_hypothesis_test_engine(query: str, csv_path: str) -> Optional[dict]:
         return None
 
 def _run_automl_engine(query: str, csv_path: str, output_dir: Path) -> Optional[dict]:
-    """Trains a Scikit-Learn predictive model and generates feature importance charts."""
+    """Trains a Scikit-Learn predictive model (Classification or Regression) and generates feature importance charts."""
     q_lower = query.lower()
     if not any(k in q_lower for k in ("predict", "automl", "model", "feature importance", "classify", "train")):
         return None
 
     try:
-        from sklearn.ensemble import RandomForestRegressor
+        from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
         from sklearn.model_selection import train_test_split
+        from sklearn.metrics import accuracy_score, precision_recall_fscore_support, mean_squared_error, mean_absolute_error
+        import numpy as np
         import matplotlib
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
+        from tools.dataset_tools import detect_metadata_columns
 
         df = read_csv_robust(csv_path)
-        num_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        meta_cols = detect_metadata_columns(df)
+        valid_cols = [c for c in df.columns if c not in meta_cols]
         
-        if len(num_cols) < 2:
+        if len(valid_cols) < 2:
             return None
 
-        target_col = num_cols[-1]
-        feature_cols = [c for c in num_cols if c != target_col][:6]
+        # Check if user specified target in query
+        target_col = None
+        for c in valid_cols:
+            if c.lower() in q_lower:
+                target_col = c
+                break
 
+        if not target_col:
+            # Pick last numeric or categorical valid column
+            num_cols = df[valid_cols].select_dtypes(include=["number"]).columns.tolist()
+            target_col = num_cols[-1] if num_cols else valid_cols[-1]
+
+        # Filter out high-cardinality categorical columns (>15 unique values) to prevent RAM explosion
+        filtered_features = []
+        for c in [c for c in valid_cols if c != target_col][:12]:
+            if pd.api.types.is_numeric_dtype(df[c]) or df[c].nunique() <= 15:
+                filtered_features.append(c)
+            if len(filtered_features) >= 8:
+                break
+
+        feature_cols = filtered_features
         if not feature_cols:
             return None
 
-        X = df[feature_cols].fillna(df[feature_cols].median())
-        y = df[target_col].fillna(df[target_col].median())
+        # Determine task type: Classification vs Regression
+        is_classification = df[target_col].nunique() <= 10 or pd.api.types.is_object_dtype(df[target_col])
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        # Prepare X and y
+        X_df = pd.get_dummies(df[feature_cols].copy(), drop_first=True)
+        X = X_df.fillna(X_df.median(numeric_only=True))
 
-        model = RandomForestRegressor(n_estimators=50, random_state=42)
-        model.fit(X_train, y_train)
-        score = model.score(X_test, y_test)
+        if is_classification:
+            y = df[target_col].astype(str).fillna("Unknown")
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = RandomForestClassifier(n_estimators=50, random_state=42)
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            
+            acc = accuracy_score(y_test, y_pred)
+            prec, rec, f1, _ = precision_recall_fscore_support(y_test, y_pred, average="weighted", zero_division=0)
+            metrics_summary = [
+                f"- **Model Task Type**: `Classification`",
+                f"- **Algorithm**: `RandomForestClassifier (n_estimators=50)`",
+                f"- **Accuracy Score**: `{acc:.4f}` ({acc*100:.1f}%)",
+                f"- **Weighted F1-Score**: `{f1:.4f}`",
+                f"- **Weighted Precision / Recall**: `{prec:.4f}` / `{rec:.4f}`"
+            ]
+        else:
+            y = df[target_col].fillna(df[target_col].median())
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = RandomForestRegressor(n_estimators=50, random_state=42)
+            model.fit(X_train, y_train)
+            score = model.score(X_test, y_test)
+            y_pred = model.predict(X_test)
+            rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+            mae = mean_absolute_error(y_test, y_pred)
+            metrics_summary = [
+                f"- **Model Task Type**: `Regression`",
+                f"- **Algorithm**: `RandomForestRegressor (n_estimators=50)`",
+                f"- **Model $R^2$ Variance Score**: `{score:.4f}` ({score*100:.1f}% explained variance)",
+                f"- **Root Mean Squared Error (RMSE)**: `{rmse:.4f}`",
+                f"- **Mean Absolute Error (MAE)**: `{mae:.4f}`"
+            ]
 
+        # Feature importances
         importances = model.feature_importances_
-        feat_df = pd.DataFrame({"Feature": feature_cols, "Importance": importances}).sort_values("Importance", ascending=True)
+        feat_df = pd.DataFrame({"Feature": X_df.columns, "Importance": importances}).sort_values("Importance", ascending=True).tail(10)
 
-        plot_path = output_dir / f"automl_importance_{_uuid_short()}.png"
-        fig, ax = plt.subplots(figsize=(7, 4))
+        from matplotlib.figure import Figure
+        plot_path = output_dir / f"automl_importance_{uuid.uuid4().hex[:12]}.png"
+        fig = Figure(figsize=(7, 4), facecolor="#ffffff")
+        ax = fig.add_subplot(111)
+        ax.set_facecolor("#f8fafc")
         ax.barh(feat_df["Feature"], feat_df["Importance"], color="#7c3aed")
         ax.set_title(f"Feature Importance Ranking for Target: '{target_col}'", fontsize=11, fontweight="bold", pad=12)
         ax.set_xlabel("Relative Importance Score", fontsize=9)
-        plt.tight_layout()
-        plt.savefig(str(plot_path), dpi=150)
-        plt.close()
+        fig.tight_layout()
+        fig.savefig(str(plot_path), dpi=150, bbox_inches="tight")
 
         res_md = [
-            f"### 🤖 **AutoML Predictive Model & Feature Importance Report**",
-            f"- **Target Predictor Variable**: `{target_col}`",
-            f"- **Algorithm**: `RandomForestRegressor (n_estimators=50)`",
-            f"- **Model $R^2$ Variance Score**: `{score:.4f}` ({score*100:.1f}% explained variance)",
+            f"### **Guided AutoML Predictive Model & Evaluation Report**",
+            f"- **Target Variable**: `{target_col}`",
+        ] + metrics_summary + [
             f"\n#### **Feature Importance Ranking Table**",
             f"| Feature Name | Importance Weight | Rank |",
             f"| :--- | :--- | :--- |"

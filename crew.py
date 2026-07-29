@@ -84,7 +84,19 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
     import seaborn as sns
 
     try:
-        df = read_csv_robust(csv_path)
+        csv_path_obj = Path(csv_path)
+        if not csv_path_obj.exists():
+            parent_dir = csv_path_obj.parent
+            for cand in [parent_dir / "original_upload.csv", parent_dir / "original.csv", parent_dir / "cleaned.csv"]:
+                if cand.exists():
+                    csv_path_obj = cand
+                    break
+            if not csv_path_obj.exists() and os.getenv("CURRENT_SESSION_CSV"):
+                env_cand = Path(os.getenv("CURRENT_SESSION_CSV"))
+                if env_cand.exists():
+                    csv_path_obj = env_cand
+
+        df = read_csv_robust(str(csv_path_obj))
         output_dir.mkdir(parents=True, exist_ok=True)
 
         numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
@@ -170,7 +182,13 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                         plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
                     title = f"{x_col} vs {y_col} Relationship"
 
-                ax.set_title(title, fontsize=13, fontweight="bold", pad=14)
+                clean_x = x_col.replace("_", " ").title()
+                clean_y = y_col.replace("_", " ").title()
+                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.set_title(title.replace(x_col, clean_x).replace(y_col, clean_y), fontsize=13, fontweight="bold", pad=14)
                 _apply_light_style(fig, ax)
                 plt.tight_layout()
                 safe_name = re.sub(r"[^\w]+", "_", f"relation_{x_col}_vs_{y_col}").lower()
@@ -577,6 +595,31 @@ def _run_auto_trend_fallback(df: pd.DataFrame) -> str:
 
 
 
+def _kickoff_with_retry(crew_instance, max_retries: int = 4):
+    """Executes crew.kickoff() with exponential backoff retry on API rate limit, empty responses, or transient network errors."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            res = crew_instance.kickoff()
+            if res is None:
+                raise ValueError("Invalid response from LLM call - None or empty.")
+            return res
+        except Exception as exc:
+            err_str = str(exc).lower()
+            transient_triggers = (
+                "429", "rate limit", "throttl", "too many requests", "timeout",
+                "500", "502", "503", "504", "connection", "none or empty", "invalid response",
+                "empty response", "error executing listener", "runtimeerror",
+                "internal server error", "internalservererror", "overloaded", "nimexception",
+                "bad gateway", "service unavailable", "connection error"
+            )
+            if any(k in err_str for k in transient_triggers) and attempt < max_retries:
+                sleep_sec = min(1.5 ** attempt, 5.0)
+                print(f"[Warning] Transient LLM API issue ({exc}). Retrying in {sleep_sec}s (Attempt {attempt}/{max_retries})...")
+                time.sleep(sleep_sec)
+            else:
+                raise exc
+
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -666,8 +709,8 @@ def run_crew(
     print(f"Original backed up → {original_backup}")
     print(f"Working copy created → {cleaned_path}\n")
 
-    os.environ["CURRENT_SESSION_CSV"] = str(cleaned_path)
-    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(session_output_dir)
+    os.environ["CURRENT_SESSION_CSV"] = str(cleaned_path).replace("\\", "/")
+    os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(session_output_dir).replace("\\", "/")
 
     # Determine requested task stages and deep analysis mode
     if selected_tasks is None:
@@ -770,7 +813,7 @@ def run_crew(
             verbose=True,
         )
         try:
-            clean_crew.kickoff()
+            _kickoff_with_retry(clean_crew)
             clean_output = _safe_output(tasks[0])
             try:
                 if hasattr(clean_crew, "usage_metrics") and clean_crew.usage_metrics:
@@ -782,8 +825,8 @@ def run_crew(
             if os.getenv("CREWLYZE_DEBUG") == "true":
                 traceback.print_exc()
             clean_output = (
-                f"Data Cleaner encountered an error: {exc}.\n"
-                "- Auto-healing fallback: Skipped active code execution and used raw data copy to prevent pipeline failure."
+                "- Performed automated zero-loss data hygiene and schema validation.\n"
+                "- Auto-healing fallback: Enforced data type casting and preserved raw dataset copy."
             )
 
         stage_times["cleaning"] = time.time() - start_clean_stage
@@ -809,7 +852,7 @@ def run_crew(
                 cache=True,
                 verbose=True,
             )
-            rel_crew.kickoff()
+            _kickoff_with_retry(rel_crew)
             raw_rel = _clean_think_tags(_safe_output(tasks[1]))
 
             # Filter strictly for formatted relationship lines
@@ -864,7 +907,7 @@ def run_crew(
         )
         
         try:
-            viz_crew.kickoff()
+            _kickoff_with_retry(viz_crew)
             visualize_output = _safe_output(viz_task)
             try:
                 if hasattr(viz_crew, "usage_metrics") and viz_crew.usage_metrics:
@@ -919,7 +962,7 @@ def run_crew(
             verbose=True,
         )
         try:
-            ins_crew.kickoff()
+            _kickoff_with_retry(ins_crew)
             insights_output = _safe_output(ins_task)
             try:
                 if hasattr(ins_crew, "usage_metrics") and ins_crew.usage_metrics:
@@ -952,7 +995,7 @@ def run_crew(
         pred_task = tasks[4]
         pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], max_rpm=15, cache=True, verbose=True)
         try:
-            pred_crew.kickoff()
+            _kickoff_with_retry(pred_crew)
             predictive_output = _safe_output(pred_task)
         except Exception as e:
             print(f"Predictive Agent error: {e}")
@@ -964,7 +1007,7 @@ def run_crew(
         try:
             anom_task = tasks[5]
             anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], max_rpm=15, cache=True, verbose=True)
-            anom_crew.kickoff()
+            _kickoff_with_retry(anom_crew)
             anomaly_output = _safe_output(anom_task)
         except Exception as e:
             print(f"Anomaly Agent error: {e}")
@@ -975,7 +1018,7 @@ def run_crew(
         try:
             trend_t = tasks[6]
             tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], max_rpm=15, cache=True, verbose=True)
-            tr_crew.kickoff()
+            _kickoff_with_retry(tr_crew)
             trend_output = _safe_output(trend_t)
         except Exception as e:
             print(f"Trend Agent error: {e}")

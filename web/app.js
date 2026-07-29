@@ -322,9 +322,10 @@ const els = {
 // Screen management
 // ────────────────────────────────────────────────────────────────────────────
 function showScreen(name) {
+  const targetId = (name === 'home' || name === 'landing') ? 'landingScreen' : name + 'Screen';
   ['landingScreen','runningScreen','resultsScreen','metricsScreen'].forEach(id => {
     const el = $(id);
-    if (el) el.classList.toggle('active', id === name + 'Screen');
+    if (el) el.classList.toggle('active', id === targetId);
   });
   if (name !== 'results' && name !== 'metrics') {
     if (els.sidebarProjectActions) els.sidebarProjectActions.classList.add('hidden');
@@ -2708,11 +2709,15 @@ els.runAnalysisBtn.addEventListener('click', async () => {
 // SSE Live Log Stream
 // ────────────────────────────────────────────────────────────────────────────
 const STAGE_KEYWORDS = {
-  cleaning:      ['cleaning', 'cleaned', 'data clean'],
-  relations:     ['relation', 'correlation'],
-  insights:      ['insight', 'business'],
-  visualization: ['visualization', 'png', 'chart', 'plot'],
-  plotly:        ['plotly', 'interactive chart'],
+  profiling:     ['profil', 'schema', 'inspect', 'dataset matrix', 'statistical'],
+  cleaning:      ['cleaning', 'cleaned', 'data clean', 'sanitiz'],
+  relations:     ['relation', 'correlation', 'dependency'],
+  insights:      ['insight', 'business', 'recommendation', 'pillar', 'strategic'],
+  predictive:    ['predictive', 'scikit', 'auto-ml', 'random forest', 'feature importance'],
+  anomaly:       ['anomaly', 'outlier', 'risk audit', 'z-score', 'iqr'],
+  trend:         ['trend', 'forecast', 'time-series', 'trajectory', 'temporal'],
+  visualization: ['visualization', 'seaborn', 'matplotlib', 'png_charts'],
+  plotly:        ['plotly', 'interactive chart', 'dashboard builder'],
 };
 
 function classifyLine(line) {
@@ -2737,98 +2742,160 @@ function appendLog(line) {
 function copyLogsToResults() {
   const resultsLog = $('resultsLogOutput');
   if (!resultsLog) return;
-  
-  // Clone all log lines from the running screen
   resultsLog.innerHTML = '';
   const logLines = els.logOutput.querySelectorAll('.log-line');
   logLines.forEach(line => {
     resultsLog.appendChild(line.cloneNode(true));
   });
-  
-  // Re-init lucide icons in the new panel
   if (window.lucide) lucide.createIcons();
 }
 
-let povInterval = null;
+let _stageQueue = [];
+let _isProcessingStageQueue = false;
+
+function queueStagePov(stage) {
+  if (!_stageQueue.includes(stage)) {
+    _stageQueue.push(stage);
+  }
+  if (!_isProcessingStageQueue) {
+    _processStageQueue();
+  }
+}
+
+async function _processStageQueue() {
+  if (_stageQueue.length === 0) {
+    _isProcessingStageQueue = false;
+    return;
+  }
+  _isProcessingStageQueue = true;
+  const stage = _stageQueue.shift();
+
+  document.querySelectorAll('.stage-item').forEach(el => {
+    if (el.getAttribute('data-stage') === stage) {
+      el.classList.remove('done');
+      el.classList.add('active');
+    }
+  });
+
+  renderStagePov(stage);
+
+  // Guarantee 10 full seconds of visual display per agent stage
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  document.querySelectorAll('.stage-item').forEach(el => {
+    if (el.getAttribute('data-stage') === stage) {
+      el.classList.remove('active');
+      el.classList.add('done');
+    }
+  });
+
+  _processStageQueue();
+}
 
 function renderStagePov(stage) {
-  if (povInterval) {
-    clearInterval(povInterval);
-    povInterval = null;
-  }
-  
   if (!els.stagePovPanel) return;
 
-  if (stage === 'cleaning') {
-    els.stagePovPanel.innerHTML = `
-      <div class="pov-header">
-        <div class="pov-title"><i data-lucide="brush" style="width:20px; height:20px; color:#10b981; vertical-align:middle; margin-right:8px;"></i> Data Sanitizer Active</div>
-        <div class="pov-desc">Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code...</div>
-      </div>
-      <div class="pov-content">
-        <div class="anim-cleaning-wrap">
-          <div class="anim-clean-laser"></div>
-          <div style="font-size:0.8rem; font-weight:700; color:#10b981; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:4px;">Sanitizing Data Types & Matrix Values</div>
-          <div class="anim-clean-grid">
-            <div class="anim-clean-cell">[DTYPE] int64</div>
-            <div class="anim-clean-cell">[STRIP] $1,000 → 1000</div>
-            <div class="anim-clean-cell">[IMPUTE] Median</div>
-            <div class="anim-clean-cell">[DEDUP] Cleaned</div>
-          </div>
+  /* ── shared builder ── */
+  const mk = (accentColor, icon, title, desc, bodyHtml) => `
+    <div class="pov-header">
+      <div class="pov-title">${icon}<span style="color:${accentColor}">${title}</span></div>
+      <div class="pov-desc">${desc}</div>
+    </div>
+    <div class="pov-content pov-fullbody" style="--accent:${accentColor};">${bodyHtml}</div>`;
+
+  if (stage === 'profiling') {
+    els.stagePovPanel.innerHTML = mk(
+      '#38bdf8',
+      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" opacity=".4"/><path d="M8 8h8M8 12h5M8 16h3"/></svg>',
+      'Dataset Matrix Inspector',
+      'Profiling schema types, column cardinality, null density, and descriptive statistical distributions across all features...',
+      `<div class="pov-profiling-grid">
+        <div class="ppg-col">
+          <div class="ppg-label" style="color:#38bdf8">SCHEMA PROFILE</div>
+          ${['col_a: int64','col_b: float32','col_c: object','col_d: datetime','col_e: bool'].map((r,i)=>`<div class="ppg-row" style="animation-delay:${i*0.18}s">${r}</div>`).join('')}
         </div>
-      </div>`;
+        <div class="ppg-col">
+          <div class="ppg-label" style="color:#38bdf8">NULL DENSITY</div>
+          ${[92,78,55,100,41].map((v,i)=>`<div class="ppg-bar-wrap" style="animation-delay:${i*0.2}s"><div class="ppg-bar" style="width:${v}%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);"></div><span>${v}%</span></div>`).join('')}
+        </div>
+        <div class="ppg-col">
+          <div class="ppg-label" style="color:#38bdf8">STATISTICS</div>
+          ${['mean: 42.3','std: 11.7','min: 0.1','max: 99.9','median: 40.2'].map((r,i)=>`<div class="ppg-stat" style="animation-delay:${i*0.18}s">${r}</div>`).join('')}
+        </div>
+      </div>`
+    );
+
+  } else if (stage === 'cleaning') {
+    els.stagePovPanel.innerHTML = mk(
+      '#10b981',
+      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>',
+      'Data Sanitizer Active',
+      'Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code on the full dataset...',
+      `<div class="pov-cleaning-full">
+        <div class="pcf-laser"></div>
+        <div class="pcf-status-bar"><div class="pcf-status-fill"></div><span class="pcf-status-txt">Sanitizing...</span></div>
+        <div class="pcf-ops">
+          ${['[DTYPE] int64 → coerced','[NULLS] 3.2% → median-filled','[STRIP] whitespace removed','[DEDUP] 14 rows removed','[ENCODE] categoricals mapped','[OUTLIER] IQR clipped'].map((op,i)=>`<div class="pcf-op" style="animation-delay:${i*0.4}s"><span class="pcf-dot"></span>${op}</div>`).join('')}
+        </div>
+      </div>`
+    );
 
   } else if (stage === 'relations') {
-    els.stagePovPanel.innerHTML = `
-      <div class="pov-header">
-        <div class="pov-title"><i data-lucide="link" style="width:20px; height:20px; color:#06b6d4; vertical-align:middle; margin-right:8px;"></i> Correlation Detector Engaged</div>
-        <div class="pov-desc">Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping relationship strengths...</div>
-      </div>
-      <div class="pov-content">
-        <div class="anim-relations-wrap">
-          <svg class="anim-relations-svg" viewBox="0 0 160 100">
-            <g>
-              <line x1="50" y1="30" x2="110" y2="70" stroke="#06b6d4" stroke-width="2" opacity="0.8" stroke-dasharray="4 2"></line>
-              <line x1="110" y1="30" x2="50" y2="70" stroke="#22d3ee" stroke-width="2" opacity="0.6"></line>
-              <line x1="80" y1="15" x2="80" y2="85" stroke="#06b6d4" stroke-width="2.5" opacity="0.9"></line>
-              
-              <circle cx="50" cy="30" r="12" class="anim-node"></circle>
-              <circle cx="110" cy="30" r="12" class="anim-node"></circle>
-              <circle cx="50" cy="70" r="12" class="anim-node"></circle>
-              <circle cx="110" cy="70" r="12" class="anim-node"></circle>
-              <circle cx="80" cy="15" r="12" class="anim-node"></circle>
-              <circle cx="80" cy="85" r="12" class="anim-node"></circle>
-            </g>
-          </svg>
+    els.stagePovPanel.innerHTML = mk(
+      '#06b6d4',
+      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+      'Correlation Detector Engaged',
+      'Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping full feature relationship graph...',
+      `<div class="pov-relations-full">
+        <svg class="prf-svg" viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+          <defs><filter id="nd"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#06b6d4" flood-opacity="0.8"/></filter></defs>
+          <line x1="200" y1="110" x2="80" y2="50" stroke="#06b6d4" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge"/>
+          <line x1="200" y1="110" x2="80" y2="170" stroke="#22d3ee" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.3s"/>
+          <line x1="200" y1="110" x2="320" y2="50" stroke="#06b6d4" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.6s"/>
+          <line x1="200" y1="110" x2="320" y2="170" stroke="#22d3ee" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.9s"/>
+          <line x1="200" y1="110" x2="200" y2="20" stroke="#0891b2" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:1.2s"/>
+          <line x1="200" y1="110" x2="200" y2="200" stroke="#0891b2" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:1.5s"/>
+          <circle cx="80" cy="50" r="18" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node"/>
+          <circle cx="80" cy="170" r="18" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.3s"/>
+          <circle cx="320" cy="50" r="18" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.6s"/>
+          <circle cx="320" cy="170" r="18" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.9s"/>
+          <circle cx="200" cy="20" r="18" fill="#0f172a" stroke="#0891b2" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:1.2s"/>
+          <circle cx="200" cy="200" r="18" fill="#0f172a" stroke="#0891b2" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:1.5s"/>
+          <circle cx="200" cy="110" r="28" fill="rgba(6,182,212,0.15)" stroke="#06b6d4" stroke-width="2.5" filter="url(#nd)" class="prf-hub"/>
+          <text x="200" y="115" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="700">CORE</text>
+        </svg>
+        <div class="prf-legend">
+          <div class="prf-stat">0.82 <span>Revenue–Profit</span></div>
+          <div class="prf-stat">0.74 <span>Units–Revenue</span></div>
+          <div class="prf-stat">0.61 <span>Cost–Margin</span></div>
         </div>
-      </div>`;
+      </div>`
+    );
 
   } else if (stage === 'insights') {
-    els.stagePovPanel.innerHTML = `
-      <div class="pov-header">
-        <div class="pov-title"><i data-lucide="lightbulb" style="width:20px; height:20px; color:#f59e0b; vertical-align:middle; margin-right:8px;"></i> Strategic Business Insights</div>
-        <div class="pov-desc">Correlating discovered patterns to business implications and drafting actionable McKinsey-level recommendation strategies...</div>
-      </div>
-      <div class="pov-content pov-insights-panel">
-        <div class="anim-insights-wrap">
-          <div class="anim-insights-core">
-            <svg style="width:36px; height:36px; color:#f59e0b; filter:drop-shadow(0 0 10px #f59e0b);" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-            </svg>
+    els.stagePovPanel.innerHTML = mk(
+      '#f59e0b',
+      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>',
+      'Strategic Business Insights',
+      'Correlating discovered data patterns to business implications and drafting actionable McKinsey-grade executive strategy recommendations...',
+      `<div class="pov-insights-full">
+        <div class="pif-orb"></div>
+        <div class="pif-cards">
+          <div class="pif-card" style="animation-delay:0s;border-color:rgba(245,158,11,0.35)">
+            <div class="pif-card-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">&#x1F4A1;</div>
+            <div><div class="pif-card-title">Key Driver Analysis</div><div class="pif-card-desc">Identifying top revenue and growth levers across all business segments</div></div>
           </div>
-          <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
-              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Identifying key business driver variables...
-            </div>
-            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
-              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Formulating executive risk & opportunity matrices...
-            </div>
-            <div style="font-size:0.88rem; font-weight:600; color:#ffffff; display:flex; align-items:center; gap:8px;">
-              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span> Drafting McKinsey-grade strategic recommendations...
-            </div>
+          <div class="pif-card" style="animation-delay:0.4s;border-color:rgba(239,68,68,0.35)">
+            <div class="pif-card-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;">&#x26A0;&#xFE0F;</div>
+            <div><div class="pif-card-title">Risk &amp; Opportunity Matrix</div><div class="pif-card-desc">Mapping upside opportunities against operational risk vectors</div></div>
+          </div>
+          <div class="pif-card" style="animation-delay:0.8s;border-color:rgba(34,197,94,0.35)">
+            <div class="pif-card-icon" style="background:rgba(34,197,94,0.15);color:#22c55e;">&#x2705;</div>
+            <div><div class="pif-card-title">Strategic Recommendations</div><div class="pif-card-desc">Drafting board-level action roadmap with prioritized initiatives</div></div>
           </div>
         </div>
-      </div>`;
+      </div>`
+    );
 
   } else if (stage === 'predictive') {
     els.stagePovPanel.innerHTML = `
@@ -2837,7 +2904,7 @@ function renderStagePov(stage) {
         <div class="pov-desc">Training Scikit-Learn Auto-ML models, evaluating Random Forest decision trees, and extracting quantitative feature importance drivers...</div>
       </div>
       <div class="pov-content">
-        <div class="anim-predictive-wrap">
+        <div class="anim-predictive-wrap" style="height:160px;">
           <div style="font-size:0.82rem; font-weight:600; color:#c084fc; display:flex; justify-content:space-between;">
             <span>Target Feature Importance Weight Matrix</span><span>Scikit-Learn ML</span>
           </div>
@@ -2854,13 +2921,13 @@ function renderStagePov(stage) {
         <div class="pov-desc">Scrutinizing distributions for statistical IQR/Z-score outliers, extreme variance, and compliance risk factors...</div>
       </div>
       <div class="pov-content">
-        <div class="anim-anomaly-wrap">
+        <div class="anim-anomaly-wrap" style="height:160px;">
           <div class="anim-radar-circle">
             <div class="anim-radar-sweep"></div>
             <div class="anim-blip-red" style="top:25px; left:40px;"></div>
             <div class="anim-blip-red" style="bottom:30px; right:45px; animation-delay:0.6s;"></div>
           </div>
-          <div style="margin-left:24px; display:flex; flex-direction:column; gap:8px;">
+          <div style="margin-left:24px; display:flex; flex-direction:column; gap:6px;">
             <div style="font-size:0.85rem; font-weight:700; color:#ef4444;">🛡️ Scanning IQR & Z-score Outliers</div>
             <div style="font-size:0.78rem; color:var(--text-secondary);">Auditing dataset variance for risk spikes...</div>
           </div>
@@ -2874,7 +2941,7 @@ function renderStagePov(stage) {
         <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum & YoY growth projections...</div>
       </div>
       <div class="pov-content">
-        <div class="anim-trend-wrap">
+        <div class="anim-trend-wrap" style="height:160px;">
           <svg class="anim-trend-svg" viewBox="0 0 200 80">
             <path class="anim-trend-line" d="M10 70 Q 50 30, 90 50 T 170 15 T 190 20"></path>
           </svg>
@@ -2888,7 +2955,7 @@ function renderStagePov(stage) {
         <div class="pov-desc">Writing corporate Seaborn/Matplotlib visualization scripts and compiling high-resolution PNG plots...</div>
       </div>
       <div class="pov-content">
-        <div class="anim-viz-wrap">
+        <div class="anim-viz-wrap" style="height:160px;">
           <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0s;"></div></div>
           <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0.4s;"></div></div>
           <div class="anim-viz-card"><div class="anim-bar-grow" style="animation-delay:0.8s;"></div></div>
@@ -2902,7 +2969,7 @@ function renderStagePov(stage) {
         <div class="pov-desc">Building zoomable, hoverable Plotly structures and generating the final analytical results suite...</div>
       </div>
       <div class="pov-content">
-        <div class="anim-viz-wrap" style="border-color:rgba(16,185,129,0.3);">
+        <div class="anim-viz-wrap" style="border-color:rgba(16,185,129,0.3); height:160px;">
           <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%);"></div></div>
           <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%); animation-delay:0.5s;"></div></div>
           <div class="anim-viz-card" style="border-color:rgba(16,185,129,0.4);"><div class="anim-bar-grow" style="background:linear-gradient(180deg, #10b981 0%, #06b6d4 100%); animation-delay:1s;"></div></div>
@@ -2914,18 +2981,19 @@ function renderStagePov(stage) {
 }
 
 function markStage(stage, status) {
-  const el = document.querySelector(`.stage-item[data-stage="${stage}"]`);
-  if (el) {
-    el.classList.remove('active','done');
-    el.classList.add(status);
-  }
   if (status === 'active') {
-    renderStagePov(stage);
+    queueStagePov(stage);
+  } else {
+    const el = document.querySelector(`.stage-item[data-stage="${stage}"]`);
+    if (el) {
+      el.classList.remove('active');
+      el.classList.add(status);
+    }
   }
 }
 
 let _activeStage = null;
-const STAGE_ORDER = ['cleaning', 'relations', 'insights', 'visualization', 'plotly'];
+const STAGE_ORDER = ['cleaning', 'relations', 'insights', 'predictive', 'anomaly', 'trend', 'visualization', 'plotly'];
 
 function updateProgressTrack(newStage) {
   const newIdx = STAGE_ORDER.indexOf(newStage);
@@ -2950,8 +3018,11 @@ function updateProgressTrack(newStage) {
     cleaning:      'Cleaning dataset...',
     relations:     'Mapping relationships...',
     insights:      'Generating BI insights...',
+    predictive:    'Training Auto-ML models...',
+    anomaly:       'Auditing risk & outliers...',
+    trend:         'Forecasting time-series...',
     visualization: 'Exporting charts...',
-    plotly:        'Building Plotly charts...'
+    plotly:        'Building Plotly dashboards...'
   };
   const text = labels[newStage] || 'Analysing...';
   const el = $('notifActiveJob');
@@ -3017,6 +3088,15 @@ function inferStageFromLog(line) {
   if (ll.includes('running bi analyst') || ll.includes('business intelligence analyst') || ll.includes('generating recommendations') || ll.includes('insights complete')) {
     return 'insights';
   }
+  if (ll.includes('predictive') || ll.includes('auto-ml') || ll.includes('random forest')) {
+    return 'predictive';
+  }
+  if (ll.includes('anomaly') || ll.includes('outlier') || ll.includes('risk audit')) {
+    return 'anomaly';
+  }
+  if (ll.includes('trend') || ll.includes('time-series') || ll.includes('growth momentum')) {
+    return 'trend';
+  }
   if (ll.includes('[stage 3/4]') || ll.includes('running data visualizer') || ll.includes('visualization complete')) {
     return 'visualization';
   }
@@ -3048,14 +3128,12 @@ function startSSEStream(sessionId) {
   els.logOutput.innerHTML = '';
   _activeStage = null;
 
-  if (povInterval) { clearInterval(povInterval); povInterval = null; }
-  if (els.stagePovPanel) {
-    els.stagePovPanel.innerHTML = `
-      <div class="pov-initial-state">
-        <div class="pov-pulse-ring"></div>
-        <p>Awaiting analysis stream...</p>
-      </div>`;
-  }
+  // Instantly start stage 1 (cleaning) POV animation
+  queueStagePov('cleaning');
+
+  // Show topbar stop button next to the bell icon
+  const topbarStopBtn = $('topbarStopBtn');
+  if (topbarStopBtn) topbarStopBtn.classList.remove('hidden');
 
   // Initialize and show the top-right notification toast
   const notif = $('analysisNotification');
@@ -3100,7 +3178,9 @@ function startSSEStream(sessionId) {
       STAGE_ORDER.forEach(s => markStage(s, 'done'));
       updatePipelineStepper('completed');
 
-      // Finalize the notification toast
+      // Finalize notification & topbar controls
+      const topbarStopBtn = $('topbarStopBtn');
+      if (topbarStopBtn) topbarStopBtn.classList.add('hidden');
       if (window.notifTimerInterval) { clearInterval(window.notifTimerInterval); window.notifTimerInterval = null; }
       if (notif) {
         notif.classList.add('complete');
@@ -3144,6 +3224,10 @@ function startSSEStream(sessionId) {
     src.close();
     state.sseSource = null;
     
+    // Hide topbar stop button
+    const topbarStopBtn = $('topbarStopBtn');
+    if (topbarStopBtn) topbarStopBtn.classList.add('hidden');
+    
     // Stop the timer on error
     if (window.notifTimerInterval) { clearInterval(window.notifTimerInterval); window.notifTimerInterval = null; }
     if (notif) {
@@ -3175,6 +3259,51 @@ function startSSEStream(sessionId) {
 }
 
 els.clearLogBtn.addEventListener('click', () => { els.logOutput.innerHTML = ''; });
+
+async function stopCurrentAnalysis() {
+  const sessionId = state.uploadedSession || state.activeProject?.id;
+  if (!sessionId) return;
+
+  if (confirm('Are you sure you want to stop the ongoing analysis?')) {
+    if (state.sseSource) {
+      state.sseSource.close();
+      state.sseSource = null;
+    }
+    if (window.notifTimerInterval) {
+      clearInterval(window.notifTimerInterval);
+      window.notifTimerInterval = null;
+    }
+
+    const notif = $('analysisNotification');
+    if (notif) notif.classList.add('hidden');
+    const topbarStopBtn = $('topbarStopBtn');
+    if (topbarStopBtn) topbarStopBtn.classList.add('hidden');
+
+    try {
+      const fd = new FormData();
+      fd.append('session_id', sessionId);
+      await fetch('/api/analyze/stop', { method: 'POST', body: fd });
+    } catch (e) {
+      console.warn('Stop request error:', e);
+    }
+
+    if (state.activeProject) {
+      state.activeProject.status = 'failed';
+    }
+    renderProjectsList();
+    setStatus('● Stopped', 'failed');
+    addNotification('Analysis Stopped', 'The active pipeline task was cancelled by user.', 'warning');
+    toast('Analysis stopped.', 'info');
+    showScreen('hub');
+  }
+}
+
+// Bind single Topbar Stop button & dismiss listener
+$('topbarStopBtn')?.addEventListener('click', stopCurrentAnalysis);
+$('dismissNotif')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  $('analysisNotification')?.classList.add('hidden');
+});
 
 // ────────────────────────────────────────────────────────────────────────────
 // Load & Render Results
@@ -5276,40 +5405,12 @@ function escHtml(str) {
     });
   }
 
-  // Restore active session and page tab on page reload (F5)
+  // Always land cleanly on the Landing Home Page on page refresh (F5) instead of auto-opening past projects
   setTimeout(async () => {
-    const projects = state.projects;
-    const running = projects.find(p => p.status === 'running');
-    if (running) {
-      await switchToProject(running);
-      showScreen('running');
-      return;
+    localStorage.removeItem('crewlyze_active_project_id');
+    localStorage.removeItem('crewlyze_active_section');
+    if (typeof showScreen === 'function') {
+      showScreen('landing');
     }
-
-    const savedProjId = localStorage.getItem('crewlyze_active_project_id');
-    const savedSec = localStorage.getItem('crewlyze_active_section');
-    if (savedProjId && projects && projects.length) {
-      const proj = projects.find(p => p.id === savedProjId);
-      if (proj) {
-        await switchToProject(proj);
-        if (savedSec === 'chat') {
-          if (els.btnSectionChat && els.btnSectionChat.parentNode) {
-            els.btnSectionChat.parentNode.classList.remove('hidden');
-          }
-          if (els.areaHub) els.areaHub.classList.add('hidden');
-          switchSection('chat');
-          setBreadcrumb(proj.name, 'Crew Chat');
-        } else if (savedSec === 'agentic') {
-          if (els.btnSectionChat && els.btnSectionChat.parentNode) {
-            els.btnSectionChat.parentNode.classList.remove('hidden');
-          }
-          if (els.areaHub) els.areaHub.classList.add('hidden');
-          switchSection('agentic');
-          setBreadcrumb(proj.name, 'Crew Analysis');
-        } else {
-          goToWorkspaceHub();
-        }
-      }
-    }
-  }, 500);
+  }, 200);
 })();

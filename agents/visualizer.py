@@ -38,6 +38,6 @@ def make_visualizer_agent() -> Agent:
             DatasetTools.get_dataset_info,
             DatasetTools.execute_visualization_code,
         ],
-        max_iter=7,
+        max_iter=2,
         verbose=True,
     )
