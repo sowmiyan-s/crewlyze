@@ -189,6 +189,14 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
                 ax.set_title(title.replace(x_col, clean_x).replace(y_col, clean_y), fontsize=13, fontweight="bold", pad=14)
+                
+                # Ensure legends are clearly displayed on charts
+                handles, labels = ax.get_legend_handles_labels()
+                if handles and labels:
+                    ax.legend(loc='best', frameon=True, facecolor=BG_WHITE, edgecolor=GRID_COLOR)
+                else:
+                    ax.legend([clean_y], loc='upper right', frameon=True, facecolor=BG_WHITE, edgecolor=GRID_COLOR, fontsize=8.5)
+
                 _apply_light_style(fig, ax)
                 plt.tight_layout()
                 safe_name = re.sub(r"[^\w]+", "_", f"relation_{x_col}_vs_{y_col}").lower()
@@ -562,12 +570,18 @@ def _run_auto_predictive_fallback(df: pd.DataFrame, project_goal: str = "") -> s
         if len(df_clean) < 8:
             return f"Insufficient data rows ({len(df_clean)}) to fit multi-algorithm Auto-ML models."
 
-        X = pd.get_dummies(df_clean[features], drop_first=True)
+        X = pd.get_dummies(df_clean[features], drop_first=True, dtype=float)
         y = df_clean[target_col]
 
         is_classification = not pd.api.types.is_numeric_dtype(y) or y.nunique() <= 5
 
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+        if is_classification:
+            from sklearn.preprocessing import LabelEncoder
+            y_target = LabelEncoder().fit_transform(y.astype(str))
+        else:
+            y_target = pd.to_numeric(y, errors='coerce').fillna(0).values
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y_target, test_size=0.2, random_state=42)
 
         results = []
 
@@ -721,11 +735,11 @@ def _run_auto_trend_fallback(df: pd.DataFrame) -> str:
     if num_cols:
         report.append("\n#### **Key Numeric Trajectories & Volatility**")
         for col in num_cols[:5]:
-            series = df[col].dropna()
+            series = pd.to_numeric(df[col], errors='coerce').dropna()
             if len(series) < 2:
                 continue
-            first_val = series.iloc[0]
-            last_val = series.iloc[-1]
+            first_val = float(series.iloc[0])
+            last_val = float(series.iloc[-1])
             change = last_val - first_val
             pct_change = (change / abs(first_val) * 100) if first_val != 0 else 0
             direction = "📈 Increasing" if change > 0 else ("📉 Decreasing" if change < 0 else "➡️ Stable")
@@ -741,7 +755,7 @@ def _run_auto_trend_fallback(df: pd.DataFrame) -> str:
 
 
 
-def _kickoff_with_retry(crew_instance, max_retries: int = 4):
+def _kickoff_with_retry(crew_instance, max_retries: int = 2):
     """Executes crew.kickoff() with exponential backoff retry on API rate limit, empty responses, or transient network errors."""
     for attempt in range(1, max_retries + 1):
         try:
@@ -752,15 +766,22 @@ def _kickoff_with_retry(crew_instance, max_retries: int = 4):
         except Exception as exc:
             err_str = str(exc).lower()
             transient_triggers = (
-                "429", "rate limit", "throttl", "too many requests", "timeout",
+                "429", "rate limit", "throttl", "too many requests",
                 "500", "502", "503", "504", "connection", "none or empty", "invalid response",
-                "empty response", "error executing listener", "runtimeerror",
+                "empty response", "runtimeerror",
                 "internal server error", "internalservererror", "overloaded", "nimexception",
                 "bad gateway", "service unavailable", "connection error"
             )
-            if any(k in err_str for k in transient_triggers) and attempt < max_retries:
+            # Timeout errors should fail fast so auto-healing statistical fallback takes over immediately
+            is_timeout = "timeout" in err_str or "apitimeouterror" in err_str
+            max_allowed_attempts = 1 if is_timeout else max_retries
+
+            if is_timeout:
+                print(f"[Warning] LLM Timeout Alert: API request timed out ({exc}). Activating statistical auto-healing fallback...", flush=True)
+
+            if any(k in err_str for k in transient_triggers) and attempt < max_allowed_attempts:
                 sleep_sec = min(1.5 ** attempt, 5.0)
-                print(f"[Warning] Transient LLM API issue ({exc}). Retrying in {sleep_sec}s (Attempt {attempt}/{max_retries})...")
+                print(f"[Warning] Transient LLM API issue ({exc}). Retrying in {sleep_sec}s (Attempt {attempt}/{max_allowed_attempts})...", flush=True)
                 time.sleep(sleep_sec)
             else:
                 raise exc
@@ -852,8 +873,8 @@ def run_crew(
 
     df.to_csv(original_backup, index=False)
     df.to_csv(cleaned_path, index=False)
-    print(f"Original backed up → {original_backup}")
-    print(f"Working copy created → {cleaned_path}\n")
+    print(f"Original backed up -> {original_backup}")
+    print(f"Working copy created -> {cleaned_path}\n")
 
     os.environ["CURRENT_SESSION_CSV"] = str(cleaned_path).replace("\\", "/")
     os.environ["CURRENT_SESSION_OUTPUT_DIR"] = str(session_output_dir).replace("\\", "/")

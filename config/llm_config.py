@@ -28,7 +28,7 @@ _load_local_config()
 NVIDIA_NIM_BASE_URL = "https://integrate.api.nvidia.com/v1"
 
 # Keys accepted by crewai.LLM constructor.
-_LLM_VALID_KEYS = {"model", "api_key", "base_url", "temperature", "max_retries", "timeout"}
+_LLM_VALID_KEYS = {"model", "api_key", "base_url", "temperature", "max_retries", "timeout", "max_tokens"}
 
 
 def _sync_llm_env(provider: str, api_key: str = "", base_url: str = "") -> None:
@@ -236,7 +236,9 @@ def get_llm_params() -> dict:
     params: dict = {
         "model":       formatted_model,
         "temperature": config.get("temperature", 0.1),
-        "max_retries": 5,
+        "max_retries": 1,
+        "timeout":     int(os.getenv("LLM_TIMEOUT", "60")),
+        "max_tokens":  int(os.getenv("LLM_MAX_TOKENS", "2048")),
     }
 
     if config.get("api_key"):

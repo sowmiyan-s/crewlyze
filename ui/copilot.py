@@ -302,40 +302,27 @@ def run_copilot_query(query: str, csv_path: str, output_dir_str: str) -> dict:
     USER QUERY: "{query}"
 
     INSTRUCTIONS:
-    1. Read the dataset: df = pd.read_csv(FILE_PATH)
-    2. Use ONLY the column names listed in the dataset schema (exact spelling, case-sensitive).
-    3. Perform any required analysis, aggregation, computation, or modifications.
-    4. Print a clear, detailed, and nicely formatted answer to stdout detailing the results or actions taken.
-       - Use rich Markdown formatting (e.g. Markdown tables, bulleted lists, bold text, headers) to structure the output like a professional report.
-       - If the user asks for a table or for N values, print a Markdown table.
-    5. If the query asks to modify, clean, fix, rename, delete columns, drop rows, replace missing values, or update values in the dataset:
-       - Perform the operation on the DataFrame `df`.
-       - Save the modified DataFrame back to the CSV file at the end of the script: `df.to_csv(FILE_PATH, index=False)`.
-       - Print a confirmation message to stdout using Markdown (e.g., bulleted list) explaining exactly what dataset modifications were made.
-    6. IF THE QUERY ASKS FOR A CHART/VISUALIZATION/GRAPH:
-       - You have full capability to generate ANY type of visualization requested by the user:
-         distribution histograms, box/violin plots, scatter plots, correlation heatmaps, stacked/grouped bar charts, time-series line plots, pie/donut charts, pair plots, subplots, 3D scatter plots, radar charts, and custom color themes.
-       - Always include at the top of your code:
-         ```python
-         import matplotlib
-         matplotlib.use('Agg')
-         import matplotlib.pyplot as plt
-         import seaborn as sns
-         import numpy as np
-         ```
-       - Create a visually stunning, professional visualization with a clear title, custom color palette, grid lines, and properly labeled axes.
-       - Save the figure to: `plt.savefig('{plot_path.as_posix()}', dpi=150, bbox_inches='tight')`
-       - Clean up memory with: `plt.close('all')`
-       - CRITICAL OUTPUT RULE: When generating a visualization, print ONLY 1 short concise sentence introducing the chart (e.g., `print("Generated distribution histogram for column X.")`). Do NOT print long bullet points or unasked dataset summary notes alongside the plot.
+    1. If the user's query is a greeting, general question, or can be answered completely just by looking at the schema above, REPLY DIRECTLY in plain text with your answer. Do NOT use a python block.
+    2. If the query asks to calculate, count, summarize data, modify data, or plot a chart, you MUST write a Python script to do so:
+       - Read the dataset: df = pd.read_csv(FILE_PATH)
+       - Use ONLY the column names listed in the dataset schema (exact spelling, case-sensitive).
+       - Print a clear, detailed, and nicely formatted answer to stdout detailing the results.
+       - Use rich Markdown formatting in your print statements (e.g. tables, lists, bold text).
+       - If generating a chart, import matplotlib.use('Agg'), plt, sns, generate the chart, save to: `plt.savefig('{plot_path.as_posix()}', dpi=150, bbox_inches='tight')`, and print a single concise sentence about it.
+       - If modifying data, save it back via `df.to_csv(FILE_PATH, index=False)`.
 
-    Return ONLY valid Python code inside a ```python ... ``` block.
-    Do NOT include explanations or text outside the code block.
+    If writing a script, return ONLY valid Python code inside a ```python ... ``` block. Do NOT include explanations outside the code block.
     """).strip()
 
     try:
         # 5. Generate code
         response  = llm.call([{"role": "user", "content": prompt}])
         raw_code  = response if isinstance(response, str) else str(response)
+
+        # Bypass execution if it's a direct conversational response
+        if "```python" not in raw_code.lower() and "```" not in raw_code:
+            return {"success": True, "text": raw_code.strip(), "plot_path": None}
+
         code      = _strip_markdown_fences(raw_code)
 
         if not code.strip():
@@ -501,9 +488,13 @@ def stream_copilot_query(
 
     text_content = res.get("text", "")
 
-    lines = text_content.split("\n")
-    for idx, line in enumerate(lines):
-        yield sse("token", {"text": line + ("\n" if idx < len(lines) - 1 else "")})
+    # Stream out text with a slight simulated token delay for better UX
+    import re
+    chunks = re.split(r'(\s+)', text_content)
+    for chunk in chunks:
+        if chunk:
+            yield sse("token", {"text": chunk})
+            time.sleep(0.01)
 
     if res.get("plot_path"):
         plot_name = Path(res["plot_path"]).name

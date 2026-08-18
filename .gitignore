@@ -76,6 +76,16 @@ data/*
 .local/
 .pip_cache/
 
-# NPM packaging artifacts
+# NPM packaging artifacts & node
 *.tgz
 README-GITHUB.md
+node_modules/
+
+# Test artifacts & scratch dumps
+test_results.json
+hardening_test_results.json
+overhaul_test_results.json
+test_data.csv
+test_dry_run.py
+test_workspace/
+.benchmarks/

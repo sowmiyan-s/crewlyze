@@ -236,7 +236,7 @@ os.environ["OTEL_SDK_DISABLED"]        = "true"
 app = FastAPI(
     title="Crewlyze API",
     description="Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
-    version="1.1.1"
+    version="1.2.0"
 )
 
 # Enable CORS for local development flexibility
@@ -1287,10 +1287,18 @@ async def upload_file(file: UploadFile = File(...)):
             status = "awaiting_table"
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to read SQLite tables: {e}")
-    else:
+    rows_count = 0
+    cols_count = 0
+    num_count = 0
+    cat_count = 0
+
+    if not is_excel and not is_sqlite:
         # standard CSV validation
         try:
             df = read_csv_robust(file_path)
+            rows_count, cols_count = df.shape
+            num_count = int(len(df.select_dtypes(include=["number"]).columns))
+            cat_count = int(len(df.select_dtypes(include=["object"]).columns))
             # save back formatted to make sure it's UTF-8 comma-separated
             df.to_csv(file_path, index=False)
         except Exception as e:
@@ -1304,7 +1312,11 @@ async def upload_file(file: UploadFile = File(...)):
             "filename": file.filename,
             "size": file_path.stat().st_size,
             "created_at": time.time() * 1000,
-            "status": status
+            "status": status,
+            "rows_count": rows_count,
+            "cols_count": cols_count,
+            "numeric_count": num_count,
+            "cat_count": cat_count
         }
         save_project_metadata(session_id, meta)
     except Exception:
@@ -1316,7 +1328,11 @@ async def upload_file(file: UploadFile = File(...)):
         "size": file_path.stat().st_size,
         "type": "excel" if is_excel else "sqlite" if is_sqlite else "csv",
         "sheets": sheets,
-        "tables": tables
+        "tables": tables,
+        "rows_count": rows_count,
+        "cols_count": cols_count,
+        "numeric_count": num_count,
+        "cat_count": cat_count
     }
 
 
@@ -3205,9 +3221,17 @@ async def create_project(
             status = "awaiting_table"
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to read SQLite tables: {e}")
-    else:
+    rows_count = 0
+    cols_count = 0
+    num_count = 0
+    cat_count = 0
+
+    if not is_excel and not is_sqlite:
         try:
             df = read_csv_robust(file_path)
+            rows_count, cols_count = df.shape
+            num_count = int(len(df.select_dtypes(include=["number"]).columns))
+            cat_count = int(len(df.select_dtypes(include=["object"]).columns))
             df.to_csv(file_path, index=False)
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Failed to read CSV: {e}")
@@ -3221,7 +3245,11 @@ async def create_project(
         "filename": file.filename,
         "size": file_path.stat().st_size,
         "created_at": time.time() * 1000,
-        "status": status
+        "status": status,
+        "rows_count": rows_count,
+        "cols_count": cols_count,
+        "numeric_count": num_count,
+        "cat_count": cat_count
     }
     save_project_metadata(project_id, meta)
 
@@ -3235,7 +3263,11 @@ async def create_project(
         "status": meta["status"],
         "type": "excel" if is_excel else "sqlite" if is_sqlite else "csv",
         "sheets": sheets,
-        "tables": tables
+        "tables": tables,
+        "rows_count": rows_count,
+        "cols_count": cols_count,
+        "numeric_count": num_count,
+        "cat_count": cat_count
     }
 
 @app.post("/api/projects/{project_id}/rename")

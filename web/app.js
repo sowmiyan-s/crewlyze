@@ -1865,6 +1865,8 @@ async function refreshPreviewData(sessionId) {
       const data = await res.json();
       state.columns = data.columns || [];
       state.colTypes = data.col_types || {};
+      state.totalDatasetRows = data.rows_count || 0;
+      state.totalDatasetCols = data.cols_count || (data.columns ? data.columns.length : 0);
       renderPreview(data.preview || []);
       if (els.chatPreviewDims) {
         els.chatPreviewDims.textContent = `(${data.rows_count?.toLocaleString() || 0} rows × ${data.cols_count || 0} columns)`;
@@ -2332,8 +2334,11 @@ async function handleFileSelected(file) {
     const res  = await fetch('/api/projects', { method: 'POST', body: fd });
     const data = await res.json();
     state.uploadedSession = data.id;
+    state.totalDatasetRows = data.rows_count || 0;
+    state.totalDatasetCols = data.cols_count || 0;
 
-    els.uploadedFileMeta.textContent = `✓ ${file.name} — ${(file.size / 1024).toFixed(1)} KB uploaded`;
+    const dimStr = data.rows_count ? ` (${data.rows_count.toLocaleString()} rows × ${data.cols_count} cols)` : '';
+    els.uploadedFileMeta.textContent = `✓ ${file.name} — ${(file.size / 1024).toFixed(1)} KB${dimStr} uploaded`;
     els.uploadedFileMeta.classList.remove('hidden');
     els.uploadedFileActions.classList.remove('hidden');
     toast(`Project created: ${state.newProjectName || data.name}`, 'success');
@@ -2435,10 +2440,10 @@ function renderConfigDatasetBanner() {
   if (!bannerEl) return;
 
   const results = state.results || {};
-  let rowsCount = results.rows_count || (state.rawPreviewRows ? state.rawPreviewRows.length : 0);
-  let colsCount = results.cols_count || (state.columns ? state.columns.length : 0);
-  let numCount  = results.numeric_count || 0;
-  let catCount  = results.cat_count || 0;
+  let rowsCount = state.totalDatasetRows || results.rows_count || (state.activeProject && state.activeProject.rows_count) || (state.rawPreviewRows ? state.rawPreviewRows.length : 0);
+  let colsCount = state.totalDatasetCols || results.cols_count || (state.activeProject && state.activeProject.cols_count) || (state.columns ? state.columns.length : 0);
+  let numCount  = results.numeric_count || (state.activeProject && state.activeProject.numeric_count) || 0;
+  let catCount  = results.cat_count || (state.activeProject && state.activeProject.cat_count) || 0;
 
   if (!rowsCount && !colsCount && (!state.columns || state.columns.length === 0)) {
     bannerEl.style.display = 'none';
@@ -2940,13 +2945,54 @@ function renderStagePov(stage) {
         <div class="pov-title"><i data-lucide="trending-up" style="width:20px; height:20px; color:#14b8a6; vertical-align:middle; margin-right:8px;"></i> Time-Series Trend Analyst</div>
         <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum & YoY growth projections...</div>
       </div>
-      <div class="pov-content">
-        <div class="anim-trend-wrap" style="height:160px;">
-          <svg class="anim-trend-svg" viewBox="0 0 200 80">
-            <path class="anim-trend-line" d="M10 70 Q 50 30, 90 50 T 170 15 T 190 20"></path>
+      <div class="pov-content" style="overflow:visible !important; padding: 24px;">
+        <div class="anim-trend-wrap" style="height:240px; overflow:visible !important;">
+          <svg class="anim-trend-svg" viewBox="0 0 240 100" style="overflow:visible !important;">
+            <defs>
+              <linearGradient id="trendGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#14b8a6" />
+                <stop offset="50%" stop-color="#2dd4bf" />
+                <stop offset="100%" stop-color="#06b6d4" />
+              </linearGradient>
+              <filter id="trendGlow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+            <!-- Unclipped smooth curve remaining well within viewBox bounds -->
+            <path class="anim-trend-line" d="M 15 80 Q 60 40, 110 58 T 180 28 T 225 32" stroke="url(#trendGrad)" filter="url(#trendGlow)"></path>
+            <!-- Interactive Data Points -->
+            <circle cx="15" cy="80" r="5" class="trend-node-dot" data-info="Start Baseline: 100% (Historical Base)" />
+            <circle cx="60" cy="40" r="5" class="trend-node-dot" data-info="Q1 Trajectory: +28.4% YoY Expansion" />
+            <circle cx="110" cy="58" r="5" class="trend-node-dot" data-info="Q2 Mid-Cycle Adjustment: +19.1% Growth" />
+            <circle cx="180" cy="28" r="6" class="trend-node-dot active-pulse" data-info="Q3 Forecast Peak: +76.5% CAGR Horizon" />
+            <circle cx="225" cy="32" r="5" class="trend-node-dot" data-info="Q4 Steady-State Stabilization" />
           </svg>
+          <div class="trend-hover-badge" id="trendHoverBadge">Hover data nodes to inspect trajectory metrics</div>
         </div>
       </div>`;
+
+    setTimeout(() => {
+      const dots = els.stagePovPanel.querySelectorAll('.trend-node-dot');
+      const badge = els.stagePovPanel.querySelector('#trendHoverBadge');
+      if (dots && badge) {
+        dots.forEach(dot => {
+          dot.addEventListener('mouseenter', () => {
+            badge.textContent = dot.getAttribute('data-info') || 'Trajectory node active';
+            badge.style.color = '#ffffff';
+            badge.style.background = 'rgba(45, 212, 191, 0.3)';
+          });
+          dot.addEventListener('mouseleave', () => {
+            badge.textContent = 'Hover data nodes to inspect trajectory metrics';
+            badge.style.color = '#2dd4bf';
+            badge.style.background = 'rgba(20, 184, 166, 0.12)';
+          });
+        });
+      }
+    }, 50);
 
   } else if (stage === 'visualization') {
     els.stagePovPanel.innerHTML = `
@@ -3223,12 +3269,86 @@ function startSSEStream(sessionId) {
 
     appendLog(line);
 
+    // Rate Limit & Cooldown timer trigger + Timeout alert
+    const lowerLine = line.toLowerCase();
+    if (lowerLine.includes('rate limit') || lowerLine.includes('rate-limit') || lowerLine.includes('429') || lowerLine.includes('too many requests') || (lowerLine.includes('back-off') && lowerLine.includes('sleep'))) {
+      startRateLimitCooldownTimer(60);
+    } else if (lowerLine.includes('apitimeouterror') || (lowerLine.includes('timeout') && (lowerLine.includes('alert') || lowerLine.includes('warning')))) {
+      if (typeof toast === 'function') {
+        toast('⚠️ LLM Timeout Alert: API request timed out. Using statistical auto-healing fallback.', 'warning', 6000);
+      }
+    }
+
     // Infer stage transitions and update progress track
     const stage = inferStageFromLog(line);
     if (stage) {
       updateProgressTrack(stage);
     }
   };
+
+  let _rateLimitTimerInterval = null;
+  function startRateLimitCooldownTimer(seconds = 60) {
+    if (_rateLimitTimerInterval) {
+      clearInterval(_rateLimitTimerInterval);
+      _rateLimitTimerInterval = null;
+    }
+
+    const existing = document.getElementById('rateLimitBanner');
+    if (existing) existing.remove();
+
+    let remaining = seconds;
+    const banner = document.createElement('div');
+    banner.id = 'rateLimitBanner';
+    banner.className = 'rate-limit-cooldown-banner';
+    banner.innerHTML = `
+      <div class="rl-header">
+        <div class="rl-pulse-ring"></div>
+        <div>
+          <div class="rl-title">⚠️ API Rate Limit Cooldown Active</div>
+          <div class="rl-subtitle">Provider rate limit encountered. Auto-retrying pipeline in <strong id="rlCountdownText" style="color:#ef4444;">${remaining}s</strong>...</div>
+        </div>
+      </div>
+      <div class="rl-progress-bar-container">
+        <div id="rlProgressBar" class="rl-progress-bar-fill" style="width: 100%;"></div>
+      </div>
+      <div class="rl-actions">
+        <button id="rlRetryNowBtn" class="btn-primary btn-xs" style="background:#ef4444; border-color:#ef4444;">⚡ Skip &amp; Retry Now</button>
+        <span class="rl-ack-badge">🛡️ Adaptive cooldown active to protect provider quota</span>
+      </div>
+    `;
+
+    if (els.stagePovPanel) {
+      els.stagePovPanel.prepend(banner);
+    }
+
+    const countdownText = banner.querySelector('#rlCountdownText');
+    const progressBar = banner.querySelector('#rlProgressBar');
+    const retryBtn = banner.querySelector('#rlRetryNowBtn');
+
+    if (retryBtn) {
+      retryBtn.onclick = () => {
+        if (_rateLimitTimerInterval) {
+          clearInterval(_rateLimitTimerInterval);
+          _rateLimitTimerInterval = null;
+        }
+        banner.remove();
+        if (typeof toast === 'function') toast('⚡ Skip requested: Resuming LLM execution stream...', 'info', 3000);
+      };
+    }
+
+    _rateLimitTimerInterval = setInterval(() => {
+      remaining--;
+      if (countdownText) countdownText.textContent = `${remaining}s`;
+      if (progressBar) progressBar.style.width = `${Math.max(0, (remaining / seconds) * 100)}%`;
+
+      if (remaining <= 0) {
+        clearInterval(_rateLimitTimerInterval);
+        _rateLimitTimerInterval = null;
+        banner.remove();
+        if (typeof toast === 'function') toast('🔄 Cooldown complete! Resuming analysis execution...', 'success', 4000);
+      }
+    }, 1000);
+  }
 
   src.onerror = () => {
     src.close();
@@ -3635,7 +3755,12 @@ function renderPreviewTableCore() {
   // Update row count tag
   const countTag = document.getElementById('previewTableRowCount');
   if (countTag) {
-    countTag.textContent = `Showing ${rows.length} of ${state.rawPreviewRows.length} rows`;
+    const totalRecs = state.totalDatasetRows || (state.results && state.results.rows_count) || (state.activeProject && state.activeProject.rows_count) || state.rawPreviewRows.length;
+    if (totalRecs > rows.length) {
+      countTag.innerHTML = `Showing first <strong>${rows.length}</strong> preview rows of <strong>${totalRecs.toLocaleString()}</strong> total dataset records`;
+    } else {
+      countTag.innerHTML = `Showing all <strong>${rows.length}</strong> dataset records`;
+    }
   }
 
   // Attach header click sort listeners
@@ -3661,35 +3786,6 @@ function renderPreview(rows) {
   renderPreviewTableCore();
 }
 
-// Bind search filter input
-setTimeout(() => {
-  const searchInput = document.getElementById('previewTableSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      state.searchQuery = searchInput.value.trim();
-      renderPreviewTableCore();
-    });
-  }
-}, 200);
-
-// Toggle preview minimize
-if (els.togglePreviewBtn) {
-  els.togglePreviewBtn.addEventListener('click', () => {
-    state.previewMinimized = !state.previewMinimized;
-    if (state.previewMinimized) {
-      els.previewTableWrap.innerHTML = `
-        <div class="preview-minimized">
-          Preview minimized — ${state.results?.rows_count?.toLocaleString() ?? '?'} rows × ${state.columns.length} columns.
-        </div>`;
-      els.togglePreviewBtn.textContent = '🔼 Expand Preview';
-    } else {
-      els.previewTableWrap.innerHTML = '<div id="previewTable" class="data-table-container"></div>';
-      renderPreview(state.results?.preview || []);
-      els.togglePreviewBtn.textContent = '🔽 Minimize';
-    }
-  });
-}
-
 // ── Cleaning ─────────────────────────────────────────────────────────────────
 function renderCleaning(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -3710,11 +3806,9 @@ function renderCleaning(text) {
 }
 
 // ── Relations ─────────────────────────────────────────────────────────────────
-// ── Relations ─────────────────────────────────────────────────────────────────
 function renderRelations(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   
-  // Parse lines into structured state.relationsList
   state.relationsList = [];
   lines.forEach(line => {
     const xMatch = line.match(/X:\s*([^|]+)/i);
@@ -3887,213 +3981,144 @@ function renderInsights(text) {
     return;
   }
 
-  // Parse sections
+  // 1. Clean markdown headers and extract sections
+  let cleanText = text.trim();
+  let executiveTitle = "";
   let objectivesText = "";
   let statsText = "";
   let strategicText = "";
   let warningsText = "";
 
-  const sections = text.split(/###\s+/);
-  sections.forEach(sec => {
-    const lines = sec.split('\n');
-    if (lines.length === 0) return;
-    const header = lines[0].trim().toLowerCase();
-    const content = lines.slice(1).join('\n').trim();
+  // Check for top-level report title (e.g. # Executive Report: ...)
+  const topTitleMatch = cleanText.match(/^#+\s*(Executive Report[^:\n]*[:\n][^\n]*)/i) || cleanText.match(/^#+\s*([^\n]+)/);
+  if (topTitleMatch && (topTitleMatch[0].toLowerCase().includes('report') || topTitleMatch[0].toLowerCase().includes('analysis'))) {
+    executiveTitle = topTitleMatch[1].replace(/^[#\s*]+/, '').replace(/[*_~`]/g, '').trim();
+    cleanText = cleanText.replace(topTitleMatch[0], '').trim();
+  }
 
-    if (header.includes('objective') || header.includes('goal')) {
-      objectivesText = content;
-    } else if (header.includes('stat')) {
-      statsText = content;
-    } else if (header.includes('insight')) {
-      strategicText = content;
-    } else if (header.includes('warning') || header.includes('alert')) {
-      warningsText = content;
+  // Split by markdown headings (### or ## or #)
+  const rawSections = cleanText.split(/\n(?=#{1,3}\s+)/);
+  
+  rawSections.forEach(sec => {
+    const trimmed = sec.trim();
+    if (!trimmed) return;
+    const headerMatch = trimmed.match(/^#{1,3}\s+([^\n]+)/);
+    const header = headerMatch ? headerMatch[1].trim().toLowerCase() : "";
+    const content = headerMatch ? trimmed.replace(/^#{1,3}\s+[^\n]+\n?/, '').trim() : trimmed;
+
+    if (header.includes('objective') || header.includes('goal') || header.includes('scope')) {
+      objectivesText = (objectivesText ? objectivesText + "\n\n" : "") + content;
+    } else if (header.includes('stat') || header.includes('metric') || header.includes('summary')) {
+      statsText = (statsText ? statsText + "\n\n" : "") + content;
+    } else if (header.includes('warning') || header.includes('alert') || header.includes('risk')) {
+      warningsText = (warningsText ? warningsText + "\n\n" : "") + content;
+    } else if (header.includes('insight') || header.includes('recommendation') || header.includes('finding') || header.includes('strategic')) {
+      strategicText = (strategicText ? strategicText + "\n\n" : "") + content;
+    } else {
+      if (!strategicText) {
+        strategicText = trimmed;
+      } else {
+        strategicText += "\n\n" + trimmed;
+      }
     }
   });
 
-  // If parsing didn't find specific sections, fallback to parsing as a single block
   if (!strategicText && !objectivesText) {
-    strategicText = text;
+    strategicText = cleanText;
   }
 
   let html = "";
 
-  // 1. Objectives & Goals Banner
+  // 1. Executive Summary Title Banner
+  if (executiveTitle) {
+    html += `
+      <div class="insight-header-card" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(167, 139, 250, 0.12) 0%, rgba(99, 102, 241, 0.06) 100%); border: 1px solid rgba(167, 139, 250, 0.3);">
+        <div class="insight-header-title" style="color: #ffffff; font-size: 1.1rem; font-weight: 700;">
+          <i data-lucide="award" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px; color: var(--violet-light);"></i> ${escHtml(executiveTitle)}
+        </div>
+      </div>
+    `;
+  }
+
+  // 2. Primary Objectives & Goals Banner
   if (objectivesText) {
     html += `
-      <div class="insight-header-card">
-        <div class="insight-header-title"><i data-lucide="target" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; color: var(--violet-light);"></i> Primary Objectives &amp; Goals</div>
+      <div class="insight-header-card" style="margin-bottom: 20px;">
+        <div class="insight-header-title">
+          <i data-lucide="target" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px; color: var(--violet-light);"></i> Primary Objectives &amp; Scope
+        </div>
         <div class="insight-header-text">${formatInsightsSubsections(objectivesText)}</div>
       </div>
     `;
   }
 
-  // 2. Dataset Statistics Grid
-  if (statsText) {
-    const lines = statsText.split('\n').map(l => l.trim()).filter(Boolean);
-    let summaryStats = [];
-    let numericCols = [];
-    let categoricalCols = [];
-    
-    let currentSection = "";
-    
-    lines.forEach(line => {
-      const cleanLine = line.replace(/^[-*•]\s*/, '').trim();
-      const lowerLine = cleanLine.toLowerCase();
-      
-      if (lowerLine.startsWith("numeric column")) {
-        currentSection = "numeric";
-        return;
-      } else if (lowerLine.startsWith("categorical column")) {
-        currentSection = "categorical";
-        return;
-      }
-      
-      const colIndex = cleanLine.indexOf(':');
-      if (colIndex > -1) {
-        const key = cleanLine.slice(0, colIndex).trim();
-        const val = cleanLine.slice(colIndex + 1).trim();
-        
-        if (lowerLine.startsWith("total row") || lowerLine.startsWith("total record") || lowerLine.startsWith("total col")) {
-          summaryStats.push({ key, val });
-        } else {
-          if (currentSection === "numeric") {
-            numericCols.push({ col: key, stats: val });
-          } else if (currentSection === "categorical") {
-            categoricalCols.push({ col: key, stats: val });
-          } else {
-            if (lowerLine.includes("min") || lowerLine.includes("max") || lowerLine.includes("mean")) {
-              numericCols.push({ col: key, stats: val });
-            } else {
-              categoricalCols.push({ col: key, stats: val });
-            }
-          }
-        }
-      } else {
-        if (cleanLine) {
-          if (currentSection === "numeric") {
-            numericCols.push({ col: cleanLine, stats: "" });
-          } else if (currentSection === "categorical") {
-            categoricalCols.push({ col: cleanLine, stats: "" });
-          }
-        }
-      }
-    });
-
-    // A. Summary Cards
-    if (summaryStats.length > 0) {
-      html += `<div class="insight-stats-grid" style="margin-bottom: 20px;">`;
-      summaryStats.forEach(s => {
-        html += `
-          <div class="insight-stat-card">
-            <div class="insight-stat-val">${escHtml(s.val)}</div>
-            <div class="insight-stat-lbl">${escHtml(s.key)}</div>
-          </div>
-        `;
-      });
-      html += `</div>`;
-    }
-    
-    // B. Side-by-Side Sections
-    if (numericCols.length > 0 || categoricalCols.length > 0) {
-      html += `
-        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 24px;">
-          <!-- Numeric Columns -->
-          <div class="card" style="flex: 1 1 calc(50% - 10px); min-width: 320px; padding: 18px; background: var(--bg-card); border: 1px solid var(--border-mid); box-sizing: border-box;">
-            <h4 style="margin: 0 0 12px 0; color: var(--cyan); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="binary" style="width: 16px; height: 16px;"></i> Numeric Columns &amp; Distributions
-            </h4>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-      `;
-      if (numericCols.length > 0) {
-        numericCols.forEach(c => {
-          html += `
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-low); padding-bottom: 8px; font-size: 0.85rem;">
-              <strong style="color: #fff;">${escHtml(c.col)}</strong>
-              <span style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem; text-align: right;">${escHtml(c.stats)}</span>
-            </div>
-          `;
-        });
-      } else {
-        html += `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">None detected.</p>`;
-      }
-      html += `
-            </div>
-          </div>
-          
-          <!-- Categorical Columns -->
-          <div class="card" style="flex: 1 1 calc(50% - 10px); min-width: 320px; padding: 18px; background: var(--bg-card); border: 1px solid var(--border-mid); box-sizing: border-box;">
-            <h4 style="margin: 0 0 12px 0; color: var(--amber); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="tags" style="width: 16px; height: 16px;"></i> Categorical Columns
-            </h4>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-      `;
-      if (categoricalCols.length > 0) {
-        categoricalCols.forEach(c => {
-          const statsLabel = c.stats ? `: ${c.stats}` : '';
-          html += `
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-low); padding-bottom: 8px; font-size: 0.85rem;">
-              <strong style="color: #fff;">${escHtml(c.col)}</strong>
-              <span style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.8rem;">${escHtml(statsLabel)}</span>
-            </div>
-          `;
-        });
-      } else {
-        html += `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">None detected.</p>`;
-      }
-      html += `
-            </div>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  // 3. Strategic Insights List
+  // 3. Strategic Insights - Structured Cards
   if (strategicText) {
-    html += `<h4 style="margin-bottom: 12px; color: var(--violet-light); font-size: 1.05rem; display: flex; align-items: center; gap: 6px;"><i data-lucide="lightbulb" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Strategic Business Insights</h4>`;
-    const numberedSplit = strategicText.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3}\s))/);
+    const numberedSplit = strategicText.split(/\n(?=\s*(?:\*{0,2}\d+[.):]\*{0,2}|\b\d+\.\s+\*\*))/);
     let items = [];
     if (numberedSplit.length > 1) {
-      items = numberedSplit.map(s => s.replace(/^\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3})\s*/, '').trim()).filter(Boolean);
+      items = numberedSplit.map(s => s.trim()).filter(Boolean);
     } else {
       items = strategicText.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
     }
 
     const LABEL_CFG = [
-      { re: /^(?:observation|finding|pattern)[s]?[:]/i,          cls: 'obs',   icon: 'search', label: 'Observation' },
-      { re: /^(?:business\s+)?implication[s]?[:]/i,              cls: 'impl',  icon: 'briefcase', label: 'Implication' },
-      { re: /^(?:actionable\s+)?strateg(?:y|ies)[:]/i,          cls: 'strat', icon: 'rocket', label: 'Strategy' },
-      { re: /^(?:recommendation|action|next\s+step)[s]?[:]/i,   cls: 'strat', icon: 'check-circle', label: 'Recommendation' },
-      { re: /^(?:risk|concern|warning)[s]?[:]/i,                 cls: 'impl',  icon: 'alert-triangle', label: 'Risk' },
-      { re: /^(?:kpi|metric|measure)[s]?[:]/i,                   cls: 'obs',   icon: 'trending-up', label: 'Metric' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:observation|finding|pattern)[s]?(?:\*{0,2})?[:]/i,          cls: 'obs',   icon: 'search',        label: 'Observation' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:business\s+)?implication[s]?(?:\*{0,2})?[:]/i,              cls: 'impl',  icon: 'briefcase',     label: 'Business Implication' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:actionable\s+)?strateg(?:y|ies)(?:\*{0,2})?[:]/i,          cls: 'strat', icon: 'rocket',        label: 'Actionable Strategy' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:recommendation|action|next\s+step)[s]?(?:\*{0,2})?[:]/i,   cls: 'strat', icon: 'check-circle',  label: 'Recommendation' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:risk|concern|warning)[s]?(?:\*{0,2})?[:]/i,                 cls: 'impl',  icon: 'alert-triangle',label: 'Risk Vector' },
+      { re: /^(?:[-*•]\s*)?(?:\*{0,2})?(?:kpi|metric|measure)[s]?(?:\*{0,2})?[:]/i,                   cls: 'obs',   icon: 'trending-up',   label: 'Key Metric' },
     ];
 
-    html += items.map((item, i) => {
-      const parts = item.split('\n').map(p => p.trim()).filter(Boolean);
-      const sectionHtml = parts.map(p => {
+    let validInsightIndex = 0;
+
+    html += items.map(item => {
+      const rawLines = item.split('\n').map(p => p.trim()).filter(Boolean);
+      if (rawLines.length === 0) return '';
+
+      // Skip lines that are just markdown separators or section headers
+      if (rawLines.length === 1 && (rawLines[0].startsWith('---') || rawLines[0].startsWith('###') || rawLines[0].toLowerCase() === 'objectives')) {
+        return '';
+      }
+
+      validInsightIndex++;
+
+      // Extract title from first line
+      let title = "";
+      let startIndex = 0;
+      const firstLine = rawLines[0].replace(/^\s*(?:\*{0,2}\d+[.):]\*{0,2}|#{1,3})\s*/, '').trim();
+
+      const isFirstLineLabel = LABEL_CFG.some(cfg => cfg.re.test(firstLine));
+      if (!isFirstLineLabel && firstLine.length > 3) {
+        title = firstLine.replace(/[*_~`#]/g, '').trim();
+        startIndex = 1;
+      }
+
+      const bodyLines = rawLines.slice(startIndex);
+      const sectionHtml = bodyLines.map(p => {
         for (const cfg of LABEL_CFG) {
           if (cfg.re.test(p)) {
-            const body = p.replace(cfg.re, '').trim();
-            return `<div class="insight-section">
+            const body = p.replace(cfg.re, '').replace(/[*_~`]/g, ' ').trim();
+            return `<div class="insight-section" style="margin-top: 10px;">
               <div class="insight-section-label ${cfg.cls}"><i data-lucide="${cfg.icon}" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> ${cfg.label}</div>
-              <div class="insight-section-text">${formatInlineMarkdown(body || p)}</div>
+              <div class="insight-section-text" style="font-size: 0.9rem; line-height: 1.6; color: #e4e4e7;">${formatInlineMarkdown(body || p)}</div>
             </div>`;
           }
         }
         if (/^[-*•]/.test(p)) {
-          return `<div class="insight-bullet">${formatInlineMarkdown(p)}</div>`;
+          return `<div class="insight-bullet" style="margin-top: 6px; font-size: 0.88rem; line-height: 1.5;">${formatInlineMarkdown(p)}</div>`;
         }
-        if (/^#{1,3}\s/.test(p)) {
-          return `<div class="insight-sub-heading">${escHtml(p.replace(/^#+\s*/, ''))}</div>`;
-        }
-        return `<div class="insight-section-text">${formatInlineMarkdown(p)}</div>`;
+        return `<div class="insight-section-text" style="margin-top: 6px; font-size: 0.88rem; line-height: 1.5; color: #d4d4d8;">${formatInlineMarkdown(p)}</div>`;
       }).join('');
 
       return `
-        <div class="insight-card">
-          <div class="insight-num-pill">${i + 1}</div>
-          <div class="insight-body">${sectionHtml}</div>
+        <div class="insight-card" style="margin-bottom: 18px; padding: 20px; background: var(--bg-card); border: 1px solid var(--border-mid); border-radius: var(--r-lg);">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
+            <div class="insight-num-pill" style="width: 28px; height: 28px; border-radius: 50%; background: rgba(167, 139, 250, 0.15); color: var(--violet-light); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem;">${validInsightIndex}</div>
+            <strong style="color: #ffffff; font-size: 1rem; font-weight: 700; letter-spacing: -0.01em;">${escHtml(title || `Strategic Takeaway #${validInsightIndex}`)}</strong>
+          </div>
+          <div class="insight-body">${sectionHtml || formatInlineMarkdown(item)}</div>
         </div>
       `;
     }).join('');
@@ -4102,17 +4127,18 @@ function renderInsights(text) {
   // 4. Warnings & Alerts
   if (warningsText && !warningsText.toLowerCase().includes('no warnings') && !warningsText.toLowerCase().includes('none')) {
     html += `
-      <div class="insight-warning-card">
-        <div class="insight-warning-card-icon"><i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: var(--amber);"></i></div>
+      <div class="insight-warning-card" style="margin-top: 24px; padding: 18px; border-radius: var(--r-md); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);">
+        <div class="insight-warning-card-icon"><i data-lucide="alert-triangle" style="width: 24px; height: 24px; color: #ef4444;"></i></div>
         <div class="insight-warning-card-body">
-          <div class="insight-warning-card-title">Business Risks &amp; Data Alerts</div>
-          <div class="insight-warning-card-text">${formatInsightsSubsections(warningsText)}</div>
+          <div class="insight-warning-card-title" style="color: #ef4444; font-weight: 700; font-size: 0.98rem; margin-bottom: 6px;">Business Risks &amp; Data Alerts</div>
+          <div class="insight-warning-card-text" style="color: #fca5a5; font-size: 0.86rem; line-height: 1.6;">${formatInsightsSubsections(warningsText)}</div>
         </div>
       </div>
     `;
   }
 
   els.insightsContent.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
 function formatInsightsSubsections(text) {

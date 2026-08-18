@@ -459,16 +459,19 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
                                  textColor=C_INK, leading=13)
 
     # ── Pull result data ──────────────────────────────────────────────────────
-    raw_insights   = _clean_ai_artifacts(result.get("insights", "")).strip()
-    cleaning_text  = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
-    relations_text = _clean_ai_artifacts(result.get("relations", "")).strip()
-    report_title   = _clean_ai_artifacts(result.get("report_title") or result.get("name") or filename or "Executive Analysis").strip()
-    report_goal    = _clean_ai_artifacts(result.get("goal", "")).strip()
-    timestamp      = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
-    df             = result.get("dataframe")
-    output_dir     = result.get("output_dir", Path("outputs"))
-    png_files      = list(Path(output_dir).glob("*.png"))
-    placed_charts  = set()
+    raw_insights    = _clean_ai_artifacts(result.get("insights", "")).strip()
+    cleaning_text   = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
+    relations_text  = _clean_ai_artifacts(result.get("relations", "")).strip()
+    predictive_text = _clean_ai_artifacts(result.get("predictive", "")).strip()
+    anomaly_text    = _clean_ai_artifacts(result.get("anomaly", "")).strip()
+    trend_text      = _clean_ai_artifacts(result.get("trend", "")).strip()
+    report_title    = _clean_ai_artifacts(result.get("report_title") or result.get("name") or filename or "Executive Analysis").strip()
+    report_goal     = _clean_ai_artifacts(result.get("goal", "")).strip()
+    timestamp       = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
+    df              = result.get("dataframe")
+    output_dir      = result.get("output_dir", Path("outputs"))
+    png_files       = list(Path(output_dir).glob("*.png"))
+    placed_charts   = set()
 
     # ── Parse insight subsections ─────────────────────────────────────────────
     objectives_text = stats_text = strategic_text = warnings_text = ""
@@ -815,10 +818,87 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(Spacer(1, 14))
 
     # ═══════════════════════════════════════════════════════════════════════════
+    # SPECIALIZED ANALYSES — PREDICTIVE ML, RISK AUDIT & TREND FORECAST
+    # ═══════════════════════════════════════════════════════════════════════════
+    curr_sec_idx = int(sec_num)
+
+    if predictive_text and "skipped" not in predictive_text.lower():
+        curr_sec_idx += 1
+        sec_str = str(curr_sec_idx).zfill(2)
+        story.append(KeepTogether([
+            _section_header(sec_str, "Predictive Auto-ML & Feature Drivers", body_style),
+            Spacer(1, 12)
+        ]))
+        story.append(Paragraph(
+            "Multi-algorithm machine learning benchmarks and quantitative feature driver rankings:", body_style
+        ))
+        story.append(Spacer(1, 8))
+        for raw_l in predictive_text.split("\n"):
+            l_str = raw_l.strip()
+            if not l_str:
+                continue
+            if l_str.startswith("#"):
+                story.append(Paragraph(f"<b>{_escape(l_str.lstrip('#').strip())}</b>", h2_style))
+            elif l_str.startswith("-") or l_str.startswith("*"):
+                story.append(Paragraph(f"▸  {_md_to_html(l_str.lstrip('-*• ').strip())}", bullet_style))
+            elif "|" in l_str:
+                # Format table lines cleanly
+                story.append(Paragraph(f"<font color='#475569'>{_md_to_html(l_str)}</font>", small_style))
+            else:
+                story.append(Paragraph(_md_to_html(l_str), body_style))
+        story.append(Spacer(1, 14))
+
+    if anomaly_text and "skipped" not in anomaly_text.lower():
+        curr_sec_idx += 1
+        sec_str = str(curr_sec_idx).zfill(2)
+        story.append(KeepTogether([
+            _section_header(sec_str, "Quantitative Anomaly & Risk Audit", body_style),
+            Spacer(1, 12)
+        ]))
+        story.append(Paragraph(
+            "Statistical distribution variance, IQR/Z-score outlier audit, and compliance risk flags:", body_style
+        ))
+        story.append(Spacer(1, 8))
+        for raw_l in anomaly_text.split("\n"):
+            l_str = raw_l.strip()
+            if not l_str:
+                continue
+            if l_str.startswith("#"):
+                story.append(Paragraph(f"<b>{_escape(l_str.lstrip('#').strip())}</b>", h2_style))
+            elif l_str.startswith("-") or l_str.startswith("*"):
+                story.append(Paragraph(f"▸  {_md_to_html(l_str.lstrip('-*• ').strip())}", bullet_style))
+            else:
+                story.append(Paragraph(_md_to_html(l_str), body_style))
+        story.append(Spacer(1, 14))
+
+    if trend_text and "skipped" not in trend_text.lower():
+        curr_sec_idx += 1
+        sec_str = str(curr_sec_idx).zfill(2)
+        story.append(KeepTogether([
+            _section_header(sec_str, "Time-Series Trajectory & Trend Projections", body_style),
+            Spacer(1, 12)
+        ]))
+        story.append(Paragraph(
+            "Temporal momentum tracking, growth delta trajectories, and forward-looking outlook:", body_style
+        ))
+        story.append(Spacer(1, 8))
+        for raw_l in trend_text.split("\n"):
+            l_str = raw_l.strip()
+            if not l_str:
+                continue
+            if l_str.startswith("#"):
+                story.append(Paragraph(f"<b>{_escape(l_str.lstrip('#').strip())}</b>", h2_style))
+            elif l_str.startswith("-") or l_str.startswith("*"):
+                story.append(Paragraph(f"▸  {_md_to_html(l_str.lstrip('-*• ').strip())}", bullet_style))
+            else:
+                story.append(Paragraph(_md_to_html(l_str), body_style))
+        story.append(Spacer(1, 14))
+
+    # ═══════════════════════════════════════════════════════════════════════════
     # PAGE 5+ — APPENDIX (Per-column stats + remaining charts)
     # ═══════════════════════════════════════════════════════════════════════════
 
-    app_num = str(int(sec_num) + 1).zfill(2)
+    app_num = str(curr_sec_idx + 1).zfill(2)
     story.append(KeepTogether([
         _section_header(app_num, "Appendix", body_style),
         Spacer(1, 12)

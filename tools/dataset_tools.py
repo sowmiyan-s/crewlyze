@@ -193,7 +193,7 @@ Do not include any other explanations, intros, or markdown outside the code bloc
         return script
 
 
-def _run_in_subprocess(script: str, timeout: int = 35, is_healed_attempt: bool = False) -> tuple[bool, str]:
+def _run_in_subprocess(script: str, timeout: int = 35, is_healed_attempt: bool = False, allow_healing: bool = True) -> tuple[bool, str]:
     """
     Write *script* to a temp file and execute it in an isolated subprocess.
     Includes auto-dependency healing to download missing packages if needed.
@@ -218,7 +218,7 @@ def _run_in_subprocess(script: str, timeout: int = 35, is_healed_attempt: bool =
         success = proc.returncode == 0
         
         # If execution failed and we haven't already tried to self-heal:
-        if not success and not is_healed_attempt:
+        if not success and not is_healed_attempt and allow_healing:
             # 1. Package dependency healing (ModuleNotFoundError)
             match_module = re.search(r"ModuleNotFoundError:\s*No module named\s*['\"]([^'\"]+)['\"]", output)
             if match_module:
@@ -437,6 +437,18 @@ def generate_plotly_charts(csv_path: str, relations_text: str, max_rows: int = 5
         ),
         margin=dict(l=50, r=20, t=55, b=50),
         hoverlabel=dict(bgcolor="rgba(15,23,42,0.95)", font_color="#e2e8f0"),
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=10, color="#94a3b8"),
+            bgcolor="rgba(15,23,42,0.5)",
+            bordercolor="rgba(255,255,255,0.1)",
+            borderwidth=1,
+        ),
     )
     _colors = ["#a78bfa", "#6366f1", "#22d3ee", "#e879f9", "#34d399"]
 
@@ -712,6 +724,8 @@ class DatasetTools:
           - 'save_chart(filename)' is a helper function to save the current plot into OUTPUT_DIR.
           - Libraries 'pandas', 'matplotlib.pyplot as plt', and 'seaborn as sns' are already imported.
 
+        CRITICAL INSTRUCTION: Write RAW top-level Python code. Do NOT indent your top-level code or imports. This causes IndentationErrors.
+
         Example usage:
           plt.figure(figsize=(10, 6))
           sns.scatterplot(data=df, x='column_x', y='column_y')
@@ -742,14 +756,20 @@ class DatasetTools:
         if not output_dir:
             output_dir = os.getenv("CURRENT_SESSION_OUTPUT_DIR", "outputs/default")
 
+        # Track pre-execution PNGs to detect partially or fully generated charts
+        initial_pngs = set(os.listdir(output_dir)) if os.path.exists(output_dir) else set()
+
         script = textwrap.dedent(f"""\
             import os
+            import sys
             import pandas as pd
             import matplotlib
             matplotlib.use('Agg')
             import matplotlib.pyplot as plt
             import seaborn as sns
             import textwrap
+            import warnings
+            warnings.filterwarnings('ignore')
 
             CSV_PATH = {repr(csv_path)}
             OUTPUT_DIR = {repr(output_dir)}
@@ -769,18 +789,47 @@ class DatasetTools:
                     return df
             pd.read_csv = custom_read_csv
 
-            def save_chart(filename):
-                if not filename.endswith('.png'):
-                    filename += '.png'
-                path = os.path.join(OUTPUT_DIR, filename)
-                plt.savefig(path, bbox_inches='tight', dpi=180)
-                print("Saved chart:", filename)
-        """) + "\n" + clean_code
+            # Matplotlib / Seaborn default styling (clean corporate theme)
+            sns.set_theme(style="whitegrid")
+            plt.rcParams.update({{
+                'figure.facecolor': 'white',
+                'axes.facecolor': '#f8fafc',
+                'axes.edgecolor': '#e2e8f0',
+                'axes.labelcolor': '#1e293b',
+                'xtick.color': '#334155',
+                'ytick.color': '#334155',
+                'text.color': '#1e293b',
+                'grid.color': '#cbd5e1',
+                'grid.linestyle': '--',
+                'grid.alpha': 0.5,
+            }})
 
-        success, output = _run_in_subprocess(script)
-        if success:
-            return f"Visualization executed successfully. Output:\n{output}"
-        return f"Error executing visualization code:\n{output}"
+            def save_chart(filename):
+                try:
+                    if not filename.endswith('.png'):
+                        filename += '.png'
+                    path = os.path.join(OUTPUT_DIR, filename)
+                    plt.savefig(path, bbox_inches='tight', dpi=180)
+                    plt.close('all')
+                    print("Saved chart:", filename)
+                except Exception as e:
+                    print(f"Error saving chart {{filename}}: {{e}}")
+                    plt.close('all')
+        """) + "\n\n" + clean_code
+
+        # Run script with allow_healing=False so tool execution doesn't block on slow secondary LLM calls
+        success, output = _run_in_subprocess(script, timeout=15, allow_healing=False)
+
+        # Check post-execution PNGs
+        new_pngs = set(os.listdir(output_dir)) if os.path.exists(output_dir) else set()
+        generated_pngs = list(new_pngs - initial_pngs)
+
+        if generated_pngs:
+            return f"Visualization executed successfully. Generated {len(generated_pngs)} chart(s): {', '.join(generated_pngs)}.\nOutput:\n{output}"
+        elif success:
+            return f"Visualization code executed without error. Output:\n{output}"
+        else:
+            return f"Error executing visualization code:\n{output}"
 
     @tool("Run Python Script")
     def run_python_script(python_code: Optional[str] = None, **kwargs) -> str:

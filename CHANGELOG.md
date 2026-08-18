@@ -5,6 +5,15 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-18
+
+### Added & Enhanced
+- **Unified Executive PDF Report & Specialized Analyses**: Integrated Predictive Auto-ML benchmarks, Outlier Risk Audits (IQR/Z-score distribution scans), and Time-Series Trajectory Projections directly into the unified PDF report generation engine in `ui/export.py`.
+- **Ex-McKinsey Structured Business Insights View**: Redesigned `renderInsights` in `web/app.js` and `agents/insights.py` to deliver high-signal consulting takeaways formatted with structured badges (Observation 🔍, Business Implication 💼, Actionable Strategy 🚀) and dedicated Objective & Risk banners.
+- **Mandatory Visual Legends**: Added explicit legend generation and custom overlay styling across all Matplotlib, Seaborn, and Plotly interactive chart renderers.
+- **Real-Time LLM Timeout & Rate-Limit Shield**: Introduced fast-fail timeout auto-healing fallbacks and an interactive 60-second cooldown timer banner with live progress indicators when API quotas (429) are encountered.
+- **Clean, Modern Navigation Bar**: Removed distracting neon glows from tabs and floating badges in `web/style.css` in favor of a crisp, professional UI.
+
 ## [1.1.1] - 2026-07-28
 
 ### Added & Enhanced
