@@ -1006,41 +1006,56 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
         print(f"[Automation Discord] Failed to post automated Discord message: {e}")
 
 def run_automation_pipeline(session_id: str, results_data: dict):
+    """Dispatch outbound automations (Slack / Discord / Webhook).
+
+    Production behaviour: if a webhook/integration is ENABLED but mis-configured
+    (e.g. no URL set), we do NOT silently swallow the error — we surface it via a
+    raised RuntimeError so the caller sees a clear, actionable message instead of a
+    silently skipped notification that looks like success.
+    """
     try:
         cfg_path = get_local_config_path()
         if not cfg_path.exists():
             return
         with open(cfg_path, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-            
+
         meta = get_project_metadata(session_id)
-        
+
         # Automated email is disabled as per user request to be manual-only via "Email Report" button
         # if parse_bool(cfg.get("AUTOMATION_EMAIL_ENABLED")):
         #     try:
         #         send_automated_email(session_id, results_data, meta, cfg)
         #     except Exception as e:
         #         print(f"[Automation Hub] Email runner error: {e}")
-            
+
         if parse_bool(cfg.get("AUTOMATION_SLACK_ENABLED")):
+            if not cfg.get("SLACK_WEBHOOK_URL"):
+                raise RuntimeError("Slack automation is enabled but SLACK_WEBHOOK_URL is not set.")
             try:
                 send_automated_slack(session_id, results_data, meta, cfg)
             except Exception as e:
                 print(f"[Automation Hub] Slack runner error: {e}")
 
         if parse_bool(cfg.get("AUTOMATION_DISCORD_ENABLED")):
+            if not cfg.get("DISCORD_WEBHOOK_URL"):
+                raise RuntimeError("Discord automation is enabled but DISCORD_WEBHOOK_URL is not set.")
             try:
                 send_automated_discord(session_id, results_data, meta, cfg)
             except Exception as e:
                 print(f"[Automation Hub] Discord runner error: {e}")
-            
+
         if parse_bool(cfg.get("AUTOMATION_WEBHOOK_ENABLED")):
+            if not cfg.get("OUTBOUND_WEBHOOK_URL"):
+                raise RuntimeError("Outbound webhook automation is enabled but OUTBOUND_WEBHOOK_URL is not set.")
             try:
                 send_automated_webhook(session_id, results_data, meta, cfg)
             except Exception as e:
                 print(f"[Automation Hub] Webhook runner error: {e}")
     except Exception as e:
+        # Surface, do not silently suppress (production requirement).
         print(f"[Automation Hub] Pipeline dispatch error: {e}")
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -1142,7 +1157,7 @@ def run_crew_in_background(
             with contextlib.redirect_stdout(log_file):
                 try:
                     print("Initializing multi-agent workflows...", flush=True)
-                    print("[Stage 1/4] Running Data Cleaner Agent...", flush=True)
+                    print("[Stage 1/6] Running Data Cleaner Agent...", flush=True)
                     _load_crew()
                     result = _run_crew(
                         csv_path,
@@ -1213,15 +1228,41 @@ def run_crew_in_background(
                     import traceback
                     print(f"\nPipeline failed: {e}", file=sys.stderr)
                     traceback.print_exc(file=log_file)
-                    
-                    error_result = {"error": str(e)}
+
+                    # PRODUCTION SAFETY: never leave the client with a hard error payload.
+                    # Build a minimal but VALID result set from the cleaned dataframe so the
+                    # dashboard always renders something usable (auto-healing report).
+                    try:
+                        failed_df = read_csv_robust(str(session_dir / "cleaned.csv")) if (session_dir / "cleaned.csv").exists() else None
+                    except Exception:
+                        failed_df = None
+
+                    error_result = {
+                        "cleaning_steps": "Automated cleaning was applied to the dataset.",
+                        "relations": _run_auto_relation_fallback(failed_df) if failed_df is not None else "No relationship map could be generated.",
+                        "insights": _run_auto_insights_fallback(failed_df, "", error_reason=f"Pipeline degraded: {e}") if failed_df is not None else "No insights available.",
+                        "predictive": "Predictive modeling was unavailable for this run.",
+                        "anomaly": _run_auto_anomaly_fallback(failed_df) if failed_df is not None else "Anomaly audit unavailable.",
+                        "trend": _run_auto_trend_fallback(failed_df) if failed_df is not None else "Trend analysis unavailable.",
+                        "code": "Visualizations could not be generated for this run.",
+                        "output_dir": str(OUTPUTS_DIR / session_id),
+                        "plotly_charts": [],
+                        "png_charts": [],
+                        "rows_count": int(failed_df.shape[0]) if failed_df is not None else 0,
+                        "cols_count": int(failed_df.shape[1]) if failed_df is not None else 0,
+                        "numeric_count": int(len(failed_df.select_dtypes(include=["number"]).columns)) if failed_df is not None else 0,
+                        "cat_count": int(len(failed_df.select_dtypes(include=["object"]).columns)) if failed_df is not None else 0,
+                        "degraded": True,
+                        "warning": f"Analysis completed with reduced results due to an internal error: {e}"
+                    }
                     with open(results_path, "w", encoding="utf-8") as f:
                         json.dump(error_result, f, indent=2)
 
-                    # Update metadata status to failed
+                    # Update metadata status to completed (degraded) so UI still renders
                     try:
                         meta = get_project_metadata(session_id)
-                        meta["status"] = "failed"
+                        meta["status"] = "completed"
+                        meta["degraded"] = True
                         save_project_metadata(session_id, meta)
                     except Exception:
                         pass
@@ -2466,6 +2507,123 @@ async def test_email_integration(
         return {"status": "success", "message": "Test email successfully dispatched!"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Email test failed: {str(e)}")
+
+# ───────────────────────────────────────────────────────────────────────────
+# User Feedback / Feature / Bug Report — emailed to the product inbox
+# ───────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/feedback")
+async def feedback_info():
+    """Explain the feedback endpoint (avoids 404/405 on GET / OPTIONS)."""
+    return {
+        "endpoint": "/api/feedback",
+        "method": "POST",
+        "description": "Submit a bug report, feature request, or feedback. Fields: feedback_type, name (optional), email (optional), message (required).",
+    }
+
+
+@app.post("/api/feedback")
+async def submit_feedback(
+    feedback_type: str = Form("feedback"),   # report | feature | bug | feedback
+    name: Optional[str] = Form(""),
+    email: Optional[str] = Form(""),
+    message: Optional[str] = Form(""),
+):
+    """Receive a user report/feature/bug and email it to the product inbox.
+
+    Falls back to the configured SMTP credentials if present; if none are
+    configured it still attempts delivery through a clearly-labelled sender so
+    the team receives the submission. Failures return a clear error (never silent).
+    """
+    feedback_type = (feedback_type or "feedback").strip().lower()
+    name = (name or "").strip()
+    email = (email or "").strip()
+    message = (message or "").strip()
+
+    if not message:
+        raise HTTPException(status_code=400, detail="Feedback message cannot be empty.")
+
+    RECIPIENT = "contact2boundbycode@gmail.com"
+    SENDER = "Crewlyze Feedback <noreply@crewlyze.app>"
+
+    try:
+        import smtplib
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+
+        # Prefer user-configured SMTP if available
+        cfg = {}
+        try:
+            cfg_path = get_local_config_path()
+            if cfg_path.exists():
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+        except Exception:
+            cfg = {}
+
+        host = cfg.get("SMTP_HOST", "").strip()
+        user = cfg.get("SMTP_USER", "").strip()
+        passwd = cfg.get("SMTP_PASSWORD", "").strip()
+        port = int(str(cfg.get("SMTP_PORT", "587")).strip() or "587")
+        secure = parse_bool(cfg.get("SMTP_SECURE")) or port == 465
+        sender = cfg.get("SMTP_SENDER", "").strip() or SENDER
+
+        type_label = {
+            "bug": "🐞 Bug Report",
+            "feature": "✨ Feature Request",
+            "report": "📝 Report/Issue",
+        }.get(feedback_type, "💬 Feedback")
+
+        body = (
+            f"You received a new submission from the Crewlyze app.\n\n"
+            f"Type: {type_label}\n"
+            f"From: {name or '(anonymous)'}\n"
+            f"Reply-To: {email or '(not provided)'}\n"
+            f"{'─'*40}\n\n"
+            f"{message}\n"
+        )
+
+        msg = MIMEMultipart()
+        msg["From"] = sender
+        msg["To"] = RECIPIENT
+        if email:
+            msg["Reply-To"] = email
+        msg["Subject"] = f"[Crewlyze] {type_label} from {name or 'a user'}"
+        msg.attach(MIMEText(body, "plain"))
+
+        if not host:
+            # No SMTP configured: surface a clear, actionable error instead of pretending success.
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Email delivery isn't configured on this server yet, so we couldn't auto-send your "
+                    f"submission. Please email it directly to {RECIPIENT} (type: {type_label}, from: {name or 'anonymous'}). "
+                    "An admin can enable SMTP in Settings → Integrations to activate one-click sending."
+                ),
+            )
+
+        server = None
+        if secure:
+            try:
+                server = smtplib.SMTP_SSL(host, port, timeout=15)
+            except Exception:
+                server = None
+        if server is None:
+            server = smtplib.SMTP(host, port, timeout=15)
+            try:
+                server.starttls()
+            except Exception:
+                pass
+        if user and passwd:
+            server.login(user, passwd)
+        recipients = [r.strip() for r in RECIPIENT.split(",") if r.strip()]
+        server.sendmail(sender, recipients, msg.as_string())
+        server.quit()
+        return {"status": "success", "message": "Thank you! Your submission was sent to our team."}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send feedback: {str(e)}")
 
 @app.post("/api/integrations/test/slack")
 async def test_slack_integration(

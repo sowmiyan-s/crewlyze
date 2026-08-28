@@ -10,11 +10,12 @@ Performance improvements in this version:
   eliminating 6-8 LLM tool-call round-trips across the pipeline.
 - Large files (> 10 000 rows) are sampled to 5 000 rows for profiling;
   the cleaner still operates on the full dataset.
-- relation_task and insight_task run in PARALLEL via ThreadPoolExecutor,
-  saving the time of one full sequential task slot.
-- visualize_task receives the actual relation + insight outputs injected
-  into its description (rather than relying on CrewAI's context= mechanism
-  which requires all tasks to live in the same Crew instance).
+- relation_task and insight_task are now executed in a strict, linear
+  sequence. The visualizer and BI-insights agents receive the actual
+  relation output injected into their task descriptions (rather than relying
+  on CrewAI's context= mechanism which requires all tasks to live in the
+  same Crew instance). This keeps every stage's inputs fully resolved before
+  the next stage starts — no half-built dependencies.
 - on_progress callback allows the caller (app.py) to surface intermediate
   results in the UI as each stage completes.
 """
@@ -27,7 +28,6 @@ import shutil
 import sys
 import time
 import traceback
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -85,6 +85,7 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
 
     try:
         csv_path_obj = Path(csv_path)
+        output_dir = Path(output_dir)  # tolerate str (callers pass str(session_output_dir))
         if not csv_path_obj.exists():
             parent_dir = csv_path_obj.parent
             for cand in [parent_dir / "original_upload.csv", parent_dir / "original.csv", parent_dir / "cleaned.csv"]:
@@ -347,29 +348,6 @@ def _cleanup_old_sessions(max_age_hours: int = 24) -> None:
                     break
             except Exception as e:
                 print(f"Error pruning session folder {folder}: {e}")
-
-
-# ---------------------------------------------------------------------------
-# Parallel task execution helper
-# ---------------------------------------------------------------------------
-
-def _run_single_task(agent, task, max_rpm: int = 8) -> object:
-    """Run a single CrewAI task in its own isolated mini-Crew.
-
-    Used to execute relation_task and insight_task concurrently.
-    Each call creates a separate Crew instance — no shared state.
-
-    Returns the task object (with .output populated by kickoff).
-    """
-    mini = Crew(
-        agents=[agent],
-        tasks=[task],
-        max_rpm=max_rpm,
-        cache=False,
-        verbose=True,
-    )
-    mini.kickoff()
-    return task
 
 
 # ---------------------------------------------------------------------------
@@ -801,13 +779,20 @@ def run_crew(
     """
     Run the full multi-agent analysis pipeline on *csv_path*.
 
-    Pipeline stages
-    ---------------
-    1. Clean      (sequential)                     — Data Cleaner agent
-    2. Relations  (parallel with Insights)         — Relationship Analyst agent
-    2. Insights   (parallel with Relations)        — BI Analyst agent
-    3. Visualize  (sequential, after 1 + 2)        — Data Visualizer agent
-    4. Plotly     (pure Python, no LLM)            — generate_plotly_charts()
+    Pipeline stages (strictly linear / sequential)
+    ----------------------------------------------
+    PREP   Dataset load, type coercion, profile build
+    1. Clean      — Data Cleaner agent
+    2. Relations  — Relationship Analyst agent
+    3. Visualize  — Data Visualizer agent (uses relations from stage 2)
+    4. Insights   — BI Analyst agent (uses cleaning + relations + visualization)
+    5. Specialized — Predictive / Anomaly / Trend agents (only if selected or
+                     deep-analysis; each falls back to a pure-Python engine)
+    6. Plotly     — generate_plotly_charts() (pure Python, no LLM)
+
+    Every stage feeds its output into the next (no skipped/half-built
+    dependencies). Specialized agents run last so their LLM calls are never
+    wasted when the user did not request them.
 
     Parameters
     ----------
@@ -970,7 +955,7 @@ def run_crew(
     clean_output = "Data cleaning was skipped by user selection."
 
     if do_cleaning:
-        print("\n[Stage 1/4] Running Data Cleaner ...")
+        print("\n[Stage 1/8] Running Data Cleaner ...")
         start_clean_stage = time.time()
         clean_crew = Crew(
             agents=[agents[0]],
@@ -998,9 +983,9 @@ def run_crew(
 
         stage_times["cleaning"] = time.time() - start_clean_stage
         _progress("cleaning", clean_output)
-        print("[Stage 1/4] Cleaning complete.\n")
+        print("[Stage 1/8] Cleaning complete.\n")
     else:
-        print("\n[Stage 1/4] Skipping Data Cleaner (user selection).\n")
+        print("\n[Stage 1/8] Skipping Data Cleaner (user selection).\n")
         _progress("cleaning", clean_output)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -1009,7 +994,7 @@ def run_crew(
     relation_output = "Relationship mapping was skipped by user selection."
 
     if do_relations:
-        print("\n[Stage 2/4] Running Relation Analyst ...")
+        print("\n[Stage 2/8] Running Relation Analyst ...")
         start_rel_stage = time.time()
         try:
             rel_crew = Crew(
@@ -1031,7 +1016,7 @@ def run_crew(
             if rel_lines:
                 relation_output = "\n".join(rel_lines)
             else:
-                print("Relationship Analyst output lacked strict format. Generating statistical relation fallback...")
+                print("Relationship Analyst output lacked strict format (or was empty). Generating statistical relation fallback...")
                 relation_output = _run_auto_relation_fallback(df)
                 
             try:
@@ -1047,9 +1032,9 @@ def run_crew(
 
         stage_times["relations"] = time.time() - start_rel_stage
         _progress("relations", relation_output)
-        print("[Stage 2/4] Relation Analysis complete.\n")
+        print("[Stage 2/8] Relation Analysis complete.\n")
     else:
-        print("\n[Stage 2/4] Skipping Relation Analyst (user selection).\n")
+        print("\n[Stage 2/8] Skipping Relation Analyst (user selection).\n")
         _progress("relations", relation_output)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -1058,7 +1043,7 @@ def run_crew(
     visualize_output = "Visualization was skipped by user selection."
 
     if do_visualization:
-        print("[Stage 3/4] Running Data Visualizer ...")
+        print("[Stage 3/8] Running Data Visualizer ...")
         start_viz_stage = time.time()
 
         # Inject relation output directly into the task description
@@ -1099,9 +1084,9 @@ def run_crew(
 
         stage_times["visualization"] = time.time() - start_viz_stage
         _progress("visualization", visualize_output)
-        print("[Stage 3/4] Visualization complete.\n")
+        print("[Stage 3/8] Visualization complete.\n")
     else:
-        print("[Stage 3/4] Skipping Data Visualizer (user selection).\n")
+        print("[Stage 3/8] Skipping Data Visualizer (user selection).\n")
         _progress("visualization", visualize_output)
 
     # ════════════════════════════════════════════════════════════════════════
@@ -1110,7 +1095,7 @@ def run_crew(
     insights_output = "Business insights generation was skipped by user selection."
 
     if do_insights:
-        print("[Stage 4/4] Running BI Analyst ...")
+        print("[Stage 4/8] Running BI Analyst ...")
         start_ins_stage = time.time()
 
         # Inject cleaning, relation, and visualization outputs into task description
@@ -1131,6 +1116,22 @@ def run_crew(
         try:
             _kickoff_with_retry(ins_crew)
             insights_output = _safe_output(ins_task)
+            # Hardened guard: an empty / trivially short / placeholder answer is treated as
+            # a failed LLM pass and routed to the statistical fallback so every analysis
+            # produces a valid, readable result (no silent "no output").
+            _weak_markers = (
+                "i'm sorry", "i cannot", "as an ai", "no output", "null", "none",
+                "unable to", "cannot provide", "i am unable", "temperature", "hello",
+            )
+            _normalized = (insights_output or "").strip()
+            _looks_weak = (
+                len(_normalized) < 120
+                or _normalized.lower().startswith(tuple(_weak_markers))
+                or not any(k in _normalized.lower() for k in ("business", "insight", "data shows", "what the data", "recommend", "strategy", "action", "growth", "revenue", "cost", "profit", "customer", "risk", "trend"))
+            )
+            if _looks_weak:
+                print("Insights Agent returned weak/empty output. Activating auto-healing business-insights fallback...")
+                insights_output = _run_auto_insights_fallback(df, project_goal, error_reason="Empty or non-substantive LLM response")
             try:
                 if hasattr(ins_crew, "usage_metrics") and ins_crew.usage_metrics:
                     total_tokens += ins_crew.usage_metrics.get("total_tokens", 0)
@@ -1144,20 +1145,24 @@ def run_crew(
 
         stage_times["insights"] = time.time() - start_ins_stage
         _progress("insights", insights_output)
-        print("[Stage 4/4] BI Analysis complete.\n")
+        print("[Stage 4/8] BI Analysis complete.\n")
     else:
-        print("[Stage 4/4] Skipping BI Analyst (user selection).\n")
+        print("[Stage 4/8] Skipping BI Analyst (user selection).\n")
         _progress("insights", insights_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 5 — Predictive, Anomaly & Trend Specialized Analysis
+    # STAGE 5 — Specialized Analysis (linear, after insights)
+    # Predictive / Anomaly / Trend LLM agents run ONLY if selected or in
+    # deep-analysis mode. Each falls back to its pure-Python statistical engine
+    # on any error. They are sequenced (not pre-computed up front) so they are
+    # never wasted when the user did not request them.
     # ════════════════════════════════════════════════════════════════════════
     predictive_output = _run_auto_predictive_fallback(df, project_goal)
     anomaly_output    = _run_auto_anomaly_fallback(df)
     trend_output      = _run_auto_trend_fallback(df)
 
     if deep_analysis or "predictive" in env_tasks:
-        print("[Stage 5/5] Running Predictive Auto-ML ...")
+        print("[Stage 5/8] Running Predictive Auto-ML ...")
         start_pred_stage = time.time()
         pred_task = tasks[4]
         pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], max_rpm=15, cache=True, verbose=True)
@@ -1174,7 +1179,7 @@ def run_crew(
         _progress("predictive", predictive_output)
 
     if "anomaly" in env_tasks or deep_analysis:
-        print("[Stage 5/5] Running Anomaly & Risk Auditor ...")
+        print("[Stage 6/8] Running Anomaly & Risk Auditor ...")
         try:
             anom_task = tasks[5]
             anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], max_rpm=15, cache=True, verbose=True)
@@ -1186,7 +1191,7 @@ def run_crew(
         _progress("anomaly", anomaly_output)
 
     if "trend" in env_tasks or deep_analysis:
-        print("[Stage 5/5] Running Time-Series Trend Analyst ...")
+        print("[Stage 7/8] Running Time-Series Trend Analyst ...")
         try:
             trend_t = tasks[6]
             tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], max_rpm=15, cache=True, verbose=True)
@@ -1198,7 +1203,7 @@ def run_crew(
         _progress("trend", trend_output)
 
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
-    print("[Stage 4/4] Building interactive Plotly charts ...")
+    print("[Stage 8/8] Building interactive Plotly charts ...")
     start_plotly_stage = time.time()
     plotly_charts = generate_plotly_charts(
         csv_path=str(cleaned_path),
@@ -1245,6 +1250,7 @@ def run_crew(
         "code":           visualize_output,
         "output_dir":     str(session_output_dir),
         "plotly_charts":  plotly_charts,
+        "selected_tasks": env_tasks,
     }
 
 

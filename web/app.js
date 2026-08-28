@@ -2455,7 +2455,20 @@ function renderConfigDatasetBanner() {
   let missingCount = 0;
   let totalCells = 0;
 
-  if (state.rawPreviewRows && state.rawPreviewRows.length > 0 && state.columns && state.columns.length > 0) {
+  // Prefer the full-dataset preview when available so the data-quality banner
+  // and the stat chips use the SAME source (no inconsistent numbers).
+  const fullPreview = state.fullPreviewRows || state.rawPreviewRows || [];
+  if (fullPreview.length > 0 && state.columns && state.columns.length > 0) {
+    totalCells = fullPreview.length * state.columns.length;
+    state.columns.forEach(col => {
+      fullPreview.forEach(row => {
+        const val = row[col];
+        if (val === null || val === undefined || val === '' || String(val).trim().toLowerCase() === 'nan' || String(val).trim().toLowerCase() === 'null') {
+          missingCount++;
+        }
+      });
+    });
+  } else if (state.rawPreviewRows && state.rawPreviewRows.length > 0 && state.columns && state.columns.length > 0) {
     totalCells = state.rawPreviewRows.length * state.columns.length;
     state.columns.forEach(col => {
       state.rawPreviewRows.forEach(row => {
@@ -2468,19 +2481,20 @@ function renderConfigDatasetBanner() {
   }
 
   const missingPct = totalCells > 0 ? ((missingCount / totalCells) * 100).toFixed(1) : 0;
+  const sampleScope = (state.rawPreviewRows && state.fullPreviewRows !== state.rawPreviewRows && totalCells > 0 && state.rawPreviewRows.length < (rowsCount || 0));
 
   if (missingCount > 0) {
     missingAlertHtml = `
       <div class="data-quality-alert warning">
         <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #f59e0b;"></i>
-        <span><strong>Data Quality Notice:</strong> Detected ${missingCount.toLocaleString()} missing/null entries (${missingPct}% missing). <em>Data Cleaning Agent is recommended.</em></span>
+        <span><strong>Data Quality Notice:</strong> Detected ${missingCount.toLocaleString()} missing/null entries (${missingPct}% missing${sampleScope ? ' in preview sample' : ''}). <em>Data Cleaning Agent is recommended.</em></span>
       </div>
     `;
   } else {
     missingAlertHtml = `
       <div class="data-quality-alert success">
         <i data-lucide="check-circle-2" style="width: 16px; height: 16px; color: #10b981;"></i>
-        <span><strong>Data Quality Verified:</strong> ${rowsCount.toLocaleString()} records parsed cleanly. Dataset ready for multi-agent reasoning.</span>
+        <span><strong>Data Quality Verified:</strong> ${rowsCount.toLocaleString()} records parsed cleanly${sampleScope ? ' (preview sample)' : ''}. Dataset ready for multi-agent reasoning.</span>
       </div>
     `;
   }
@@ -2669,17 +2683,30 @@ els.runAnalysisBtn.addEventListener('click', async () => {
   fd.append('report_title',   title);
   fd.append('goal',           goalVal);
 
+  // Capture the selected tasks so the progress track only shows chosen stages
+  state.selectedTasks = tasks.slice();
+
   closeConfigModal();
 
   // Reset button state for next time modal is opened
   els.runAnalysisBtn.disabled = false;
   els.runAnalysisBtn.innerHTML = origBtnText;
 
-  try {
-    const res = await fetch('/api/analyze', { method: 'POST', body: fd });
-    if (!res.ok) throw new Error((await res.json()).detail || 'Start failed');
+  // ── Objective guard (req: warn if objective < 50 chars) ──
+  const objectiveText = goalVal.trim();
+  if (objectiveText.length < 50) {
+    openObjectiveWarning(() => proceedWithAnalysis(fd, title));
+    return;
+  }
 
-    // Update project metadata locally in-place (or add if new)
+  proceedWithAnalysis(fd, title);
+});
+
+// Actually kick off the analysis after the objective guard has passed.
+async function proceedWithAnalysis(fd, title) {
+  try {
+    const res = await fetchAnaysisStart(fd);
+    if (!res) return;
     const projName = title || state.uploadedFile?.name?.replace(/\.csv$/i, '') || 'New Analysis';
     delete state.resultsCache[state.uploadedSession];
     const existingIdx = state.projects.findIndex(p => p.id === state.uploadedSession);
@@ -2708,7 +2735,14 @@ els.runAnalysisBtn.addEventListener('click', async () => {
   } catch (e) {
     toast('Failed to start analysis: ' + e.message, 'error');
   }
-});
+}
+
+// Wraps the POST to /api/analyze. Returns the Response on success, false on failure.
+async function fetchAnaysisStart(fd) {
+  const res = await fetch('/api/analyze', { method: 'POST', body: fd });
+  if (!res.ok) throw new Error((await res.json()).detail || 'Start failed');
+  return res;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // SSE Live Log Stream
@@ -3175,12 +3209,141 @@ function inferStageFromLog(line) {
   return null;
 }
 
+// Show only the stage chips that correspond to the user's selected tasks.
+// Unselected stages are hidden so the progress bar reflects exactly what was chosen.
+// (Cleaning + Relations are always implied/required for Insights & Viz in the pipeline.)
+function syncStageTrackToSelection() {
+  const selected = state.selectedTasks || [];
+  const stageMap = {
+    cleaning:      'cleaning',
+    relations:     'relations',
+    insights:      'insights',
+    visualization: 'visualization',
+    predictive:    'predictive',
+    anomaly:       'anomaly',
+    trend:         'trend',
+  };
+  // Build the set of stages that will actually run in the pipeline
+  const activeStages = new Set();
+  selected.forEach(t => {
+    if (t === 'visualization') activeStages.add('visualization'); // viz runs after relations
+    else if (stageMap[t]) activeStages.add(stageMap[t]);
+  });
+  // Insights & Viz require cleaning+relations internally; if chosen, those pre-stages still run
+  if (activeStages.has('insights') || activeStages.has('visualization')) {
+    activeStages.add('cleaning');
+    activeStages.add('relations');
+  }
+  if (activeStages.has('visualization')) activeStages.add('relations');
+  // Plotly + profiling always run as part of a successful pipeline
+  activeStages.add('plotly');
+
+  document.querySelectorAll('.stage-item').forEach(el => {
+    const stage = el.getAttribute('data-stage');
+    if (activeStages.has(stage)) {
+      el.style.display = '';
+      el.classList.remove('hidden');
+    } else {
+      el.style.display = 'none';
+      el.classList.add('hidden');
+    }
+  });
+}
+
+// Objective warning modal (Yes/No). If the user confirms, onConfirm() runs.
+function openObjectiveWarning(onConfirm) {
+  const modal = $('objectiveWarnModal');
+  if (!modal) { onConfirm(); return; }
+  modal.classList.remove('hidden');
+
+  const continueBtn = $('objWarnContinueBtn');
+  const goBackBtn   = $('objWarnGoBackBtn');
+  const closeBtn    = $('closeObjWarnModal');
+
+  const cleanup = () => {
+    modal.classList.add('hidden');
+    if (continueBtn) continueBtn.onclick = null;
+    if (goBackBtn)   goBackBtn.onclick   = null;
+    if (closeBtn)    closeBtn.onclick     = null;
+  };
+
+  if (continueBtn) continueBtn.onclick = () => { cleanup(); onConfirm(); };
+  if (goBackBtn)   goBackBtn.onclick   = () => { cleanup(); reopeningConfigModal(); };
+  if (closeBtn)    closeBtn.onclick    = () => { cleanup(); reopeningConfigModal(); };
+}
+
+// Re-open the analysis config modal so the user can add an objective.
+function reopeningConfigModal() {
+  const modal = $('configModal');
+  if (modal) modal.classList.remove('hidden');
+  const goalInput = $('configProjectGoal');
+  if (goalInput) { goalInput.focus(); }
+}
+
+// ── Feedback / Report / Feature / Bug submission ──
+function setupFeedbackModal() {
+  const open = () => {
+    const m = $('feedbackModal');
+    if (m) m.classList.remove('hidden');
+  };
+  const close = () => {
+    const m = $('feedbackModal');
+    if (m) m.classList.add('hidden');
+    const st = $('feedbackStatus');
+    if (st) st.textContent = '';
+  };
+
+  const fbBtn = $('sidebarFeedbackBtn');
+  if (fbBtn) fbBtn.addEventListener('click', open);
+  const cancelBtn = $('feedbackCancelBtn');
+  if (cancelBtn) cancelBtn.addEventListener('click', close);
+  const closeBtn = $('closeFeedbackModal');
+  if (closeBtn) closeBtn.addEventListener('click', close);
+
+  const submitBtn = $('feedbackSubmitBtn');
+  if (submitBtn) submitBtn.addEventListener('click', async () => {
+    const type = $('feedbackType')?.value || 'feedback';
+    const name = $('feedbackName')?.value?.trim() || '';
+    const email = $('feedbackEmail')?.value?.trim() || '';
+    const message = $('feedbackMessage')?.value?.trim() || '';
+    const statusEl = $('feedbackStatus');
+    if (!message) {
+      if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Please enter a message before sending.'; }
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    if (statusEl) { statusEl.style.color = 'var(--text-secondary)'; statusEl.textContent = 'Submitting your report…'; }
+    try {
+      const fd = new FormData();
+      fd.append('feedback_type', type);
+      fd.append('name', name);
+      fd.append('email', email);
+      fd.append('message', message);
+      const res = await fetch('/api/feedback', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Submission failed.');
+      if (statusEl) { statusEl.style.color = '#10b981'; statusEl.textContent = data.message || 'Sent! Thank you.'; }
+      if ($('feedbackMessage')) $('feedbackMessage').value = '';
+      setTimeout(close, 1600);
+    } catch (e) {
+      if (statusEl) { statusEl.style.color = '#ef4444'; statusEl.textContent = e.message || 'Failed to send.'; }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send to Team';
+    }
+  });
+}
+setupFeedbackModal();
+
 function startSSEStream(sessionId) {
   // Close any existing stream
   if (state.sseSource) { state.sseSource.close(); state.sseSource = null; }
 
   // Reset stage indicators
   $$('.stage-item').forEach(el => el.classList.remove('active','done'));
+  // Only show the stages the user actually selected
+  syncStageTrackToSelection();
   els.logOutput.innerHTML = '';
   _activeStage = null;
 
@@ -3230,8 +3393,11 @@ function startSSEStream(sessionId) {
     if (line === '[EOF]') {
       src.close();
       state.sseSource = null;
-      // Mark all stages as done (green) on successful completion
-      STAGE_ORDER.forEach(s => markStage(s, 'done'));
+      // Mark all VISIBLE stages as done (green) on successful completion
+      STAGE_ORDER.forEach(s => {
+        const el = document.querySelector(`.stage-item[data-stage="${s}"]`);
+        if (el && el.style.display !== 'none') markStage(s, 'done');
+      });
       updatePipelineStepper('completed');
 
       // Finalize notification & topbar controls
@@ -3524,7 +3690,55 @@ async function loadResults(sessionId, retryCount = 0) {
   }
 }
 
+function syncTabsToSelection(data) {
+  // Determine what the user selected. Prefer the backend's authoritative list,
+  // fall back to what the client captured at run time.
+  let selected = (data && Array.isArray(data.selected_tasks) && data.selected_tasks.length)
+    ? data.selected_tasks
+    : (data && typeof data.selected_tasks === 'string' && data.selected_tasks.trim())
+      ? data.selected_tasks.split(',').map(s => s.trim()).filter(Boolean)
+      : (state.selectedTasks && state.selectedTasks.length ? state.selectedTasks : []);
+
+  const selectedSet = new Set(selected.map(s => s.toLowerCase()));
+
+  // These three are opt-in advanced analyses — hide them in the nav if not chosen.
+  const optionalTabs = ['predictive', 'anomaly', 'trend'];
+
+  // Hide tab buttons not in the selection
+  els.tabBtns.forEach(btn => {
+    const tab = btn.dataset.tab;
+    if (optionalTabs.includes(tab)) {
+      btn.classList.toggle('hidden', !selectedSet.has(tab));
+    }
+  });
+  // Hide their panels too
+  els.tabPanels.forEach(panel => {
+    const id = panel.id.replace('panel-', '');
+    if (optionalTabs.includes(id)) {
+      panel.classList.toggle('hidden', !selectedSet.has(id));
+      if (!selectedSet.has(id)) panel.classList.remove('active');
+    }
+  });
+
+  // If the currently-active tab got hidden, fall back to a visible one
+  const activeBtn = document.querySelector('.tab-btn.active');
+  if (activeBtn && activeBtn.classList.contains('hidden')) {
+    const firstVisible = els.tabBtns.find(b => !b.classList.contains('hidden'));
+    if (firstVisible) activateTab(firstVisible.dataset.tab);
+  }
+
+  // Also blank the renderer content for unselected tabs so a stale result can't show
+  if (!selectedSet.has('predictive') && $('predAgentText')) $('predAgentText').innerHTML = '';
+  if (!selectedSet.has('anomaly') && $('anomalyAgentText')) $('anomalyAgentText').innerHTML = '';
+  if (!selectedSet.has('trend') && $('trendAgentText')) $('trendAgentText').innerHTML = '';
+}
+
 function renderDashboard(data, sessionId) {
+  // Show only the analysis tabs the user actually selected. Hide Predictive ML,
+  // Risk Audit (Anomaly) and Trend Forecasting unless they were chosen — so the
+  // nav bar never shows a result the user didn't ask for.
+  syncTabsToSelection(data);
+
   renderStats(data);
   renderPreview(data.preview || []);
   renderCleaning(data.cleaning_steps || '');
@@ -3815,13 +4029,15 @@ function renderRelations(text) {
     const yMatch = line.match(/Y:\s*([^|]+)/i);
     const typeMatch = line.match(/Type:\s*([^|]+)/i);
     const detailsMatch = line.match(/Details:\s*(.+)/i);
+    const insightMatch = line.match(/Insight:\s*(.+)/i);
 
     if (xMatch && yMatch) {
       state.relationsList.push({
         xCol: xMatch[1].trim(),
         yCol: yMatch[1].trim(),
         typ: typeMatch ? typeMatch[1].trim() : 'Correlation',
-        details: detailsMatch ? detailsMatch[1].trim() : 'Key relationship identified by analyst.'
+        // Prefer the new plain-English Insight field; fall back to Details.
+        details: (insightMatch ? insightMatch[1].trim() : (detailsMatch ? detailsMatch[1].trim() : 'Key relationship identified by analyst.'))
       });
     }
   });
@@ -3852,13 +4068,16 @@ function renderRelationsListUI() {
         </div>
         
         <div class="relation-connector">
-          <span style="font-size: 0.8rem; font-weight: 600; color: var(--cyan); margin-bottom: 4px;">${escHtml(rel.typ)}</span>
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--crimson, #ff252a); margin-bottom: 4px;">${escHtml(rel.typ)}</span>
           <div class="relation-line"></div>
-          <span class="relation-info">${escHtml(rel.details)}</span>
+          <div class="relation-insight-box" style="margin-top: 8px; padding: 10px 12px; background: rgba(255,37,42,0.07); border: 1px solid rgba(255,37,42,0.25); border-left: 3px solid var(--crimson, #ff252a); border-radius: var(--r-sm); font-size: 0.83rem; line-height: 1.45; color: var(--text-primary);">
+            <span style="font-weight: 700; color: var(--crimson, #ff252a); font-size: 0.72rem; letter-spacing: 0.5px; text-transform: uppercase;">Business Insight</span><br/>
+            ${escHtml(rel.details)}
+          </div>
         </div>
         
-        <div class="relation-node" style="border-color: rgba(34, 211, 238, 0.2);">
-          <span class="relation-node-type" style="color: var(--cyan);">${escHtml(yType)}</span>
+        <div class="relation-node" style="border-color: rgba(255,37,42,0.2);">
+          <span class="relation-node-type" style="color: var(--crimson, #ff252a);">${escHtml(yType)}</span>
           <strong>${escHtml(rel.yCol)}</strong>
         </div>
       </div>

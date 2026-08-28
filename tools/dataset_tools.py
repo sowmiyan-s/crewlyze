@@ -690,6 +690,10 @@ class DatasetTools:
         if not fp or not isinstance(fp, str) or fp.lower() == "none" or "properties" in str(fp) or not os.path.exists(fp):
             fp = current_session_csv.get() or os.getenv("CURRENT_SESSION_CSV", "")
 
+        if not fp or not os.path.exists(fp):
+            return ("Error: no active dataset is loaded for this session. "
+                    "Upload a CSV before running data-cleaning code.")
+
         clean_code = _strip_markdown_fences(python_code)
 
         script = textwrap.dedent(f"""\
@@ -775,10 +779,11 @@ class DatasetTools:
             OUTPUT_DIR = {repr(output_dir)}
 
             os.makedirs(OUTPUT_DIR, exist_ok=True)
-            try:
-                df = pd.read_csv(CSV_PATH)
-            except Exception:
-                df = pd.DataFrame({{'feature_a': [1, 2, 3, 4], 'feature_b': [10, 20, 30, 40], 'target': [100, 200, 300, 400]}})
+            if not CSV_PATH or not os.path.exists(CSV_PATH):
+                raise FileNotFoundError("No active dataset is loaded for this session. Upload a CSV before generating charts.")
+            df = pd.read_csv(CSV_PATH)
+            if df is None or len(df) == 0:
+                raise ValueError("Loaded dataset is empty.")
 
             # Safeguard: redirect all read_csv calls to the cleaned CSV path
             _orig_read_csv = pd.read_csv
@@ -866,7 +871,8 @@ class DatasetTools:
         csv_path = current_session_csv.get() or os.getenv("CURRENT_SESSION_CSV", "")
 
         if not csv_path or not os.path.exists(csv_path):
-            csv_path = "test_data.csv"
+            return ("Error: no active dataset is loaded for this session. "
+                    "Upload a CSV before running data-cleaning code.")
 
         script = textwrap.dedent(f"""\
             import os
@@ -874,12 +880,11 @@ class DatasetTools:
             import numpy as np
 
             FILE_PATH = {repr(csv_path)}
-            try:
-                df = pd.read_csv(FILE_PATH)
-            except Exception:
-                df = pd.DataFrame({{'feature_a': [1, 2, 3, 4], 'feature_b': [10, 20, 30, 40], 'target': [100, 200, 300, 400]}})
+            df = pd.read_csv(FILE_PATH)
+            if df is None or len(df) == 0:
+                raise ValueError("Loaded dataset is empty.")
 
-            # Safeguard: redirect all read_csv calls to the session CSV
+            # Safeguard: redirect all read_csv calls to the real session CSV
             _orig_read_csv = pd.read_csv
             def custom_read_csv(*args, **kwargs):
                 return _orig_read_csv(FILE_PATH)
@@ -900,7 +905,16 @@ def auto_coerce_types(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     """
     actions = []
     df = df.copy()
-    
+
+    # Drop fully-duplicated rows up front so downstream agents never
+    # analyze or "generate" duplicate records. This is lossless for distinct
+    # data and prevents inflated stats / duplicated rows in every output.
+    before_rows = len(df)
+    df = df.drop_duplicates()
+    dropped = before_rows - len(df)
+    if dropped > 0:
+        actions.append(f"Removed {dropped} fully-duplicated row(s) to guarantee a de-duplicated dataset")
+
     for col in df.columns:
         # Skip empty columns
         if df[col].isnull().all():

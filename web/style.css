@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════
    Crewlyze — Premium Dark Web UI
-   Design: Obsidian + Electric Violet + Cyan Accents
+   Design: Obsidian + Crimson (logo red #ff252a) accents
    ══════════════════════════════════════════════════════ */
 
 /* ── Reset & Tokens ─────────────────────────────────── */
@@ -14,27 +14,31 @@
 
 :root {
   /* Palette */
-  --bg-base: #09090b;
-  --bg-surface: #111113;
-  --bg-elevated: #18181b;
-  --bg-card: #1c1c1f;
-  --bg-hover: #27272a;
+  --bg-base: #0a0607;
+  --bg-surface: #120c0e;
+  --bg-elevated: #1a1214;
+  --bg-card: #211619;
+  --bg-hover: #2a1c20;
 
   --border: rgba(255, 255, 255, 0.07);
   --border-mid: rgba(255, 255, 255, 0.12);
 
-  --violet: #ff252a;
-  --violet-light: #ff6b6e;
+  /* Logo red (#ff252a) primary brand colour */
+  --crimson: #ff252a;
+  --crimson-light: #ff5a5e;
+  --crimson-glow: rgba(255, 37, 42, 0.28);
+  --violet: #ff252a;          /* remapped legacy token to brand red */
+  --violet-light: #ff5a5e;
   --violet-glow: rgba(255, 37, 42, 0.25);
-  --cyan: #ffffff;
-  --cyan-glow: rgba(255, 255, 255, 0.15);
-  --rose: #f43f5e;
+  --cyan: #ff6b6e;
+  --cyan-glow: rgba(255, 107, 110, 0.15);
+  --rose: #ff252a;
   --emerald: #10b981;
   --amber: #f59e0b;
 
-  --text-primary: #f4f4f5;
-  --text-secondary: #a1a1aa;
-  --text-muted: #52525b;
+  --text-primary: #f7f2f2;
+  --text-secondary: #b8a9ab;
+  --text-muted: #6b5b5d;
 
   /* Sidebar */
   --sidebar-w: 280px;
@@ -60,7 +64,7 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.7);
-  --shadow-violet: 0 0 24px var(--violet-glow);
+  --shadow-violet: 0 0 24px var(--crimson-glow);
 }
 
 html,
@@ -68,6 +72,10 @@ body {
   height: 100%;
   font-family: var(--font-body);
   background: var(--bg-base);
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(255, 37, 42, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(255, 37, 42, 0.06), transparent 55%);
+  background-attachment: fixed;
   color: var(--text-primary);
   overflow: hidden;
 }
@@ -148,7 +156,13 @@ body {
   background-clip: text;
 }
 
-.logo-accent {}
+.logo-accent {
+  color: var(--crimson);
+  background: linear-gradient(90deg, var(--crimson-light) 0%, var(--crimson) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 .sidebar-toggle {
   background: none;
@@ -594,7 +608,7 @@ body {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, var(--violet-light) 50%, #ffffff 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--crimson-light) 45%, var(--crimson) 100%);
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4469,6 +4483,31 @@ body {
 .modal-overlay textarea.field-input {
   min-height: 80px;
   resize: none;
+}
+
+/* Visible native <select> inside modals (dark theme) */
+.modal-overlay .field-select {
+  width: 100% !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #ffffff !important;
+  border-radius: var(--r-md) !important;
+  padding: 10px 12px !important;
+  font-size: 0.9rem !important;
+  font-family: var(--font-body);
+  box-sizing: border-box !important;
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  cursor: pointer;
+}
+.modal-overlay .field-select:focus {
+  border-color: rgba(255, 37, 42, 0.5) !important;
+  background: rgba(255, 37, 42, 0.04) !important;
+  box-shadow: 0 0 0 3px rgba(255, 37, 42, 0.15) !important;
+}
+.modal-overlay .field-select option {
+  background: #1a1214 !important;
+  color: #ffffff !important;
 }
 
 /* Custom premium footer buttons alignment inside the wizard */

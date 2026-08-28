@@ -10,7 +10,7 @@ Performance improvements in this version:
   directly into each task description. This eliminates the 6-8 LLM tool-call
   round-trips agents would otherwise spend reading the dataset before acting.
 - visualize_task no longer uses context=[...] — the caller (run_crew) injects
-  relation + insight outputs into the task description after parallel execution.
+  relation output into the task description after the relation stage completes.
 - Adaptive cooldown: sleeps only when a rate-limit error is detected; otherwise
   uses a configurable minimum delay (default 5s, 0 for self-hosted providers).
 

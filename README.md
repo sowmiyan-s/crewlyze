@@ -140,7 +140,7 @@ Explore live previews captured directly from an active Crewlyze workspace sessio
 ## ✨ Core Capabilities & Deep Feature Breakdown
 
 ### 🤖 Autonomous 7-Agent Swarm Orchestration
-Crewlyze delegates dataset processing across a sequential multi-agent workflow of 7 specialized AI agents:
+Crewlyze delegates dataset processing across a strictly **linear** multi-agent workflow. Each stage consumes the output of the previous one — nothing runs in parallel and nothing is computed before its dependencies exist. Specialized agents (Anomaly / Trend / Predictive) run **last** and only when explicitly selected or in deep-analysis mode, so their LLM calls are never wasted on a report the user did not request.
 
 ```
 [Raw CSV / Excel / SQLite]
@@ -159,39 +159,33 @@ Crewlyze delegates dataset processing across a sequential multi-agent workflow o
   │     - Computes Pearson & Spearman correlation matrices      │
   │     - Identifies non-linear patterns & ANOVA variance drivers │
   └──────────────────────────────┬──────────────────────────────┘
-                                 │ Correlation Maps
-                                 ▼
+                                 │ Correlation Maps  ──┐ (fed into viz + insights)
+                                 ▼                     │
   ┌─────────────────────────────────────────────────────────────┐
-  │  🚨 3. Anomaly & Risk Auditor Agent (anomaly.py)            │
-  │     - Detects statistical outliers using IQR and Z-score    │
-  │     - Flags extreme values, data drift & operational risks  │
+  │  🎨 3. Interactive Visualizer (visualizer.py)              │
+  │     - Renders charts from the relationships mapped above     │
   └──────────────────────────────┬──────────────────────────────┘
-                                 │ Outlier & Risk Map
-                                 ▼
+                                 │ Charts  ──────────┤ (fed into insights)
+                                 ▼                  │
   ┌─────────────────────────────────────────────────────────────┐
-  │  📈 4. Time-Series & Trend Analyst Agent (trend.py)         │
-  │     - Analyzes temporal metrics (YoY, MoM, CAGR trajectories)│
-  │     - Forecasts short-term growth and directional momentum   │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Temporal Projections
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  💼 5. Senior Strategic Business Consultant (insights.py)   │
-  │     - Translates raw metrics into executive SWOT matrices   │
+  │  💼 4. Senior Strategic Business Consultant (insights.py)   │
+  │     - Synthesizes cleaning + relations + charts into SWOT   │
   │     - Highlights operational bottleneck risks & opportunities│
   └──────────────────────────────┬──────────────────────────────┘
                                  │ Strategic Context
                                  ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  📉 6. Predictive ML Specialist Agent (predictive.py)       │
-  │     - Formulates regression baselines & feature importance  │
-  │     - Generates machine learning predictive recommendations │
+  │  🚨 5. Anomaly & Risk Auditor Agent (anomaly.py)   [optional]│
+  │  📈 6. Time-Series & Trend Analyst Agent (trend.py)  [optional]│
+  │  📉 7. Predictive ML Specialist Agent (predictive.py) [optional]│
+  │     - Run ONLY if selected or in deep-analysis mode          │
+  │     - Each falls back to a pure-Python statistical engine    │
   └──────────────────────────────┬──────────────────────────────┘
-                                 │ Predictive Model
+                                 │ Specialized Analysis
                                  ▼
   ┌─────────────────────────────────────────────────────────────┐
-  │  🎨 7. Interactive Plotly Visualizer (visualizer.py)        │
-  │     - Generates responsive, hoverable Plotly dashboard charts│
+  │  📊 8. Interactive Plotly Builder (generate_plotly_charts)  │
+  │     - Parses relations into responsive, hoverable charts     │
   └──────────────────────────────┬──────────────────────────────┘
                                  │ Complete Dashboard
                                  ▼

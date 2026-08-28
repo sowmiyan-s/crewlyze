@@ -170,6 +170,10 @@
         <span>Crewlyze v3.1</span>
         <span>Prithiv &amp; Sebin &amp; Sowmiyan</span>
       </div>
+
+      <button id="sidebarFeedbackBtn" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: rgba(255,37,42,0.06); border: 1px solid rgba(255,37,42,0.25); color: var(--crimson, #ff252a); cursor: pointer; transition: all 0.2s;">
+        <i data-lucide="message-square-plus" style="width: 14px; height: 14px;"></i> Report / Feedback
+      </button>
     </div>
   </aside>
 
@@ -440,6 +444,72 @@
           <button id="runAnalysisBtn" class="btn-primary" style="padding: 10px 26px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 0 20px rgba(255, 37, 42, 0.3);"><i data-lucide="play"
               style="width: 16px; height: 16px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
             Start Analysis</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── FEEDBACK / REPORT / FEATURE / BUG MODAL ─── -->
+    <div id="feedbackModal" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width: 520px;">
+        <div class="modal-header">
+          <h2><i data-lucide="message-square-plus"
+              style="width: 22px; height: 22px; color: var(--crimson, #ff252a);"></i> Report / Feedback / Feature</h2>
+          <button id="closeFeedbackModal" class="btn-icon">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="field-group">
+            <label class="field-label">Type</label>
+            <select id="feedbackType" class="field-select">
+              <option value="feedback">General Feedback</option>
+              <option value="bug">Bug Report</option>
+              <option value="feature">Feature Request</option>
+              <option value="report">Report an Issue</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <div class="field-group" style="flex: 1;">
+              <label class="field-label">Your Name <span style="opacity:.6">(optional)</span></label>
+              <input id="feedbackName" class="field-input" placeholder="Jane Doe" />
+            </div>
+            <div class="field-group" style="flex: 1;">
+              <label class="field-label">Email <span style="opacity:.6">(optional)</span></label>
+              <input id="feedbackEmail" class="field-input" placeholder="you@company.com" />
+            </div>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Message</label>
+            <textarea id="feedbackMessage" class="field-input" rows="4" placeholder="Tell us what's working, what's broken, or what you'd love to see..."></textarea>
+          </div>
+          <div id="feedbackStatus" style="font-size: 0.8rem; min-height: 18px;"></div>
+        </div>
+        <div class="modal-footer" style="padding: 18px 32px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: flex-end; gap: 14px;">
+          <button id="feedbackCancelBtn" class="btn-secondary" style="padding: 10px 20px; font-weight: 600;">Cancel</button>
+          <button id="feedbackSubmitBtn" class="btn-primary" style="padding: 10px 26px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 0 20px rgba(255,37,42,0.3);">Send to Team</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── OBJECTIVE WARNING MODAL ─── -->
+    <div id="objectiveWarnModal" class="modal-overlay hidden">
+      <div class="modal-box" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2><i data-lucide="alert-triangle"
+              style="width: 22px; height: 22px; color: var(--crimson, #ff252a);"></i> Add a Clear Objective?</h2>
+          <button id="closeObjWarnModal" class="btn-icon">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-hint" style="margin-top: 0; line-height: 1.5; color: var(--text-secondary);">
+            You haven't described your analysis objective (we recommend at least 50 characters).
+            Without a clear objective, the analysis may <strong>not produce a valid result aligned to your
+            business goal and expectations</strong>.
+          </p>
+          <p class="modal-hint" style="line-height: 1.5; color: var(--text-primary);">
+            Do you want to continue anyway, or go back and add your objective?
+          </p>
+        </div>
+        <div class="modal-footer" style="padding: 18px 32px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: flex-end; gap: 14px;">
+          <button id="objWarnGoBackBtn" class="btn-secondary" style="padding: 10px 20px; font-weight: 600;">No, go back</button>
+          <button id="objWarnContinueBtn" class="btn-primary" style="padding: 10px 26px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 0 20px rgba(255,37,42,0.3);">Yes, run anyway</button>
         </div>
       </div>
     </div>
