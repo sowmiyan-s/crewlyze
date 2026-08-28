@@ -5,6 +5,14 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-29
+
+### Added & Enhanced
+- **SEO & Meta Optimization**: Configured comprehensive Open Graph metadata, semantic HTML structures, structured page titles, and social sharing meta tags for improved discoverability.
+- **Dynamic & Cross-Platform Favicon Support**: Enhanced favicon assets, web app manifest, and cross-browser icon scaling.
+- **Autonomous Script Healing & Subprocess Isolation**: Polished subprocess sandboxing, execution retry logic, and fallback dataset transformers.
+- **UI & Performance Tuning**: Cleaned asset query caches, optimized bundle distribution, and refined interactive copilot responsiveness.
+
 ## [1.2.0] - 2026-08-18
 
 ### Added & Enhanced
