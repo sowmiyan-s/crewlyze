@@ -34,6 +34,7 @@ crewlyze
 * 🤖 **7 Specialized AI Agents:** A team of dedicated AI specialists collaborates to audit and analyze your data from every angle.
 * 🔑 **Universal AI Support:** Compatible with OpenAI (GPT-4o), Anthropic (Claude 3.5), Google Gemini, NVIDIA NIM, DeepSeek, and custom LLM providers.
 * 💬 **Interactive AI Data Copilot:** Ask questions about your dataset in plain English and receive instant chart updates and SQL analysis.
+* 📝 **Instant Live Reporting & Feedback:** Built-in modal to submit bug reports and feature requests with zero-setup direct email delivery.
 
 ---
 

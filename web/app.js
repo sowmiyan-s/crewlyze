@@ -3307,8 +3307,20 @@ function setupFeedbackModal() {
     const email = $('feedbackEmail')?.value?.trim() || '';
     const message = $('feedbackMessage')?.value?.trim() || '';
     const statusEl = $('feedbackStatus');
+
+    if (!name) {
+      if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Please enter your name.'; }
+      $('feedbackName')?.focus();
+      return;
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Please enter a valid email address.'; }
+      $('feedbackEmail')?.focus();
+      return;
+    }
     if (!message) {
       if (statusEl) { statusEl.style.color = '#f59e0b'; statusEl.textContent = 'Please enter a message before sending.'; }
+      $('feedbackMessage')?.focus();
       return;
     }
     submitBtn.disabled = true;

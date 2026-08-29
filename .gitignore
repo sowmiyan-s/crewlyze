@@ -62,8 +62,10 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# App-specific runtime databases and uploads
+# App-specific runtime databases, feedback logs, and uploads
 data/sessions/
+data/feedback_submissions.json
+feedback_submissions.json
 outputs/
 *.db
 *.sqlite
@@ -71,6 +73,16 @@ outputs/
 # Ignore all user-uploaded datasets or exports, but keep .gitkeep files if any
 data/*
 !data/.gitkeep
+!data/Blood_Donation.csv
+!data/TB_Burden_Country.csv
+!data/car_parts_dataset_500.csv
+!data/chocolate.csv
+!data/heart_disease.csv
+!data/inventory.csv
+!data/laptop.csv
+!data/mtcars.csv
+!data/olympics.csv
+!data/sugar.csv
 
 # Local agent/tool files and pip cache
 .local/
@@ -81,11 +93,24 @@ data/*
 README-GITHUB.md
 node_modules/
 
-# Test artifacts & scratch dumps
+# Test artifacts, verification scripts & scratch dumps
+test_*.py
+*_test.py
+verify_*.py
+test_*.csv
+test_*.json
+*_test_results.json
 test_results.json
 hardening_test_results.json
 overhaul_test_results.json
 test_data.csv
 test_dry_run.py
 test_workspace/
+test_sessions/
 .benchmarks/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover

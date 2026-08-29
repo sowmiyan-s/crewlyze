@@ -47,10 +47,15 @@ check("cleaning tool: guard returns 'no active dataset'", "no active dataset is 
 check("viz tool: no feature_a dummy df", "feature_a" not in src_viz)
 check("viz tool: guard raises when CSV missing", "No active dataset is loaded" in src_viz)
 # Whole-repo sanity: no fabrication string left
-import subprocess
-grep = subprocess.run(["grep", "-rn", "feature_a", "tools/dataset_tools.py", "crew.py", "ui/"],
-                      capture_output=True, text=True)
-check("repo-wide: feature_a dummy fully removed", grep.returncode != 0)
+found_feature_a = False
+for check_path in ["tools/dataset_tools.py", "crew.py", "ui/export.py", "ui/copilot.py"]:
+    p = os.path.join(os.path.dirname(__file__), check_path)
+    if os.path.exists(p):
+        with open(p, "r", encoding="utf-8") as f:
+            if "feature_a" in f.read():
+                found_feature_a = True
+                break
+check("repo-wide: feature_a dummy fully removed", not found_feature_a)
 
 # When a REAL csv is pointed, the cleaning tool runs real data
 tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, newline="")

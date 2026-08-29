@@ -1267,4 +1267,3 @@ if __name__ == "__main__":
     if report:
         print("\nAnalysis Complete.")
         print("Crewlyze")
-        print("Prithiv.A.K  Sebin.S  Sowmiyan.S")

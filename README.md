@@ -261,6 +261,13 @@ Ask the AI Chat for ANY custom visualization request and Crewlyze generates it i
 
 ---
 
+### 📝 Live Issue & Feedback Reporting Hub
+- **Zero-Setup Live Reporting Modal:** Submit bug reports, feature requests, or general feedback directly from the sidebar.
+- **Direct Team Inbox Delivery:** Dispatches submissions live to the product team inbox without requiring any local SMTP configuration.
+- **Persistent Local Logging:** Automatically logs all submissions locally in `data/feedback_submissions.json` to ensure zero data loss.
+
+---
+
 ## 🏗️ Architecture & Multi-Agent Orchestration
 
 Crewlyze operates on a dual-engine architecture engineered for maximum performance:

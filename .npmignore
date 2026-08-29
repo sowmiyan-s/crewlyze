@@ -44,3 +44,15 @@ README-GITHUB.md
 Dockerfile
 docker-compose.yml
 .gitattributes
+
+# Test & verification artifacts
+test_*.py
+*_test.py
+verify_*.py
+test_*.csv
+test_*.json
+*_test_results.json
+test_workspace/
+test_sessions/
+.benchmarks/
+.pytest_cache/

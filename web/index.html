@@ -168,7 +168,6 @@
       
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
         <span>Crewlyze v3.1</span>
-        <span>Prithiv &amp; Sebin &amp; Sowmiyan</span>
       </div>
 
       <button id="sidebarFeedbackBtn" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: rgba(255,37,42,0.06); border: 1px solid rgba(255,37,42,0.25); color: var(--crimson, #ff252a); cursor: pointer; transition: all 0.2s;">
@@ -468,17 +467,17 @@
           </div>
           <div style="display: flex; gap: 12px;">
             <div class="field-group" style="flex: 1;">
-              <label class="field-label">Your Name <span style="opacity:.6">(optional)</span></label>
-              <input id="feedbackName" class="field-input" placeholder="Jane Doe" />
+              <label class="field-label">Your Name <span style="color: var(--crimson, #ff252a); font-weight: bold;">*</span></label>
+              <input id="feedbackName" class="field-input" placeholder="Jane Doe" required />
             </div>
             <div class="field-group" style="flex: 1;">
-              <label class="field-label">Email <span style="opacity:.6">(optional)</span></label>
-              <input id="feedbackEmail" class="field-input" placeholder="you@company.com" />
+              <label class="field-label">Email <span style="color: var(--crimson, #ff252a); font-weight: bold;">*</span></label>
+              <input id="feedbackEmail" type="email" class="field-input" placeholder="you@company.com" required />
             </div>
           </div>
           <div class="field-group">
-            <label class="field-label">Message</label>
-            <textarea id="feedbackMessage" class="field-input" rows="4" placeholder="Tell us what's working, what's broken, or what you'd love to see..."></textarea>
+            <label class="field-label">Message <span style="color: var(--crimson, #ff252a); font-weight: bold;">*</span></label>
+            <textarea id="feedbackMessage" class="field-input" rows="4" placeholder="Tell us what's working, what's broken, or what you'd love to see..." required></textarea>
           </div>
           <div id="feedbackStatus" style="font-size: 0.8rem; min-height: 18px;"></div>
         </div>
