@@ -213,21 +213,45 @@ _validate_llm_connection = None
 _run_copilot_query = None
 _export_pdf = None
 _export_chat_pdf = None
+_run_auto_relation_fallback = None
+_run_auto_insights_fallback = None
+_run_auto_predictive_fallback = None
+_run_auto_anomaly_fallback = None
+_run_auto_trend_fallback = None
+_run_auto_visualizer_fallback = None
 
 def _load_crew():
     global _run_crew, _apply_runtime_llm_settings, _validate_llm_connection
     global _run_copilot_query, _export_pdf, _export_chat_pdf
+    global _run_auto_relation_fallback, _run_auto_insights_fallback
+    global _run_auto_predictive_fallback, _run_auto_anomaly_fallback
+    global _run_auto_trend_fallback, _run_auto_visualizer_fallback
     if _run_crew is None:
-        from crew import run_crew as _rc
+        from crew import (
+            run_crew as _rc,
+            _run_auto_relation_fallback as _rarf,
+            _run_auto_insights_fallback as _raif,
+            _run_auto_predictive_fallback as _rapf,
+            _run_auto_anomaly_fallback as _raaf,
+            _run_auto_trend_fallback as _ratf,
+            _run_auto_visualizer_fallback as _ravf,
+        )
         from config.llm_config import apply_runtime_llm_settings as _arls, validate_llm_connection as _vlc
         from ui.copilot import run_copilot_query as _rcq
         from ui.export import export_pdf as _ep, export_chat_pdf as _ecp
         _run_crew = _rc
+        _run_auto_relation_fallback = _rarf
+        _run_auto_insights_fallback = _raif
+        _run_auto_predictive_fallback = _rapf
+        _run_auto_anomaly_fallback = _raaf
+        _run_auto_trend_fallback = _ratf
+        _run_auto_visualizer_fallback = _ravf
         _apply_runtime_llm_settings = _arls
         _validate_llm_connection = _vlc
         _run_copilot_query = _rcq
         _export_pdf = _ep
         _export_chat_pdf = _ecp
+
 
 # Suppress warnings
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
@@ -1229,6 +1253,11 @@ def run_crew_in_background(
                     print(f"\nPipeline failed: {e}", file=sys.stderr)
                     traceback.print_exc(file=log_file)
 
+                    try:
+                        _load_crew()
+                    except Exception:
+                        pass
+
                     # PRODUCTION SAFETY: never leave the client with a hard error payload.
                     # Build a minimal but VALID result set from the cleaned dataframe so the
                     # dashboard always renders something usable (auto-healing report).
@@ -1239,11 +1268,11 @@ def run_crew_in_background(
 
                     error_result = {
                         "cleaning_steps": "Automated cleaning was applied to the dataset.",
-                        "relations": _run_auto_relation_fallback(failed_df) if failed_df is not None else "No relationship map could be generated.",
-                        "insights": _run_auto_insights_fallback(failed_df, "", error_reason=f"Pipeline degraded: {e}") if failed_df is not None else "No insights available.",
-                        "predictive": "Predictive modeling was unavailable for this run.",
-                        "anomaly": _run_auto_anomaly_fallback(failed_df) if failed_df is not None else "Anomaly audit unavailable.",
-                        "trend": _run_auto_trend_fallback(failed_df) if failed_df is not None else "Trend analysis unavailable.",
+                        "relations": _run_auto_relation_fallback(failed_df) if (_run_auto_relation_fallback and failed_df is not None) else "No relationship map could be generated.",
+                        "insights": _run_auto_insights_fallback(failed_df, "", error_reason=f"Pipeline degraded: {e}") if (_run_auto_insights_fallback and failed_df is not None) else "No insights available.",
+                        "predictive": _run_auto_predictive_fallback(failed_df) if (_run_auto_predictive_fallback and failed_df is not None) else "Predictive modeling was unavailable for this run.",
+                        "anomaly": _run_auto_anomaly_fallback(failed_df) if (_run_auto_anomaly_fallback and failed_df is not None) else "Anomaly audit unavailable.",
+                        "trend": _run_auto_trend_fallback(failed_df) if (_run_auto_trend_fallback and failed_df is not None) else "Trend analysis unavailable.",
                         "code": "Visualizations could not be generated for this run.",
                         "output_dir": str(OUTPUTS_DIR / session_id),
                         "plotly_charts": [],
