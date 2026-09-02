@@ -12,13 +12,14 @@ uvicorn[standard]
 python-multipart
 
 # ── Data / ML ────────────────────────────────────────────────────────────────
-pandas>=1.5
+numpy>=1.24.0,<2.1.0
+pandas>=2.0.0,<3.0.0
 matplotlib>=3.6
 seaborn>=0.12
 # kaleido removed to avoid C++ build errors and freezes on new systems
 
 # ── Utilities ────────────────────────────────────────────────────────────────
-requests
+requests>=2.31.0
 huggingface_hub
 python-dotenv
 Pillow
@@ -33,7 +34,6 @@ regex
 # NOTE: grpcio NOT listed — install only if needed: pip install grpcio --only-binary=:all:
 
 duckdb>=0.9.0
-requests>=2.31.0
 scipy>=1.9.0
 scikit-learn>=1.1.0
 statsmodels>=0.14.0

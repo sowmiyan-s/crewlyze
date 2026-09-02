@@ -588,14 +588,21 @@ def send_automated_email(session_id: str, results_data: dict, meta: dict, cfg: d
     except Exception as e:
         print(f"[Automation Email] Failed to send automated email: {e}")
 
+def is_valid_url(url: Optional[str]) -> bool:
+    """Validate that a URL is a non-empty HTTP/HTTPS web address."""
+    if not url or not isinstance(url, str):
+        return False
+    u = url.strip()
+    return (u.startswith("http://") or u.startswith("https://")) and len(u) > 10
+
 def send_automated_slack(session_id: str, results_data: dict, meta: dict, cfg: dict):
     try:
         import urllib.request
         import json
         
-        webhook_url = cfg.get("SLACK_WEBHOOK_URL")
-        if not webhook_url:
-            print("[Automation Slack] Slack webhook URL missing. Skipping Slack post.")
+        webhook_url = (cfg.get("SLACK_WEBHOOK_URL") or "").strip()
+        if not is_valid_url(webhook_url):
+            print("[Automation Slack] No active Slack webhook URL configured. Skipping.")
             return
 
         send_summary = parse_bool(cfg.get("SLACK_SEND_SUMMARY", True))
@@ -677,9 +684,9 @@ def send_automated_webhook(session_id: str, results_data: dict, meta: dict, cfg:
         import requests
         import json
         
-        webhook_url = cfg.get("OUTBOUND_WEBHOOK_URL")
-        if not webhook_url:
-            print("[Automation Webhook] Outbound Webhook URL missing. Skipping Webhook post.")
+        webhook_url = (cfg.get("OUTBOUND_WEBHOOK_URL") or "").strip()
+        if not is_valid_url(webhook_url):
+            print("[Automation Webhook] No active Outbound Webhook URL configured. Skipping.")
             return
 
         send_json = parse_bool(cfg.get("WEBHOOK_SEND_JSON", True))
@@ -836,28 +843,27 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
                     
                     if pdf_path.exists():
                         fp = open(pdf_path, "rb")
-                        sub_opened_files.append(fp)
+                        sub_opened.append(fp)
                         sub_files["file"] = (f"report_{session_id}.pdf", fp, "application/pdf")
 
                 if force_charts and attach_charts and output_dir.exists():
                     png_charts = sorted(list(output_dir.glob("*.png")), key=lambda x: x.stat().st_mtime)
                     for idx, chart_path in enumerate(png_charts[:3]):
                         fp = open(chart_path, "rb")
-                        sub_opened_files.append(fp)
+                        sub_opened.append(fp)
                         sub_files[f"chart_{idx}"] = (chart_path.name, fp, "image/png")
 
                 try:
                     if sub_files:
                         payload_data = {"payload_json": json.dumps(sub_payload)}
-                        response = requests.post(webhook_url, data=payload_data, files=sub_files, timeout=15)
+                        response = requests.post(target_url, data=payload_data, files=sub_files, timeout=15)
                     else:
-                        response = requests.post(webhook_url, json=sub_payload, timeout=15)
-                    response.raise_for_status()
+                        response = requests.post(target_url, json=sub_payload, timeout=15)
                     print(f"[Automation Discord] Sub-report '{content_title}' posted successfully.")
                 except Exception as post_err:
                     print(f"[Automation Discord] Failed to post sub-report '{content_title}': {post_err}")
                 finally:
-                    for fp in sub_opened_files:
+                    for fp in sub_opened:
                         fp.close()
 
             # 1. Data Cleaning
@@ -865,8 +871,8 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
                 clean_txt = results_data["cleaning_steps"]
                 if len(clean_txt) > 1024:
                     clean_txt = clean_txt[:1000] + "..."
-                fields = [{"name": "Cleaning Audit Trail", "value": clean_txt, "inline": False}]
-                post_sub_report(cfg.get("DISCORD_CLEANING_URL"), "🧹 Data Cleaning Report", "", fields)
+                fields = [{"name": "Data Sanitization Notes", "value": clean_txt, "inline": False}]
+                post_sub_report(cfg.get("DISCORD_CLEANING_URL"), "🧹 Data Cleaner Report", "", fields)
 
             # 2. Relationship Mapper
             if parse_bool(cfg.get("DISCORD_RELATIONS_ENABLED")) and results_data.get("relations"):
@@ -891,9 +897,9 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
 
             return
             
-        webhook_url = cfg.get("DISCORD_WEBHOOK_URL")
-        if not webhook_url:
-            print("[Automation Discord] Discord webhook URL missing. Skipping Discord post.")
+        webhook_url = (cfg.get("DISCORD_WEBHOOK_URL") or "").strip()
+        if not is_valid_url(webhook_url):
+            print("[Automation Discord] No active Discord webhook URL configured. Skipping.")
             return
 
         print("[Automation Discord] Posting automated summary to Discord...")
@@ -971,14 +977,13 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
         if avatar_url:
             payload["avatar_url"] = avatar_url
         if mention:
-            payload["content"] = f"{mention} - Analysis Completed!"
+            payload["content"] = f"{mention} - Analysis Complete!"
             
         # Deliverables attachment files
         files = {}
         opened_files = []
         
         session_dir = get_safe_session_dir(session_id)
-        output_dir = get_safe_output_dir(session_id)
         
         if attach_pdf:
             pdf_path = output_dir / f"{session_id}_report.pdf"
@@ -1030,13 +1035,7 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
         print(f"[Automation Discord] Failed to post automated Discord message: {e}")
 
 def run_automation_pipeline(session_id: str, results_data: dict):
-    """Dispatch outbound automations (Slack / Discord / Webhook).
-
-    Production behaviour: if a webhook/integration is ENABLED but mis-configured
-    (e.g. no URL set), we do NOT silently swallow the error — we surface it via a
-    raised RuntimeError so the caller sees a clear, actionable message instead of a
-    silently skipped notification that looks like success.
-    """
+    """Dispatch outbound automations (Slack / Discord / Webhook) only if active valid URLs exist."""
     try:
         cfg_path = get_local_config_path()
         if not cfg_path.exists():
@@ -1046,40 +1045,34 @@ def run_automation_pipeline(session_id: str, results_data: dict):
 
         meta = get_project_metadata(session_id)
 
-        # Automated email is disabled as per user request to be manual-only via "Email Report" button
-        # if parse_bool(cfg.get("AUTOMATION_EMAIL_ENABLED")):
-        #     try:
-        #         send_automated_email(session_id, results_data, meta, cfg)
-        #     except Exception as e:
-        #         print(f"[Automation Hub] Email runner error: {e}")
-
-        if parse_bool(cfg.get("AUTOMATION_SLACK_ENABLED")):
-            if not cfg.get("SLACK_WEBHOOK_URL"):
-                raise RuntimeError("Slack automation is enabled but SLACK_WEBHOOK_URL is not set.")
+        # 1. Slack Outbound
+        slack_url = (cfg.get("SLACK_WEBHOOK_URL") or "").strip()
+        if parse_bool(cfg.get("AUTOMATION_SLACK_ENABLED")) and is_valid_url(slack_url):
             try:
                 send_automated_slack(session_id, results_data, meta, cfg)
             except Exception as e:
-                print(f"[Automation Hub] Slack runner error: {e}")
+                print(f"[Automation Hub] Slack runner warning: {e}")
 
-        if parse_bool(cfg.get("AUTOMATION_DISCORD_ENABLED")):
-            if not cfg.get("DISCORD_WEBHOOK_URL"):
-                raise RuntimeError("Discord automation is enabled but DISCORD_WEBHOOK_URL is not set.")
+        # 2. Discord Outbound
+        discord_url = (cfg.get("DISCORD_WEBHOOK_URL") or "").strip()
+        has_separate = parse_bool(cfg.get("DISCORD_SEPARATE_CHANNELS")) and any(
+            is_valid_url(cfg.get(k)) for k in ["DISCORD_CLEANING_URL", "DISCORD_RELATIONS_URL", "DISCORD_INSIGHTS_URL", "DISCORD_VISUALIZATION_URL"]
+        )
+        if parse_bool(cfg.get("AUTOMATION_DISCORD_ENABLED")) and (is_valid_url(discord_url) or has_separate):
             try:
                 send_automated_discord(session_id, results_data, meta, cfg)
             except Exception as e:
-                print(f"[Automation Hub] Discord runner error: {e}")
+                print(f"[Automation Hub] Discord runner warning: {e}")
 
-        if parse_bool(cfg.get("AUTOMATION_WEBHOOK_ENABLED")):
-            if not cfg.get("OUTBOUND_WEBHOOK_URL"):
-                raise RuntimeError("Outbound webhook automation is enabled but OUTBOUND_WEBHOOK_URL is not set.")
+        # 3. Custom REST Webhook Outbound
+        webhook_url = (cfg.get("OUTBOUND_WEBHOOK_URL") or "").strip()
+        if parse_bool(cfg.get("AUTOMATION_WEBHOOK_ENABLED")) and is_valid_url(webhook_url):
             try:
                 send_automated_webhook(session_id, results_data, meta, cfg)
             except Exception as e:
-                print(f"[Automation Hub] Webhook runner error: {e}")
+                print(f"[Automation Hub] Webhook runner warning: {e}")
     except Exception as e:
-        # Surface, do not silently suppress (production requirement).
-        print(f"[Automation Hub] Pipeline dispatch error: {e}")
-        raise
+        print(f"[Automation Hub] Pipeline dispatch warning: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -2371,6 +2364,10 @@ async def export_webhook(
 ):
     """(Enterprise) Export PDF report directly to a Slack/Discord webhook."""
     import requests
+    url = (webhook_url or "").strip()
+    if not is_valid_url(url):
+        raise HTTPException(status_code=400, detail="Invalid webhook destination URL. Must start with http:// or https://")
+        
     output_dir = get_safe_output_dir(session_id)
     pdf_path = output_dir / f"{session_id}_report.pdf"
     
@@ -2381,7 +2378,7 @@ async def export_webhook(
         with open(pdf_path, 'rb') as f:
             files = {'file': (f"report_{session_id}.pdf", f, 'application/pdf')}
             payload = {'content': f"📈 **Crewlyze AI Analysis Complete!**\nNew business insights are ready for session: `{session_id}`"}
-            response = requests.post(webhook_url, data=payload, files=files, timeout=10)
+            response = requests.post(url, data=payload, files=files, timeout=10)
             response.raise_for_status()
         return {"status": "success", "message": "Report successfully dispatched to webhook!"}
     except Exception as e:
@@ -2393,7 +2390,10 @@ async def manual_share_slack(
     webhook_url: str = Form(...)
 ):
     try:
-        cfg = {"SLACK_WEBHOOK_URL": webhook_url}
+        url = (webhook_url or "").strip()
+        if not is_valid_url(url):
+            raise HTTPException(status_code=400, detail="No active Slack Webhook URL provided. Please configure a valid Slack Incoming Webhook in Settings > Integrations.")
+        cfg = {"SLACK_WEBHOOK_URL": url}
         results_path = get_safe_session_dir(session_id) / "results.json"
         if not results_path.exists():
             raise HTTPException(status_code=400, detail="Results not found. Run analysis first.")
@@ -2402,6 +2402,8 @@ async def manual_share_slack(
         meta = get_project_metadata(session_id)
         send_automated_slack(session_id, results_data, meta, cfg)
         return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -2411,6 +2413,9 @@ async def manual_share_discord(
     webhook_url: str = Form(...)
 ):
     try:
+        url = (webhook_url or "").strip()
+        if not is_valid_url(url):
+            raise HTTPException(status_code=400, detail="No active Discord Webhook URL provided. Please configure a valid Discord Webhook link in Settings > Integrations.")
         cfg = {}
         cfg_path = get_local_config_path()
         if cfg_path.exists():
@@ -2419,7 +2424,7 @@ async def manual_share_discord(
                     cfg = json.load(f)
             except Exception:
                 pass
-        cfg["DISCORD_WEBHOOK_URL"] = webhook_url
+        cfg["DISCORD_WEBHOOK_URL"] = url
         
         results_path = get_safe_session_dir(session_id) / "results.json"
         if not results_path.exists():
@@ -2429,6 +2434,8 @@ async def manual_share_discord(
         meta = get_project_metadata(session_id)
         send_automated_discord(session_id, results_data, meta, cfg)
         return {"status": "success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -87,7 +87,7 @@ def get_llm_config() -> dict:
 
     configs = {
         "nvidia": {
-            "model":    "nvidia_nim/meta/llama-3.1-8b-instruct",
+            "model":    "nvidia_nim/meta/llama-3.3-70b-instruct",
             "api_key":  current_llm_api_key.get() or os.getenv("NVIDIA_API_KEY"),
             "base_url": NVIDIA_NIM_BASE_URL,
         },

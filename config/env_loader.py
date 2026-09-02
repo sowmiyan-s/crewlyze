@@ -20,7 +20,7 @@ OPENAI_API_KEY=
 GROQ_API_KEY=
 GEMINI_API_KEY=
 ANTHROPIC_API_KEY=
-LLM_MODEL=nvidia_nim/meta/llama-3.1-8b-instruct
+LLM_MODEL=nvidia_nim/meta/llama-3.3-70b-instruct
 
 # ── Workspace Directories ────────────────────────────────────────────────────
 LOG_LEVEL=INFO
@@ -55,9 +55,17 @@ def ensure_env_loaded():
     if project_env.exists():
         load_dotenv(dotenv_path=project_env, override=True)
 
-    cwd_env = Path.cwd() / ".env"
-    if cwd_env.exists() and cwd_env.resolve() != project_env.resolve():
-        load_dotenv(dotenv_path=cwd_env, override=True)
+    # Auto-migrate deprecated/retired models to their active equivalents
+    model_env = os.environ.get("LLM_MODEL", "")
+    if "llama-3.1-8b-instruct" in model_env:
+        os.environ["LLM_MODEL"] = "nvidia_nim/meta/llama-3.3-70b-instruct"
+        if home_env.exists():
+            try:
+                txt = home_env.read_text(encoding="utf-8")
+                if "llama-3.1-8b-instruct" in txt:
+                    home_env.write_text(txt.replace("llama-3.1-8b-instruct", "llama-3.3-70b-instruct"), encoding="utf-8")
+            except Exception:
+                pass
 
     # Set default runtime environment fallback variables if missing
     os.environ.setdefault("CREWAI_TELEMETRY_OPT_OUT", "true")

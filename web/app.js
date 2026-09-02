@@ -24,12 +24,11 @@ const DEFAULT_THUMBNAIL_SVG = '/assets/placeholder_thumbnail.png';
 // ────────────────────────────────────────────────────────────────────────────
 const MODEL_OPTIONS = {
   nvidia:      [
-    'nvidia_nim/meta/llama-3.1-8b-instruct',
+    'nvidia_nim/meta/llama-3.3-70b-instruct',
     'nvidia_nim/meta/llama-3.1-70b-instruct',
     'nvidia_nim/meta/llama-3.1-405b-instruct',
     'nvidia_nim/meta/llama-3.2-1b-instruct',
     'nvidia_nim/meta/llama-3.2-3b-instruct',
-    'nvidia_nim/meta/llama-3.3-70b-instruct',
     'nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct',
     'nvidia_nim/nvidia/llama-3.1-nemotron-51b-instruct',
     'nvidia_nim/nvidia/mistral-nemo-minitron-8b-8k-instruct',
@@ -1887,10 +1886,14 @@ async function updateSidebarProjectActionsVisibility(sec) {
       try {
         const res = await fetch('/api/config');
         if (res.ok) {
-          const cfg = await res.json();
-          const slackEnabled = !!cfg.AUTOMATION_SLACK_ENABLED || !!cfg.SLACK_WEBHOOK_URL;
-          const discordEnabled = !!cfg.AUTOMATION_DISCORD_ENABLED || !!cfg.DISCORD_WEBHOOK_URL || !!cfg.DISCORD_SEPARATE_CHANNELS;
-          const emailEnabled = cfg.SMTP_ACCOUNTS && cfg.SMTP_ACCOUNTS.length > 0;
+          const isValidHttpUrl = (u) => typeof u === 'string' && (u.trim().startsWith('http://') || u.trim().startsWith('https://')) && u.trim().length > 10;
+
+          const slackEnabled = (cfg.AUTOMATION_SLACK_ENABLED !== false) && isValidHttpUrl(cfg.SLACK_WEBHOOK_URL);
+          const discordEnabled = (cfg.AUTOMATION_DISCORD_ENABLED !== false) && (
+            isValidHttpUrl(cfg.DISCORD_WEBHOOK_URL) || 
+            (cfg.DISCORD_SEPARATE_CHANNELS && [cfg.DISCORD_INSIGHTS_URL, cfg.DISCORD_VISUALIZATION_URL, cfg.DISCORD_CLEANING_URL, cfg.DISCORD_RELATIONS_URL].some(isValidHttpUrl))
+          );
+          const emailEnabled = Array.isArray(cfg.SMTP_ACCOUNTS) && cfg.SMTP_ACCOUNTS.length > 0;
           
           const pdfEnabled      = localStorage.getItem('feat_export_pdf') !== 'false';
           const pptxEnabled     = localStorage.getItem('feat_export_pptx') !== 'false';
@@ -1904,9 +1907,15 @@ async function updateSidebarProjectActionsVisibility(sec) {
           document.getElementById('sidebarExportNotebookBtn')?.classList.toggle('hidden', !notebookEnabled);
           document.getElementById('sidebarDownloadCsvBtn')?.classList.toggle('hidden', !csvEnabled);
           document.getElementById('sidebarReRunBtn')?.classList.toggle('hidden', !rerunEnabled);
+
           document.getElementById('sidebarShareSlackBtn')?.classList.toggle('hidden', !slackEnabled);
+          document.getElementById('shareSlackBtn')?.classList.toggle('hidden', !slackEnabled);
+
           document.getElementById('sidebarShareDiscordBtn')?.classList.toggle('hidden', (!discordEnabled || !discordFeat));
+          document.getElementById('shareDiscordBtn')?.classList.toggle('hidden', (!discordEnabled || !discordFeat));
+
           document.getElementById('sidebarEmailReportBtn')?.classList.toggle('hidden', !emailEnabled);
+          document.getElementById('emailReportBtn')?.classList.toggle('hidden', !emailEnabled);
         }
       } catch (err) {
         console.warn('Failed to load integration states for project actions:', err);
@@ -4583,9 +4592,9 @@ function setupExport(sessionId) {
       const res = await fetch('/api/config');
       if (res.ok) {
         const cfg = await res.json();
-        const url = cfg.SLACK_WEBHOOK_URL;
-        if (!url) {
-          toast('Slack Webhook URL not configured. Please go to settings.', 'error');
+        const url = (cfg.SLACK_WEBHOOK_URL || '').trim();
+        if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) {
+          toast('No active Slack Webhook URL configured. Please configure your Slack Incoming Webhook in Settings > Integrations.', 'error');
           return;
         }
         toast('Sharing report to Slack...', 'info');
@@ -4610,12 +4619,12 @@ function setupExport(sessionId) {
       const res = await fetch('/api/config');
       if (res.ok) {
         const cfg = await res.json();
-        let url = cfg.DISCORD_WEBHOOK_URL;
+        let url = (cfg.DISCORD_WEBHOOK_URL || '').trim();
         if (cfg.DISCORD_SEPARATE_CHANNELS) {
-          url = cfg.DISCORD_INSIGHTS_URL || cfg.DISCORD_WEBHOOK_URL;
+          url = (cfg.DISCORD_INSIGHTS_URL || cfg.DISCORD_WEBHOOK_URL || '').trim();
         }
-        if (!url) {
-          toast('Discord Webhook URL not configured. Please go to settings.', 'error');
+        if (!url || !(url.startsWith('http://') || url.startsWith('https://'))) {
+          toast('No active Discord Webhook URL configured. Please configure your Discord Webhook in Settings > Integrations.', 'error');
           return;
         }
         toast('Sharing report to Discord...', 'info');
@@ -4687,8 +4696,13 @@ function setupExport(sessionId) {
   if (exportNotebookBtn) exportNotebookBtn.onclick = exportNotebook;
 
   if (els.sidebarShareSlackBtn) els.sidebarShareSlackBtn.onclick = shareSlack;
+  if (document.getElementById('shareSlackBtn')) document.getElementById('shareSlackBtn').onclick = shareSlack;
+
   if (els.sidebarShareDiscordBtn) els.sidebarShareDiscordBtn.onclick = shareDiscord;
+  if (document.getElementById('shareDiscordBtn')) document.getElementById('shareDiscordBtn').onclick = shareDiscord;
+
   if (els.sidebarEmailReportBtn) els.sidebarEmailReportBtn.onclick = openEmailModal;
+  if (document.getElementById('emailReportBtn')) document.getElementById('emailReportBtn').onclick = openEmailModal;
 }
 
 // ────────────────────────────────────────────────────────────────────────────

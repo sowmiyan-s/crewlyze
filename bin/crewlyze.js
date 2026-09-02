@@ -21,6 +21,9 @@ const YELLOW = '\x1b[38;5;220m';
 const WHITE = '\x1b[38;5;255m';
 const GRAY = '\x1b[38;5;245m';
 
+const pkgJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
+const version = pkgJson.version || '1.2.2';
+
 const banner = `
 ${CYAN}   ██████╗██████╗ ███████╗██╗    ██╗██╗  ██╗   ██╗███████╗███████╗${CLR_RESET}
 ${BRIGHT_CYAN}  ██╔════╝██╔══██╗██╔════╝██║    ██║██║  ╚██╗ ██╔╝╚══███╔╝██╔════╝${CLR_RESET}
@@ -29,7 +32,7 @@ ${MAGENTA}  ██║     ██╔══██╗██╔══╝  ██║�
 ${RED}  ╚██████╗██║  ██║███████╗╚███╔███╔╝███████╗██║   ███████╗███████╗${CLR_RESET}
 
 ${CLR_BOLD}${WHITE}  Autonomous Multi-Agent Business Intelligence & Data Engineering Platform${CLR_RESET}
-${GRAY}  Powered by CrewAI & FastAPI • v1.0.9${CLR_RESET}
+${GRAY}  Powered by CrewAI & FastAPI • v${version}${CLR_RESET}
 `;
 
 console.log(banner);
