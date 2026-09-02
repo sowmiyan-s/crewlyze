@@ -37,76 +37,6 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-
-# Environments
-.env
-.env.local
-.env.*
-.venv
-venv/
-ENV/
-env/
-
-# IDEs
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# OS Specific
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# App-specific runtime databases, feedback logs, and uploads
-data/sessions/
-data/feedback_submissions.json
-feedback_submissions.json
-outputs/
-*.db
-*.sqlite
-
-# Ignore all user-uploaded datasets or exports, but keep .gitkeep files if any
-data/*
-!data/.gitkeep
-!data/Blood_Donation.csv
-!data/TB_Burden_Country.csv
-!data/car_parts_dataset_500.csv
-!data/chocolate.csv
-!data/heart_disease.csv
-!data/inventory.csv
-!data/laptop.csv
-!data/mtcars.csv
-!data/olympics.csv
-!data/sugar.csv
-
-# Local agent/tool files and pip cache
-.local/
-.pip_cache/
-
-# NPM packaging artifacts & node
-*.tgz
-README-GITHUB.md
-node_modules/
-
-# Test artifacts, verification scripts & scratch dumps
-test_*.py
-*_test.py
-verify_*.py
-test_*.csv
-test_*.json
-*_test_results.json
-test_results.json
-hardening_test_results.json
-overhaul_test_results.json
-test_data.csv
-test_dry_run.py
-test_workspace/
-test_sessions/
 .benchmarks/
 .coverage
 .coverage.*
@@ -114,3 +44,58 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
+
+# Environments & Virtual Envs
+.env
+.env.*
+.env.local
+.venv
+.venv/
+venv/
+ENV/
+env/
+
+# IDEs & System files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# App Runtime Data, Databases, Sessions, and Uploads
+data/*
+!data/.gitkeep
+outputs/*
+!outputs/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+feedback_submissions.json
+*.log
+
+# Test Artifacts, Results, Verification Scripts & Scratch Files
+test_*.py
+*_test.py
+verify_*.py
+test_*.csv
+test_data.csv
+test_*.json
+*_test_results.json
+test_results.json
+hardening_test_results.json
+overhaul_test_results.json
+test_dry_run.py
+test_workspace/
+test_sessions/
+
+# NPM packaging artifacts & node
+*.tgz
+crewlyze-*.tgz
+README-GITHUB.md
+node_modules/
