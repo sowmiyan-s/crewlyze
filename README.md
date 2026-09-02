@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://github.com/sowmiyan-s/crewlyze/releases">
-    <img src="https://img.shields.io/badge/Release-v1.2.1-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+    <img src="https://img.shields.io/badge/Release-v1.2.2-7c3aed?style=for-the-badge&logo=github" alt="Release" />
   </a>
   <a href="https://www.npmjs.com/package/crewlyze">
     <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
