@@ -5,6 +5,18 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-09-02
+
+### Added & Enhanced
+- **Robust Webhook Integration & URL Validation**: Improved Discord and Slack automation dispatch logic with strict protocol validation and responsive UI button binding.
+- **Automated Python Environment Installation**: Overhauled `install-python.js` with expanded architecture detection, resilient binary downloads, fallback verification, and graceful cross-platform dependency handling.
+- **Config & Dependency Hardening**: Pinned reliable version bounds for core data packages (`numpy`, `pandas`, `requests`), hardened LLM configuration handlers, and improved environment variable loading.
+
+## [1.2.2] - 2026-09-02
+
+### Fixed
+- **Font Mapping & Pipeline Fallbacks**: Fixed PDF export font mapping and resolved optional pipeline fallback imports.
+
 ## [1.2.1] - 2026-08-29
 
 ### Added & Enhanced

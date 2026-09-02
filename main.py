@@ -260,7 +260,7 @@ os.environ["OTEL_SDK_DISABLED"]        = "true"
 app = FastAPI(
     title="Crewlyze API",
     description="Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
-    version="1.2.2"
+    version="1.2.3"
 )
 
 # Enable CORS for local development flexibility
