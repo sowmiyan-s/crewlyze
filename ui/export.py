@@ -29,6 +29,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image as PILImage
 from reportlab.lib import colors
+from reportlab.lib.fonts import addMapping
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfgen import canvas
@@ -43,6 +44,26 @@ from reportlab.platypus import (
     TableStyle,
     HRFlowable,
 )
+
+# Register standard Type 1 font mappings across all case combinations
+for family in ("Courier", "courier", "COURIER"):
+    addMapping(family, 0, 0, "Courier")
+    addMapping(family, 1, 0, "Courier-Bold")
+    addMapping(family, 0, 1, "Courier-Oblique")
+    addMapping(family, 1, 1, "Courier-BoldOblique")
+
+for family in ("Helvetica", "helvetica", "HELVETICA"):
+    addMapping(family, 0, 0, "Helvetica")
+    addMapping(family, 1, 0, "Helvetica-Bold")
+    addMapping(family, 0, 1, "Helvetica-Oblique")
+    addMapping(family, 1, 1, "Helvetica-BoldOblique")
+
+for family in ("Times-Roman", "times-roman", "Times", "times", "TIMES"):
+    addMapping(family, 0, 0, "Times-Roman")
+    addMapping(family, 1, 0, "Times-Bold")
+    addMapping(family, 0, 1, "Times-Italic")
+    addMapping(family, 1, 1, "Times-BoldItalic")
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -145,13 +166,23 @@ def _md_to_html(text: str) -> str:
         return ""
     # 1. Strip AI reasoning artifacts first
     text = _clean_ai_artifacts(text)
-    # 2. Escape raw HTML entities to prevent ReportLab Expat XML errors
+    # 2. Normalize exotic unicode characters (hyphens, smart quotes, spaces)
+    charmap = {
+        '\u2010': '-', '\u2011': '-', '\u2012': '-', '\u2013': '-', '\u2014': '-',
+        '\u2018': "'", '\u2019': "'", '\u201a': "'", '\u201b': "'",
+        '\u201c': '"', '\u201d': '"', '\u201e': '"', '\u201f': '"',
+        '\u00a0': ' ', '\u202f': ' ', '\u2009': ' ',
+    }
+    for k, v in charmap.items():
+        text = text.replace(k, v)
+    # 3. Escape raw HTML entities to prevent ReportLab Expat XML errors
     text = html.escape(str(text))
-    # 3. Restore intended markdown formatting into safe ReportLab HTML tags
+    # 4. Restore intended markdown formatting into safe ReportLab HTML tags
     text = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", text)
     text = re.sub(r"\*(.*?)\*",     r"<i>\1</i>", text)
-    text = re.sub(r"`(.*?)`",       r"<font name=\"Courier\">\1</font>", text)
+    text = re.sub(r"`(.*?)`",       r'<font name="Courier">\1</font>', text)
     return text.strip()
+
 
 
 def _clean_ai_artifacts(text: str) -> str:
