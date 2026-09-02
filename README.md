@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/branding_image.png" alt="Crewlyze - Autonomous Multi-Agent Data Analyst Platform" width="100%" style="border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);" />
+  <img src="https://raw.githubusercontent.com/sowmiyan-s/crewlyze/main/assets/branding_image.png" alt="Crewlyze - Autonomous Multi-Agent Data Analyst Platform" width="100%" style="border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);" />
 </div>
 
 <br />

@@ -1,10 +1,35 @@
-# 🚀 Crewlyze
+<div align="center">
+  <img src="https://raw.githubusercontent.com/sowmiyan-s/crewlyze/main/assets/branding_image.png" alt="Crewlyze - Autonomous Multi-Agent Data Analyst Platform" width="100%" style="border-radius: 14px; box-shadow: 0 12px 32px rgba(0,0,0,0.3);" />
+</div>
 
-> **The Autonomous Multi-Agent Data Analysis & Business Intelligence Engine.**
+<br />
 
-[![NPM Version](https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm)](https://www.npmjs.com/package/crewlyze)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Python Version](https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+<h1 align="center" style="font-size: 3rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 0;">
+  🚀 Crewlyze 🚀
+</h1>
+
+<p align="center">
+  <strong style="font-size: 1.25rem; color: #a78bfa;">The Autonomous Multi-Agent Business Intelligence & Data Science Platform</strong><br />
+  <em>Transforming raw CSV, Excel, and SQLite datasets into executive PDF reports, interactive charts, and strategic business recommendations in seconds.</em>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/crewlyze">
+    <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
+  </a>
+  <a href="https://github.com/sowmiyan-s/crewlyze/releases">
+    <img src="https://img.shields.io/badge/Release-v1.2.1-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+  </a>
+  <a href="https://python.org">
+    <img src="https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
+  </a>
+  <a href="https://github.com/sowmiyan-s/crewlyze/stargazers">
+    <img src="https://img.shields.io/badge/Stars-%E2%98%85%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
+  </a>
+  <a href="https://opensource.org/licenses/MIT">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="License: MIT" />
+  </a>
+</p>
 
 **Crewlyze** transforms raw CSV, Excel, and SQLite datasets into executive PDF reports, interactive charts, and strategic business recommendations in seconds—**no programming or data science experience required!**
 
