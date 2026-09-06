@@ -5709,6 +5709,184 @@ function escHtml(str) {
     });
   }
 
+  // ── Auto-Update & Version Checking System ──────────────────────────────────
+  async function initUpdateSystem() {
+    const btnCheckUpdate = document.getElementById('sidebarCheckUpdateBtn');
+    const updateBtnText = document.getElementById('sidebarUpdateBtnText');
+    const updateIcon = document.getElementById('sidebarUpdateIcon');
+    const versionLabel = document.getElementById('crewlyzeVersionLabel');
+
+    // Pop-up elements
+    const popup = document.getElementById('crewlyzeUpdatePopup');
+    const popupCloseBtn = document.getElementById('updatePopupCloseBtn');
+    const popupRemindBtn = document.getElementById('updatePopupRemindBtn');
+    const popupInstallBtn = document.getElementById('updatePopupInstallBtn');
+    const popupNotesLink = document.getElementById('updatePopupNotesLink');
+    const popupTitle = document.getElementById('updatePopupTitle');
+    const currentVerText = document.getElementById('updateCurrentVerText');
+    const latestVerText = document.getElementById('updateLatestVerText');
+    const popupDesc = document.getElementById('updatePopupDescription');
+    const popupStatus = document.getElementById('updatePopupStatus');
+    const statusText = document.getElementById('updateStatusText');
+
+    let currentUpdateData = null;
+
+    function showUpdatePopup(data) {
+      if (!popup) return;
+      currentUpdateData = data;
+
+      if (currentVerText) currentVerText.textContent = `v${data.current_version}`;
+      if (latestVerText) latestVerText.textContent = `v${data.latest_version}`;
+      if (popupTitle) {
+        popupTitle.textContent = data.release_name || `Crewlyze v${data.latest_version} Available`;
+      }
+      if (popupNotesLink) {
+        popupNotesLink.href = data.release_url || 'https://github.com/sowmiyan-s/crewlyze/releases';
+      }
+      if (popupStatus) {
+        popupStatus.classList.add('hidden');
+      }
+      if (popupInstallBtn) {
+        popupInstallBtn.disabled = false;
+        popupInstallBtn.innerHTML = `
+          <i data-lucide="download-cloud"></i>
+          <span>Update Now</span>
+        `;
+      }
+
+      // Populate description snippet if available
+      if (popupDesc) {
+        if (data.release_notes && data.release_notes.trim().length > 0) {
+          const firstLines = data.release_notes
+            .split('\n')
+            .map(l => l.trim().replace(/^[#*-\s]+/, ''))
+            .filter(l => l.length > 5)
+            .slice(0, 2)
+            .join(' • ');
+          popupDesc.textContent = firstLines.length > 130 ? firstLines.slice(0, 127) + '...' : firstLines;
+        } else {
+          popupDesc.textContent = `Crewlyze v${data.latest_version} is available with new capabilities, enhancements, and speed optimizations.`;
+        }
+      }
+
+      popup.classList.remove('hidden');
+      if (window.lucide) {
+        try { window.lucide.createIcons({ root: popup }); } catch (e) {}
+      }
+    }
+
+    function hideUpdatePopup(snooze = false) {
+      if (!popup) return;
+      popup.classList.add('hidden');
+      if (snooze && currentUpdateData && currentUpdateData.latest_version) {
+        try {
+          sessionStorage.setItem('crewlyze_dismissed_update', currentUpdateData.latest_version);
+        } catch (e) {}
+      }
+    }
+
+    if (popupCloseBtn) {
+      popupCloseBtn.addEventListener('click', () => hideUpdatePopup(true));
+    }
+    if (popupRemindBtn) {
+      popupRemindBtn.addEventListener('click', () => hideUpdatePopup(true));
+    }
+
+    if (popupInstallBtn) {
+      popupInstallBtn.addEventListener('click', async () => {
+        if (!currentUpdateData) return;
+        
+        popupInstallBtn.disabled = true;
+        if (popupStatus) {
+          popupStatus.classList.remove('hidden');
+          if (statusText) statusText.textContent = '🚀 Launching updater assistant...';
+        }
+
+        try {
+          const res = await fetch('/api/system/update', { method: 'POST' });
+          const resData = await res.json();
+          if (resData.status === 'redirect') {
+            window.open(resData.url, '_blank');
+            if (statusText) statusText.textContent = 'Opening GitHub release page...';
+          } else {
+            if (statusText) {
+              statusText.textContent = '✅ Updater active! Complete setup in the launched window.';
+            }
+            toast('🚀 Update installer launched in background', 'info', 4000);
+            setTimeout(() => {
+              hideUpdatePopup(false);
+            }, 6000);
+          }
+        } catch (e) {
+          if (statusText) statusText.textContent = 'Redirecting to GitHub release download...';
+          window.open('https://github.com/sowmiyan-s/crewlyze/releases/latest', '_blank');
+        }
+      });
+    }
+
+    async function checkVersion(userInitiated = false) {
+      if (updateIcon) updateIcon.style.animation = 'spin 1s linear infinite';
+      if (updateBtnText && userInitiated) updateBtnText.textContent = 'Checking...';
+
+      try {
+        const res = await fetch('/api/system/version');
+        if (!res.ok) throw new Error('API error');
+        const data = await res.json();
+
+        if (versionLabel && data.current_version) {
+          versionLabel.textContent = `Crewlyze v${data.current_version}`;
+        }
+
+        if (data.update_available) {
+          if (updateBtnText) {
+            updateBtnText.textContent = `v${data.latest_version} Available!`;
+          }
+          if (btnCheckUpdate) {
+            btnCheckUpdate.style.background = 'rgba(16, 185, 129, 0.15)';
+            btnCheckUpdate.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+            btnCheckUpdate.style.color = '#10b981';
+            btnCheckUpdate.style.fontWeight = '700';
+            btnCheckUpdate.title = `Update to v${data.latest_version} now!`;
+          }
+
+          const dismissedVer = sessionStorage.getItem('crewlyze_dismissed_update');
+          if (userInitiated || dismissedVer !== data.latest_version) {
+            showUpdatePopup(data);
+          }
+        } else {
+          if (userInitiated) {
+            if (updateBtnText) updateBtnText.textContent = 'Up to date';
+            toast(`✨ Crewlyze is up to date (v${data.current_version})!`, 'success', 3000);
+          }
+        }
+      } catch (err) {
+        if (userInitiated) {
+          if (updateBtnText) updateBtnText.textContent = 'Offline';
+          toast('Unable to check for updates at this moment.', 'warning', 3000);
+        }
+      } finally {
+        if (updateIcon) updateIcon.style.animation = '';
+        setTimeout(() => {
+          if (updateBtnText && !btnCheckUpdate?.title.includes('Update to')) {
+            updateBtnText.textContent = 'Update';
+          }
+        }, 3000);
+      }
+    }
+
+    if (btnCheckUpdate) {
+      btnCheckUpdate.addEventListener('click', (e) => {
+        e.stopPropagation();
+        checkVersion(true);
+      });
+    }
+
+    // Passive check on boot (3 seconds after load)
+    setTimeout(() => checkVersion(false), 3000);
+  }
+
+  initUpdateSystem();
+
   // Always land cleanly on the Landing Home Page on page refresh (F5) instead of auto-opening past projects
   setTimeout(async () => {
     localStorage.removeItem('crewlyze_active_project_id');

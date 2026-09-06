@@ -18,6 +18,6 @@ def make_anomaly_agent() -> Agent:
             "Your insights protect organizations from flawed decisions caused by skewed data or undetected outliers."
         ),
         allow_delegation=False,
-        max_iter=2,
+        max_iter=1,
         llm=LLM(**get_llm_params()),
     )

@@ -168,7 +168,11 @@
       </div>
       
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;">
-        <span>Crewlyze v3.1</span>
+        <span id="crewlyzeVersionLabel">Crewlyze v1.2.3</span>
+        <button id="sidebarCheckUpdateBtn" class="btn-ghost" style="font-size: 0.68rem; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border-mid); color: var(--text-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.03); transition: all 0.2s;" title="Check GitHub for latest version">
+          <i data-lucide="refresh-cw" id="sidebarUpdateIcon" style="width: 10px; height: 10px;"></i>
+          <span id="sidebarUpdateBtnText">Update</span>
+        </button>
       </div>
 
       <button id="sidebarFeedbackBtn" class="btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; border-radius: var(--r-sm); font-size: 0.8rem; background: rgba(255,37,42,0.06); border: 1px solid rgba(255,37,42,0.25); color: var(--crimson, #ff252a); cursor: pointer; transition: all 0.2s;">
@@ -2076,6 +2080,68 @@
       <div id="zoomChartBody" style="flex: 1; width: 100%; height: 100%; min-height: 0; position: relative;"></div>
     </div>
   </div>
+
+  <!-- Crewlyze Update Pop-up Notification Component (Pop-up style, no alert styles) -->
+  <aside id="crewlyzeUpdatePopup" class="crewlyze-update-popup hidden" aria-live="polite" aria-label="Software Update Notification">
+    <div class="update-popup-glow"></div>
+    <div class="update-popup-inner">
+      <div class="update-popup-header">
+        <div class="update-popup-title-group">
+          <div class="update-popup-icon-wrapper">
+            <i data-lucide="sparkles" class="update-popup-icon"></i>
+          </div>
+          <div class="update-popup-titles">
+            <div class="update-popup-badge">
+              <span class="update-pulse-dot"></span>
+              <span>New Update Available</span>
+            </div>
+            <h4 id="updatePopupTitle" class="update-popup-title">Crewlyze Update Ready</h4>
+          </div>
+        </div>
+        <button id="updatePopupCloseBtn" class="update-popup-close-btn" title="Dismiss" aria-label="Close update notification">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="update-popup-versions">
+        <div class="update-ver-chip current">
+          <span class="ver-label">Installed</span>
+          <span id="updateCurrentVerText" class="ver-num">v1.2.3</span>
+        </div>
+        <div class="update-arrow">
+          <i data-lucide="arrow-right"></i>
+        </div>
+        <div class="update-ver-chip latest">
+          <span class="ver-label">Latest</span>
+          <span id="updateLatestVerText" class="ver-num">v1.2.4</span>
+        </div>
+      </div>
+
+      <div class="update-popup-body">
+        <p id="updatePopupDescription" class="update-popup-desc">
+          A new version of Crewlyze is ready. Upgrade now to get the latest features, enhancements, and performance optimizations.
+        </p>
+        <div id="updatePopupStatus" class="update-popup-status hidden">
+          <div class="update-status-spinner"></div>
+          <span id="updateStatusText">Preparing update package...</span>
+        </div>
+      </div>
+
+      <div class="update-popup-actions">
+        <button id="updatePopupInstallBtn" class="btn-update-primary" type="button">
+          <i data-lucide="download-cloud"></i>
+          <span>Update Now</span>
+        </button>
+        <a id="updatePopupNotesLink" href="https://github.com/sowmiyan-s/crewlyze/releases" target="_blank" rel="noopener noreferrer" class="btn-update-secondary">
+          <i data-lucide="external-link"></i>
+          <span>What's New</span>
+        </a>
+        <button id="updatePopupRemindBtn" class="btn-update-tertiary" type="button">
+          Remind Later
+        </button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Toast notifications -->
   <div id="toastContainer" class="toast-container"></div>

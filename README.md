@@ -46,10 +46,18 @@
 
 ---
 
-## ⚡ Quick Start (One-Line Installer)
+## ⚡ Quick Start
+Launch Crewlyze instantly without manually configuring build toolchains:
 
-Launch Crewlyze instantly on **Windows**, **macOS**, or **Linux** without manually installing C++, Rust, or Java build toolchains:
+### 🪟 Windows (Standalone Installer)
+1. Download **[`Crewlyze_Setup_v1.2.3.exe`](https://github.com/sowmiyan-s/crewlyze/releases)** from GitHub Releases.
+2. Run the installer wizard (it registers `crewlyze` to PATH and prepares the Python runtime).
+3. Open any Command Prompt or PowerShell and type:
+```cmd
+crewlyze
+```
 
+### ⚡ macOS / Linux / Windows (via NPM)
 ```bash
 # 1. Install Crewlyze globally via NPM
 npm install -g crewlyze
@@ -331,7 +339,19 @@ Configure outbound notification channels in the Settings Modal to automatically 
 
 ## 🚀 Deployment Modes & Installation Options
 
-### ⚡ Option 1: NPM Launcher (Recommended)
+### 🪟 Option 1: Windows One-Click Setup Installer (.exe)
+The easiest way to run Crewlyze on Windows without needing Node.js or Git:
+
+1. Download **`Crewlyze_Setup_v1.2.3.exe`** from [GitHub Releases](https://github.com/sowmiyan-s/crewlyze/releases).
+2. Run the installer wizard (installs shortcuts, adds `crewlyze` to system `PATH`, and auto-configures Python & dependencies).
+3. Open any **Command Prompt** or **PowerShell** and launch:
+```cmd
+crewlyze
+```
+
+---
+
+### ⚡ Option 2: NPM Launcher
 Works out-of-the-box on Windows, macOS, and Linux:
 
 ```bash

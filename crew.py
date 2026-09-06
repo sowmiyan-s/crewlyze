@@ -743,26 +743,34 @@ def _kickoff_with_retry(crew_instance, max_retries: int = 2):
             return res
         except Exception as exc:
             err_str = str(exc).lower()
+            permanent_triggers = (
+                "410", "gone", "404", "not found", "401", "unauthorized",
+                "invalid_api_key", "model not found", "does not exist", "end of life",
+            )
+            is_permanent = any(k in err_str for k in permanent_triggers)
+            is_timeout = "timeout" in err_str or "apitimeouterror" in err_str
+            max_allowed_attempts = 1 if (is_timeout or is_permanent) else max_retries
+
+            if is_timeout:
+                print(f"[Warning] LLM Timeout Alert: API request timed out ({exc}). Activating statistical auto-healing fallback...", flush=True)
+            elif is_permanent:
+                print(f"[Warning] Non-recoverable API error ({exc}). Activating auto-healing fallback...", flush=True)
+
             transient_triggers = (
                 "429", "rate limit", "throttl", "too many requests",
                 "500", "502", "503", "504", "connection", "none or empty", "invalid response",
                 "empty response", "runtimeerror",
-                "internal server error", "internalservererror", "overloaded", "nimexception",
+                "internal server error", "internalservererror", "overloaded",
                 "bad gateway", "service unavailable", "connection error"
             )
-            # Timeout errors should fail fast so auto-healing statistical fallback takes over immediately
-            is_timeout = "timeout" in err_str or "apitimeouterror" in err_str
-            max_allowed_attempts = 1 if is_timeout else max_retries
 
-            if is_timeout:
-                print(f"[Warning] LLM Timeout Alert: API request timed out ({exc}). Activating statistical auto-healing fallback...", flush=True)
-
-            if any(k in err_str for k in transient_triggers) and attempt < max_allowed_attempts:
+            if not is_permanent and any(k in err_str for k in transient_triggers) and attempt < max_allowed_attempts:
                 sleep_sec = min(1.5 ** attempt, 5.0)
                 print(f"[Warning] Transient LLM API issue ({exc}). Retrying in {sleep_sec}s (Attempt {attempt}/{max_allowed_attempts})...", flush=True)
                 time.sleep(sleep_sec)
             else:
                 raise exc
+
 
 
 # ---------------------------------------------------------------------------
@@ -960,12 +968,11 @@ def run_crew(
         clean_crew = Crew(
             agents=[agents[0]],
             tasks=[tasks[0]],
-            max_rpm=15,
             cache=True,
             verbose=True,
         )
         try:
-            _kickoff_with_retry(clean_crew)
+            _kickoff_with_retry(clean_crew, max_retries=1)
             clean_output = _safe_output(tasks[0])
             try:
                 if hasattr(clean_crew, "usage_metrics") and clean_crew.usage_metrics:
@@ -1000,11 +1007,10 @@ def run_crew(
             rel_crew = Crew(
                 agents=[agents[1]],
                 tasks=[tasks[1]],
-                max_rpm=15,
                 cache=True,
                 verbose=True,
             )
-            _kickoff_with_retry(rel_crew)
+            _kickoff_with_retry(rel_crew, max_retries=1)
             raw_rel = _clean_think_tags(_safe_output(tasks[1]))
 
             # Filter strictly for formatted relationship lines
@@ -1038,7 +1044,7 @@ def run_crew(
         _progress("relations", relation_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 3 — Visualize (sequential, receives relation output as context)
+    # STAGE 3 — Visualize (instant rendering + strategic visualizer narrative)
     # ════════════════════════════════════════════════════════════════════════
     visualize_output = "Visualization was skipped by user selection."
 
@@ -1046,41 +1052,44 @@ def run_crew(
         print("[Stage 3/8] Running Data Visualizer ...")
         start_viz_stage = time.time()
 
-        # Inject relation output directly into the task description
+        # Step 1: Render high-resolution PNG charts directly in Python (< 1 sec)
+        print("Rendering executive visualization charts ...")
+        fallback_msg = _run_auto_visualizer_fallback(
+            cleaned_path, session_output_dir, relations_text=relation_output
+        )
+        png_files = sorted(list(session_output_dir.glob("*.png")))
+        chart_names_str = ", ".join(f.name for f in png_files) if png_files else "charts"
+        print(f"Rendered {len(png_files)} visualization chart(s): {chart_names_str}")
+
+        # Step 2: Visualizer Agent provides executive chart narratives
         viz_task = tasks[3]
-        viz_task.description += f"\n\nRELATIONSHIPS TO VISUALIZE:\n{relation_output}"
+        viz_task.description = (
+            f"Successfully generated {len(png_files)} chart(s) saved to '{session_output_dir}':\n"
+            + "\n".join(f"- {f.name}" for f in png_files)
+            + f"\n\nRELATIONSHIPS VISUALIZED:\n{relation_output}\n\n"
+            + "Provide a concise executive bulleted summary of these visualizations highlighting the primary business patterns."
+        )
 
         viz_crew = Crew(
             agents=[agents[3]],
             tasks=[viz_task],
-            max_rpm=15,
             cache=True,
             verbose=True,
         )
         
         try:
-            _kickoff_with_retry(viz_crew)
+            _kickoff_with_retry(viz_crew, max_retries=1)
             visualize_output = _safe_output(viz_task)
+            if not visualize_output or len(visualize_output.strip()) < 20:
+                visualize_output = f"Successfully generated {len(png_files)} executive visualization charts: {chart_names_str}."
             try:
                 if hasattr(viz_crew, "usage_metrics") and viz_crew.usage_metrics:
                     total_tokens += viz_crew.usage_metrics.get("total_tokens", 0)
             except Exception:
                 pass
         except Exception as exc:
-            print(f"Visualization Agent error: {exc}. Activating auto-healing visualizer fallback...")
-            if os.getenv("CREWLYZE_DEBUG") == "true":
-                traceback.print_exc()
-            visualize_output = f"Visualization Agent encountered error: {exc}"
-
-        # Auto-healing fallback check: if no PNG charts were successfully saved
-        png_files = list(session_output_dir.glob("*.png"))
-        if not png_files:
-            print("No PNG charts generated by agent. Running relation-aware visualizer fallback...")
-            fallback_msg = _run_auto_visualizer_fallback(
-                cleaned_path, session_output_dir, relations_text=relation_output
-            )
-            visualize_output = f"{visualize_output}\n\n[Auto-Healing Fallback Status]: {fallback_msg}"
-            print(fallback_msg)
+            print(f"Visualization Agent notice: {exc}. Using direct chart summary.")
+            visualize_output = f"Successfully generated {len(png_files)} executive visualization charts: {chart_names_str}."
 
         stage_times["visualization"] = time.time() - start_viz_stage
         _progress("visualization", visualize_output)
@@ -1098,27 +1107,24 @@ def run_crew(
         print("[Stage 4/8] Running BI Analyst ...")
         start_ins_stage = time.time()
 
-        # Inject cleaning, relation, and visualization outputs into task description
         ins_task = tasks[2]
-        ins_task.description += (
-            f"\n\nCLEANING COMPLETED:\n{clean_output}"
-            f"\n\nRELATIONSHIPS MAP:\n{relation_output}"
-            f"\n\nVISUALIZATIONS GENERATED:\n{visualize_output}"
+        ins_task.description = (
+            f"Project goal: '{project_goal}'.\n\n"
+            f"CLEANING COMPLETED:\n{clean_output}\n\n"
+            f"RELATIONSHIPS MAP:\n{relation_output}\n\n"
+            f"CHARTS GENERATED:\n{visualize_output}\n\n"
+            "Produce 5 clear, decision-ready business insights written in plain language for leadership."
         )
 
         ins_crew = Crew(
             agents=[agents[2]],
             tasks=[ins_task],
-            max_rpm=15,
             cache=True,
             verbose=True,
         )
         try:
-            _kickoff_with_retry(ins_crew)
+            _kickoff_with_retry(ins_crew, max_retries=1)
             insights_output = _safe_output(ins_task)
-            # Hardened guard: an empty / trivially short / placeholder answer is treated as
-            # a failed LLM pass and routed to the statistical fallback so every analysis
-            # produces a valid, readable result (no silent "no output").
             _weak_markers = (
                 "i'm sorry", "i cannot", "as an ai", "no output", "null", "none",
                 "unable to", "cannot provide", "i am unable", "temperature", "hello",
@@ -1152,10 +1158,8 @@ def run_crew(
 
     # ════════════════════════════════════════════════════════════════════════
     # STAGE 5 — Specialized Analysis (linear, after insights)
-    # Predictive / Anomaly / Trend LLM agents run ONLY if selected or in
-    # deep-analysis mode. Each falls back to its pure-Python statistical engine
-    # on any error. They are sequenced (not pre-computed up front) so they are
-    # never wasted when the user did not request them.
+    # Predictive / Anomaly / Trend calculations run in Python first (< 0.5s),
+    # then specialized LLM agents synthesize strategic business takeaways.
     # ════════════════════════════════════════════════════════════════════════
     predictive_output = _run_auto_predictive_fallback(df, project_goal)
     anomaly_output    = _run_auto_anomaly_fallback(df)
@@ -1165,9 +1169,15 @@ def run_crew(
         print("[Stage 5/8] Running Predictive Auto-ML ...")
         start_pred_stage = time.time()
         pred_task = tasks[4]
-        pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], max_rpm=15, cache=True, verbose=True)
+        pred_task.description = (
+            f"Target and feature importance baseline metrics:\n{predictive_output}\n\n"
+            f"Project goal: '{project_goal}'. "
+            "Explain in plain, executive business language which features drive the primary target metric "
+            "and how leadership can use these predictive relationships to improve business outcomes."
+        )
+        pred_crew = Crew(agents=[agents[4]], tasks=[pred_task], cache=True, verbose=True)
         try:
-            _kickoff_with_retry(pred_crew)
+            _kickoff_with_retry(pred_crew, max_retries=1)
             out_txt = _safe_output(pred_task)
             if out_txt and len(out_txt) > 20:
                 predictive_output = out_txt
@@ -1182,9 +1192,15 @@ def run_crew(
         print("[Stage 6/8] Running Anomaly & Risk Auditor ...")
         try:
             anom_task = tasks[5]
-            anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], max_rpm=15, cache=True, verbose=True)
-            _kickoff_with_retry(anom_crew)
-            anomaly_output = _safe_output(anom_task)
+            anom_task.description = (
+                f"Calculated statistical anomalies and risk findings:\n{anomaly_output}\n\n"
+                "Summarize these outlier risks, distributions, and operational safeguards in concise executive terms."
+            )
+            anom_crew = Crew(agents=[agents[5]], tasks=[anom_task], cache=True, verbose=True)
+            _kickoff_with_retry(anom_crew, max_retries=1)
+            out_anom = _safe_output(anom_task)
+            if out_anom and len(out_anom) > 20:
+                anomaly_output = out_anom
         except Exception as e:
             print(f"Anomaly Agent error: {e}")
             anomaly_output = _run_auto_anomaly_fallback(df)
@@ -1194,9 +1210,15 @@ def run_crew(
         print("[Stage 7/8] Running Time-Series Trend Analyst ...")
         try:
             trend_t = tasks[6]
-            tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], max_rpm=15, cache=True, verbose=True)
-            _kickoff_with_retry(tr_crew)
-            trend_output = _safe_output(trend_t)
+            trend_t.description = (
+                f"Calculated temporal trends and growth trajectory:\n{trend_output}\n\n"
+                "Summarize the growth rate, trajectory momentum, and strategic forward projections in concise business terms."
+            )
+            tr_crew = Crew(agents=[agents[6]], tasks=[trend_t], cache=True, verbose=True)
+            _kickoff_with_retry(tr_crew, max_retries=1)
+            out_tr = _safe_output(trend_t)
+            if out_tr and len(out_tr) > 20:
+                trend_output = out_tr
         except Exception as e:
             print(f"Trend Agent error: {e}")
             trend_output = _run_auto_trend_fallback(df)

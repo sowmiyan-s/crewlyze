@@ -18,6 +18,6 @@ def make_trend_agent() -> Agent:
             "You translate historical trajectory data into clear forward-looking business projections."
         ),
         allow_delegation=False,
-        max_iter=2,
+        max_iter=1,
         llm=LLM(**get_llm_params()),
     )

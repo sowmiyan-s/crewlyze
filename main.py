@@ -4665,6 +4665,100 @@ async def compare_projects(project_a: str, project_b: str):
 
 
 # ---------------------------------------------------------------------------
+# System Version & Auto-Update Endpoints
+# ---------------------------------------------------------------------------
+
+CURRENT_APP_VERSION = "1.2.3"
+try:
+    _pkg_path = Path(__file__).resolve().parent / "package.json"
+    if _pkg_path.exists():
+        with open(_pkg_path, "r", encoding="utf-8") as _f:
+            CURRENT_APP_VERSION = json.load(_f).get("version", CURRENT_APP_VERSION)
+except Exception:
+    pass
+
+@app.get("/api/system/version")
+async def get_system_version():
+    """Returns local version and checks for updates against GitHub Releases."""
+    import urllib.request
+    
+    current_ver = CURRENT_APP_VERSION
+    try:
+        _pkg_path = Path(__file__).resolve().parent / "package.json"
+        if _pkg_path.exists():
+            with open(_pkg_path, "r", encoding="utf-8") as _f:
+                current_ver = json.load(_f).get("version", current_ver)
+    except Exception:
+        pass
+
+    data = {
+        "current_version": current_ver,
+        "latest_version": current_ver,
+        "release_name": f"v{current_ver}",
+        "update_available": False,
+        "release_url": "https://github.com/sowmiyan-s/crewlyze/releases",
+        "release_notes": "",
+        "download_url": "",
+        "checked_at": time.time()
+    }
+    try:
+        req = urllib.request.Request(
+            "https://api.github.com/repos/sowmiyan-s/crewlyze/releases/latest",
+            headers={"User-Agent": "Crewlyze-App", "Accept": "application/vnd.github.v3+json"}
+        )
+        with urllib.request.urlopen(req, timeout=4) as resp:
+            if resp.status == 200:
+                rel = json.loads(resp.read().decode("utf-8"))
+                tag = str(rel.get("tag_name", "")).lstrip("v").strip()
+                if tag:
+                    data["latest_version"] = tag
+                    data["release_name"] = rel.get("name") or f"Release v{tag}"
+                    data["release_url"] = rel.get("html_url", data["release_url"])
+                    data["release_notes"] = rel.get("body", "")
+                    
+                    def _parse_v(v_str):
+                        parts = [int(re.sub(r'\D', '', x) or 0) for x in str(v_str).split(".")]
+                        while len(parts) < 3:
+                            parts.append(0)
+                        return parts
+                    
+                    v_curr = _parse_v(current_ver)
+                    v_remote = _parse_v(tag)
+                    if v_remote > v_curr:
+                        data["update_available"] = True
+                        for asset in rel.get("assets", []):
+                            if str(asset.get("name", "")).endswith(".exe"):
+                                data["download_url"] = asset.get("browser_download_url", "")
+                                break
+    except Exception as e:
+        data["error"] = str(e)
+        
+    return data
+
+@app.post("/api/system/update")
+async def trigger_system_update():
+    """Triggers background download and installation of the latest release."""
+    import subprocess
+    base_dir = Path(__file__).resolve().parent
+    updater_ps1 = base_dir / "installer" / "updater.ps1"
+    if not updater_ps1.exists():
+        updater_ps1 = base_dir / "updater.ps1"
+    
+    if updater_ps1.exists():
+        cmd = [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy", "Bypass",
+            "-File", str(updater_ps1)
+        ]
+        flags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
+        subprocess.Popen(cmd, creationflags=flags)
+        return {"status": "success", "message": "Crewlyze auto-updater launched in a new terminal window."}
+    else:
+        return {"status": "redirect", "url": "https://github.com/sowmiyan-s/crewlyze/releases/latest"}
+
+
+# ---------------------------------------------------------------------------
 # Frontend Static Mounts
 # ---------------------------------------------------------------------------
 

@@ -44,29 +44,14 @@ _failures_count = 0
 
 def cooldown_task_callback(task_output) -> None:
     """
-    Module-level task callback that sleeps adaptively based on API feedback.
-    Using a module-level named function allows proper serialization/checkpointing
-    and prevents Pydantic UserWarnings.
+    Module-level task callback that applies a minimal rest interval between tasks.
+    Prevents false-positive backoff sleeps triggered by business report wording.
     """
-    global _failures_count
     from config.context import current_cooldown
     ctx_cooldown = current_cooldown.get()
-    min_sleep = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "5"))
-
-    output_str = str(task_output).lower() if task_output else ""
-    hit_rate_limit = any(sig in output_str for sig in _RATE_LIMIT_SIGNALS)
-
-    if hit_rate_limit:
-        _failures_count += 1
-        delay = min(max(min_sleep, 10) * (2 ** (_failures_count - 1)), 120)
-        print(f"\nRate-limit detected. Back-off sleep: {delay}s ...")
-        time.sleep(delay)
-    elif min_sleep > 0:
-        _failures_count = max(0, _failures_count - 1)
-        print(f"\nTask complete. Cooldown: {min_sleep}s ...")
+    min_sleep = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "1"))
+    if min_sleep > 0:
         time.sleep(min_sleep)
-    else:
-        print("\nTask complete. No cooldown (min_sleep=0).")
 
 
 def make_cooldown_callback(min_sleep: int = 1):
@@ -125,11 +110,11 @@ def make_pipeline(
 
     rules_block = ""
     if rules_list:
-        rules_block = "\n\nYou MUST write python code that implements the following specific cleaning rules:\n" + "\n".join(rules_list)
+        rules_block = "\n\nSpecific cleaning rules applied:\n" + "\n".join(rules_list)
 
     from config.context import current_cooldown
     ctx_cooldown = current_cooldown.get()
-    cooldown = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "5"))
+    cooldown = int(ctx_cooldown) if ctx_cooldown is not None else int(os.getenv("API_COOLDOWN", "1"))
     cb = make_cooldown_callback(min_sleep=cooldown)
 
     selected_tasks = [task.strip().lower() for task in (selected_tasks or []) if task.strip()]
@@ -155,31 +140,31 @@ def make_pipeline(
     if deep_analysis:
         relation_deep_prompt = "\n\nDEEP ANALYSIS MODE IS ACTIVE. Map at least 5-6 key relationships."
         insight_deep_prompt = "\n\nDEEP ANALYSIS MODE IS ACTIVE. Provide detailed causal analysis."
-        visualize_deep_prompt = "\n\nDEEP ANALYSIS MODE IS ACTIVE. Generate 4-5 high-quality visualizations."
+        visualize_deep_prompt = "\n\nDEEP ANALYSIS MODE IS ACTIVE. Provide thorough executive chart narratives."
     else:
         relation_deep_prompt = "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Map 3-4 key relationships concisely."
         insight_deep_prompt = "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Provide a concise high-level summary."
-        visualize_deep_prompt = "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Generate 2-3 standard clean visualizations."
+        visualize_deep_prompt = "\n\nSTANDARD ANALYSIS MODE IS ACTIVE. Provide concise chart notes."
 
     goal_context = f"\nThe user has set the following goal for this project: '{project_goal}'." if project_goal else ""
     
     coercion_block = (
         f"\n\n--- AUTOMATIC TYPE CONVERSIONS PERFORMED ---\n{coercion_summary}\n"
-        "Explain the business rationale of these automatic type conversions in your final report."
+        "Explain the business rationale of these automatic type conversions in your report."
         if coercion_summary else ""
     )
 
     clean_task = Task(
         agent=cleaner_agent,
-        description=f"The dataset working copy is at '{csv_path}'. {goal_context} Explain cleaning steps in plain text.{profile_block}",
+        description=f"The dataset working copy is at '{csv_path}'. {goal_context} {coercion_block}{rules_block}\nExplain data cleaning actions and validations in concise executive bullet points.",
         expected_output="Bulleted list of cleaning steps explaining the business purpose.",
         callback=cb,
     )
 
     relation_task = Task(
         agent=relation_agent,
-        description=f"Identify key column relationships aligned with goal '{project_goal}'. Format: - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info]{profile_block}",
-        expected_output="List of relationships.",
+        description=f"Identify key column relationships aligned with goal '{project_goal}'. Format strictly as: - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info]{profile_block}{relation_deep_prompt}",
+        expected_output="List of relationships formatted strictly as - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info].",
         callback=cb,
     )
 
@@ -187,36 +172,36 @@ def make_pipeline(
 
     insight_task = Task(
         agent=insights_agent,
-        description=f"Generate structured executive report focusing on business context. Align with goal: '{project_goal}'.{insight_deep_prompt}{relations_context}{profile_block}",
+        description=f"Generate structured executive report focusing on strategic business context. Align with goal: '{project_goal}'.{insight_deep_prompt}{relations_context}",
         expected_output="Structured markdown report containing Objectives, Statistics, Strategic Insights, and Warnings.",
         callback=cb,
     )
 
     visualize_task = Task(
         agent=visualizer_agent,
-        description=f"Select key relationships and generate Matplotlib/Seaborn plots saved to '{output_dir}'.{visualize_deep_prompt}{relations_context}{profile_block}",
-        expected_output="Summary of custom visualization plots generated.",
+        description=f"Review the generated visualizations and verified relationships saved to '{output_dir}'.{visualize_deep_prompt}{relations_context}",
+        expected_output="Bulleted summary of custom visualization charts and executive takeaways.",
         callback=cb,
     )
 
     predictive_task = Task(
         agent=predictive_agent,
-        description=f"Select target column and output top 3 feature importance drivers.{profile_block}",
-        expected_output="List of top 3 drivers influencing target column.",
+        description=f"Review candidate target features and explain top 3 predictive feature importance drivers in plain business terms.",
+        expected_output="Executive summary of top 3 predictive drivers influencing the primary target metric.",
         callback=cb,
     )
 
     anomaly_task = Task(
         agent=anomaly_agent,
-        description=f"Audit dataset distributions for statistical outliers (IQR/Z-score) and risk factors.{profile_block}",
-        expected_output="Statistical outlier and risk report.",
+        description=f"Audit dataset distributions for statistical outliers (IQR/Z-score) and provide operational risk safeguards.",
+        expected_output="Statistical outlier and risk report with executive mitigation recommendations.",
         callback=cb,
     )
 
     trend_task = Task(
         agent=trend_agent,
-        description=f"Detect temporal columns and calculate growth trends (YoY, CAGR).{profile_block}",
-        expected_output="Time-series trajectory and trend projections.",
+        description=f"Review temporal metrics (growth rate, YoY, CAGR) and project strategic trajectory trends.",
+        expected_output="Time-series trajectory and forward growth projections.",
         callback=cb,
     )
 

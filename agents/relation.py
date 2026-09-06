@@ -4,7 +4,6 @@
 
 from crewai import Agent, LLM
 from config.llm_config import get_llm_params
-from tools.dataset_tools import DatasetTools
 
 
 def make_relation_agent() -> Agent:
@@ -31,7 +30,7 @@ def make_relation_agent() -> Agent:
         ),
         allow_delegation=False,
         llm=LLM(**get_llm_params()),
-        tools=[DatasetTools.read_dataset_head, DatasetTools.get_correlation_matrix],
-        max_iter=2,
+        max_iter=1,
         verbose=True,
     )
+

@@ -41,6 +41,7 @@
     "prepack": "node ./bin/sync-version.js && node ./bin/prepack.js",
     "postpack": "node ./bin/postpack.js",
     "sync-version": "node ./bin/sync-version.js",
+    "build:installer": "installer\\build_installer.bat",
     "version": "node ./bin/sync-version.js && git add pyproject.toml main.py package-lock.json README.md web/index.html"
   },
   "keywords": [

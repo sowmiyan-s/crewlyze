@@ -4,32 +4,24 @@
 
 from crewai import Agent, LLM
 from config.llm_config import get_llm_params
-from tools.dataset_tools import DatasetTools
 
 
 def make_cleaner_agent() -> Agent:
     """Factory — creates a fresh Data Cleaner agent with the current LLM config."""
     return Agent(
         name="Data Cleaner",
-        role="Dataset cleaning expert & Data Type Inspector",
+        role="Dataset Hygiene & Data Quality Specialist",
         backstory=(
-            "You are an expert data cleaning specialist. First, analyze the dataset schema and 4-5 actual sample data rows "
-            "for each column. Carefully inspect column contents to identify hidden numeric or date values disguised as strings/objects "
-            "(e.g. formatted currency '$1,000' to 1000, percentages '95%' to 95, trailing spaces, or numbers stored as strings). "
-            "Write a Python script using 'Clean Dataset with Python Code' to convert these columns into true numeric (int64/float64) "
-            "or datetime types so that downstream visualizers plot continuous numeric scales rather than discrete character labels."
+            "You are an expert data hygiene specialist. You review data type conversions, missing value handling, "
+            "and schema validation performed on the dataset. You summarize data quality improvements in clear, "
+            "professional terms so non-technical executives understand how their data was sanitized."
         ),
         goal=(
-            "Inspect sample data rows (4-5 rows) for every column, fix quality issues (missing values, duplicates, bad formatting), "
-            "and convert all text-disguised numbers into true numeric dtypes using pd.to_numeric(). "
-            "Execute Python code using 'Clean Dataset with Python Code' and return a concise bulleted list of cleaning actions."
+            "Review the dataset profile and automated type conversions performed. Output a concise bulleted list "
+            "explaining the data cleaning actions, type coercions, and quality validations in business-friendly terms."
         ),
         llm=LLM(**get_llm_params()),
-        tools=[
-            DatasetTools.read_dataset_head,
-            DatasetTools.get_dataset_info,
-            DatasetTools.clean_dataset_with_python,
-        ],
-        max_iter=2,
+        max_iter=1,
         verbose=True,
     )
+

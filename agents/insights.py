@@ -4,7 +4,6 @@
 
 from crewai import Agent, LLM
 from config.llm_config import get_llm_params
-from tools.dataset_tools import DatasetTools
 
 
 def make_insights_agent() -> Agent:
@@ -34,11 +33,7 @@ def make_insights_agent() -> Agent:
             "for someone with no analytics background to act on."
         ),
         llm=LLM(**get_llm_params()),
-        tools=[
-            DatasetTools.read_dataset_head,
-            DatasetTools.get_dataset_info,
-            DatasetTools.get_correlation_matrix,
-        ],
-        max_iter=2,
+        max_iter=1,
         verbose=True,
     )
+

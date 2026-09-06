@@ -156,4 +156,85 @@ if (fs.existsSync(webIndexPath)) {
   }
 }
 
+// 7. Sync installer/crewlyze_installer.iss
+const installerIssPath = path.join(root, 'installer', 'crewlyze_installer.iss');
+if (fs.existsSync(installerIssPath)) {
+  try {
+    let content = fs.readFileSync(installerIssPath, 'utf8');
+    const issVersionRegex = /(#define\s+MyAppVersion\s+["'])([^"']*)(["'])/;
+    if (issVersionRegex.test(content)) {
+      const updatedContent = content.replace(issVersionRegex, `$1${version}$3`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(installerIssPath, updatedContent, 'utf8');
+        console.log('✅ Updated installer/crewlyze_installer.iss MyAppVersion');
+      } else {
+        console.log('➖ installer/crewlyze_installer.iss is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating installer/crewlyze_installer.iss:', err.message);
+  }
+}
+
+// 8. Sync installer/updater.ps1
+const updaterPsPath = path.join(root, 'installer', 'updater.ps1');
+if (fs.existsSync(updaterPsPath)) {
+  try {
+    let content = fs.readFileSync(updaterPsPath, 'utf8');
+    const psVersionRegex = /(\$LocalVersion\s*=\s*["'])([^"']*)(["'])/;
+    if (psVersionRegex.test(content)) {
+      const updatedContent = content.replace(psVersionRegex, `$1${version}$3`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(updaterPsPath, updatedContent, 'utf8');
+        console.log('✅ Updated installer/updater.ps1 $LocalVersion');
+      } else {
+        console.log('➖ installer/updater.ps1 is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating installer/updater.ps1:', err.message);
+  }
+}
+
+// 9. Sync installer/check_release.ps1
+const checkReleasePsPath = path.join(root, 'installer', 'check_release.ps1');
+if (fs.existsSync(checkReleasePsPath)) {
+  try {
+    let content = fs.readFileSync(checkReleasePsPath, 'utf8');
+    const checkPsRegex = /(\[string\]\$CurrentVersion\s*=\s*["'])([^"']*)(["'])/;
+    if (checkPsRegex.test(content)) {
+      const updatedContent = content.replace(checkPsRegex, `$1${version}$3`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(checkReleasePsPath, updatedContent, 'utf8');
+        console.log('✅ Updated installer/check_release.ps1 $CurrentVersion');
+      } else {
+        console.log('➖ installer/check_release.ps1 is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating installer/check_release.ps1:', err.message);
+  }
+}
+
+// 10. Sync installer/build_installer.bat
+const buildBatPath = path.join(root, 'installer', 'build_installer.bat');
+if (fs.existsSync(buildBatPath)) {
+  try {
+    let content = fs.readFileSync(buildBatPath, 'utf8');
+    const batVersionRegex = /(Crewlyze_Setup_v)[0-9]+\.[0-9]+\.[0-9]+(\.exe)/g;
+    if (batVersionRegex.test(content)) {
+      const updatedContent = content.replace(batVersionRegex, `$1${version}$2`);
+      if (content !== updatedContent) {
+        fs.writeFileSync(buildBatPath, updatedContent, 'utf8');
+        console.log('✅ Updated installer/build_installer.bat output filename');
+      } else {
+        console.log('➖ installer/build_installer.bat is already up to date');
+      }
+    }
+  } catch (err) {
+    console.error('❌ Error updating installer/build_installer.bat:', err.message);
+  }
+}
+
 console.log('✨ Version synchronization complete!');
+
