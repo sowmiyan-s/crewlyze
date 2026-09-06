@@ -17,6 +17,19 @@ try:
 except Exception:
     pass
 
+# Self-relaunch guard: Always ensure execution under dedicated Crewlyze virtualenv
+_user_home = os.environ.get("USERPROFILE")
+if _user_home:
+    _venv_python = os.path.join(_user_home, ".crewlyze", "venv", "Scripts", "python.exe")
+    if os.path.isfile(_venv_python):
+        try:
+            if os.path.abspath(sys.executable).lower() != os.path.abspath(_venv_python).lower():
+                import subprocess
+                _cmd = [_venv_python] + sys.argv
+                sys.exit(subprocess.call(_cmd))
+        except Exception:
+            pass
+
 import json
 import re
 import uuid

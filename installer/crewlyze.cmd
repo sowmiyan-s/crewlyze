@@ -6,6 +6,13 @@ REM Enables running 'crewlyze' from any directory in CMD or PowerShell
 
 set "CREWLYZE_HOME=%~dp0"
 if "%CREWLYZE_HOME:~-1%"=="\" set "CREWLYZE_HOME=%CREWLYZE_HOME:~0,-1%"
+if not exist "%CREWLYZE_HOME%\main.py" (
+    if exist "%CREWLYZE_HOME%\..\main.py" (
+        pushd "%CREWLYZE_HOME%\.."
+        set "CREWLYZE_HOME=!CD!"
+        popd
+    )
+)
 
 if /i "%~1"=="update" (
     powershell -NoProfile -ExecutionPolicy Bypass -File "%CREWLYZE_HOME%\updater.ps1"
