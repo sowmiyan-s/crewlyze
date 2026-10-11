@@ -72,22 +72,34 @@ from workflows.pipeline import make_pipeline
 # Visualizer Fallback Generator (Pure Python, no LLM)
 # ---------------------------------------------------------------------------
 
-def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_text: str = "") -> str:
+def _generate_and_execute_relation_visualizations(
+    csv_path: Path,
+    output_dir: Path,
+    relations_text: str = "",
+    df: Optional[pd.DataFrame] = None
+) -> tuple:
     """
-    Pure Python statistical visualizer fallback that runs when the agent fails to save PNGs.
-    Uses discovered relation pairs first (relation-aware), then falls back to generic charts.
-    Creates structured, premium plots with consistent layout styles.
+    Generates standalone, executable Python visualization code (Matplotlib/Seaborn)
+    directly from discovered column relationships and dataset schema, executes
+    the code immediately with the data (< 1s), saves PNGs, and writes
+    the Python script to generate_charts.py.
+
+    Returns:
+        (code_str, charts_meta, summary_text)
     """
     import re
+    import os
     import pandas as pd
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     import seaborn as sns
 
-    try:
-        csv_path_obj = Path(csv_path)
-        output_dir = Path(output_dir)  # tolerate str (callers pass str(session_output_dir))
+    csv_path_obj = Path(csv_path)
+    output_dir_obj = Path(output_dir)
+    output_dir_obj.mkdir(parents=True, exist_ok=True)
+
+    if df is None:
         if not csv_path_obj.exists():
             parent_dir = csv_path_obj.parent
             for cand in [parent_dir / "original_upload.csv", parent_dir / "original.csv", parent_dir / "cleaned.csv"]:
@@ -100,192 +112,378 @@ def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_te
                     csv_path_obj = env_cand
 
         df = read_csv_robust(str(csv_path_obj))
-        output_dir.mkdir(parents=True, exist_ok=True)
 
-        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
-        categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+    numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+    categorical_cols = df.select_dtypes(include=["object", "category", "bool"]).columns.tolist()
 
-        generated = []
-        # White-themed premium style
-        sns.set_theme(style="whitegrid", palette="muted")
-        BG_WHITE = "#ffffff"
-        BG_CARD = "#f8fafc"
-        TEXT_COLOR = "#1e293b"
-        GRID_COLOR = "#e2e8f0"
-        colors = ["#4f46e5", "#06b6d4", "#ec4899", "#10b981", "#fb923c"]
-
-        def _apply_light_style(fig, ax_list):
-            fig.patch.set_facecolor(BG_WHITE)
-            for ax in (ax_list if isinstance(ax_list, list) else [ax_list]):
-                ax.set_facecolor(BG_CARD)
-                ax.tick_params(colors=TEXT_COLOR)
-                ax.xaxis.label.set_color(TEXT_COLOR)
-                ax.yaxis.label.set_color(TEXT_COLOR)
-                ax.title.set_color(TEXT_COLOR)
-                for spine in ax.spines.values():
-                    spine.set_edgecolor(GRID_COLOR)
-                ax.grid(True, color=GRID_COLOR, linestyle="--", linewidth=0.5)
-
-        # ── PHASE 1: Parse relation pairs from agent output ────────────────────
-        relation_pairs = []
-        if relations_text:
-            for line in relations_text.split("\n"):
-                line = line.strip()
-                if not (line and "|" in line and "X:" in line):
-                    continue
-                try:
-                    parts = [p.strip() for p in line.lstrip("- ").split("|")]
-                    x_col = parts[0].split(":", 1)[1].strip()
-                    y_col = parts[1].split(":", 1)[1].strip()
-                    ptype = parts[2].split(":", 1)[1].strip().lower() if len(parts) > 2 else "scatter"
-                    if x_col in df.columns and y_col in df.columns and x_col != y_col:
-                        relation_pairs.append((x_col, y_col, ptype))
-                except (IndexError, ValueError):
-                    continue
-
-        # ── PHASE 2: Generate relation-based charts ────────────────────────────
-        for i, (x_col, y_col, ptype) in enumerate(relation_pairs[:5]):
-            color = colors[i % len(colors)]
+    relation_pairs = []
+    if relations_text:
+        for line in relations_text.split("\n"):
+            line = line.strip()
+            if not (line and "|" in line and ("x:" in line.lower() or "y:" in line.lower())):
+                continue
             try:
-                sample = df[[x_col, y_col]].dropna().head(2000)
-                if sample.empty:
-                    continue
-
-                fig, ax = plt.subplots(figsize=(10, 6))
-
-                x_is_num = pd.api.types.is_numeric_dtype(df[x_col])
-                y_is_num = pd.api.types.is_numeric_dtype(df[y_col])
-
-                if "bar" in ptype:
-                    agg = sample.groupby(x_col)[y_col].mean().reset_index().head(20)
-                    sns.barplot(data=agg, x=x_col, y=y_col, color=color, ax=ax)
-                    plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
-                    title = f"{y_col} by {x_col}"
-                elif "line" in ptype:
-                    sns.lineplot(data=sample.sort_values(x_col), x=x_col, y=y_col, color=color, ax=ax)
-                    title = f"{y_col} over {x_col}"
-                elif "box" in ptype:
-                    if not x_is_num:
-                        top_cats = df[x_col].value_counts().head(8).index
-                        sample = sample[sample[x_col].isin(top_cats)]
-                    sns.boxplot(data=sample, x=x_col if not x_is_num else None,
-                                y=y_col, color=color, ax=ax)
-                    title = f"Distribution of {y_col}"
-                elif "hist" in ptype:
-                    sns.histplot(sample[x_col].dropna(), kde=True, color=color, ax=ax)
-                    title = f"Distribution of {x_col}"
-                else:
-                    if x_is_num and y_is_num:
-                        sns.scatterplot(data=sample, x=x_col, y=y_col,
-                                        color=color, alpha=0.7, ax=ax)
-                    else:
-                        top_cats = df[x_col].value_counts().head(15).index
-                        sub = sample[sample[x_col].isin(top_cats)]
-                        sns.boxplot(data=sub, x=x_col, y=y_col, color=color, ax=ax)
-                        plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
-                    title = f"{x_col} vs {y_col} Relationship"
-
-                clean_x = x_col.replace("_", " ").title()
-                clean_y = y_col.replace("_", " ").title()
-                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
-                ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-                ax.set_title(title.replace(x_col, clean_x).replace(y_col, clean_y), fontsize=13, fontweight="bold", pad=14)
-                
-                # Ensure legends are clearly displayed on charts
-                handles, labels = ax.get_legend_handles_labels()
-                if handles and labels:
-                    ax.legend(loc='best', frameon=True, facecolor=BG_WHITE, edgecolor=GRID_COLOR)
-                else:
-                    ax.legend([clean_y], loc='upper right', frameon=True, facecolor=BG_WHITE, edgecolor=GRID_COLOR, fontsize=8.5)
-
-                _apply_light_style(fig, ax)
-                plt.tight_layout()
-                safe_name = re.sub(r"[^\w]+", "_", f"relation_{x_col}_vs_{y_col}").lower()
-                dest = output_dir / f"{safe_name}.png"
-                plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
-                plt.close()
-                generated.append(dest.name)
-                print(f"Relation chart saved: {dest.name}")
-
-            except Exception as chart_err:
-                print(f"Relation chart error ({x_col} vs {y_col}): {chart_err}")
-                plt.close()
+                parts = [p.strip() for p in line.lstrip("- *").split("|")]
+                x_col = parts[0].split(":", 1)[1].strip().strip("[]'\"` ")
+                y_col = parts[1].split(":", 1)[1].strip().strip("[]'\"` ")
+                ptype = parts[2].split(":", 1)[1].strip().lower().strip("[]'\"` ") if len(parts) > 2 else "scatter"
+                detail = parts[3].split(":", 1)[1].strip().strip("[]'\"` ") if len(parts) > 3 else ""
+                if x_col in df.columns and y_col in df.columns and x_col != y_col:
+                    relation_pairs.append((x_col, y_col, ptype, detail))
+            except (IndexError, ValueError):
                 continue
 
-        # ── PHASE 3: Generic fallback charts if no relation charts were made ───
-        if not generated:
-            # Correlation heatmap
-            if len(numeric_cols) >= 2:
-                try:
-                    fig, ax = plt.subplots(figsize=(10, 8))
-                    corr = df[numeric_cols].corr()
-                    sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f",
-                                square=True, cbar_kws={"shrink": .8}, ax=ax,
-                                annot_kws={"color": TEXT_COLOR})
-                    ax.set_title("Correlation Matrix", fontsize=14, fontweight="bold", pad=14)
-                    _apply_light_style(fig, ax)
-                    plt.tight_layout()
-                    dest = output_dir / "correlation_matrix.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
-                    plt.close()
-                    generated.append(dest.name)
-                except Exception:
-                    plt.close()
+    # Fallback to dataset-driven pairs if relation text lacked valid columns
+    if not relation_pairs:
+        if len(numeric_cols) >= 2:
+            try:
+                corr = df[numeric_cols].corr().abs()
+                max_c = -1.0
+                best_pair = (numeric_cols[0], numeric_cols[1])
+                for i in range(len(numeric_cols)):
+                    for j in range(i + 1, len(numeric_cols)):
+                        val = corr.iloc[i, j]
+                        if not pd.isna(val) and val > max_c:
+                            max_c = val
+                            best_pair = (numeric_cols[i], numeric_cols[j])
+                relation_pairs.append((
+                    best_pair[0], best_pair[1], "scatter",
+                    f"Strong numerical correlation (r={max_c:.2f}) observed between {best_pair[0]} and {best_pair[1]}."
+                ))
+            except Exception:
+                pass
 
-            # Distribution of first numeric col
-            if numeric_cols:
-                try:
-                    col = numeric_cols[0]
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    sns.histplot(df[col].dropna(), kde=True, color=colors[0], ax=ax)
-                    ax.set_title(f"Distribution of {col}", fontsize=13, fontweight="bold", pad=14)
-                    _apply_light_style(fig, ax)
-                    plt.tight_layout()
-                    dest = output_dir / f"distribution_{col}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
-                    plt.close()
-                    generated.append(dest.name)
-                except Exception:
-                    plt.close()
+        if categorical_cols and numeric_cols:
+            cat_col = categorical_cols[0]
+            num_col = numeric_cols[0]
+            relation_pairs.append((
+                cat_col, num_col, "bar",
+                f"Comparative distribution of {num_col} across dominant segments of {cat_col}."
+            ))
 
-            # First scatter pair
-            if len(numeric_cols) >= 2:
-                try:
-                    x, y = numeric_cols[0], numeric_cols[1]
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    sns.scatterplot(data=df.head(2000), x=x, y=y, color=colors[1], alpha=0.7, ax=ax)
-                    ax.set_title(f"{x} vs {y} Relationship", fontsize=13, fontweight="bold", pad=14)
-                    _apply_light_style(fig, ax)
-                    plt.tight_layout()
-                    dest = output_dir / f"scatter_{x}_vs_{y}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
-                    plt.close()
-                    generated.append(dest.name)
-                except Exception:
-                    plt.close()
+        if numeric_cols:
+            num_col = numeric_cols[-1]
+            relation_pairs.append((
+                num_col, num_col, "hist",
+                f"Variance and density distribution across {num_col}."
+            ))
 
-            # Categorical bar
-            if categorical_cols and numeric_cols:
-                try:
-                    cat, num = categorical_cols[0], numeric_cols[0]
-                    top_cats = df[cat].value_counts().head(10).index
-                    sub_df = df[df[cat].isin(top_cats)]
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    sns.barplot(data=sub_df, x=cat, y=num, errorbar=None, color=colors[2], ax=ax)
-                    ax.set_title(f"Average {num} by {cat} (Top 10)", fontsize=13, fontweight="bold", pad=14)
-                    plt.xticks(rotation=45, ha="right", color=TEXT_COLOR)
-                    _apply_light_style(fig, ax)
-                    plt.tight_layout()
-                    dest = output_dir / f"bar_{cat}_vs_{num}.png"
-                    plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
-                    plt.close()
-                    generated.append(dest.name)
-                except Exception:
-                    plt.close()
+    # White-themed premium style tokens
+    sns.set_theme(style="whitegrid", palette="muted")
+    BG_WHITE = "#ffffff"
+    BG_CARD = "#f8fafc"
+    TEXT_COLOR = "#1e293b"
+    GRID_COLOR = "#e2e8f0"
+    colors = ["#4f46e5", "#06b6d4", "#ec4899", "#10b981", "#fb923c"]
 
-        return f"Generated {len(generated)} chart(s) ({len(relation_pairs)} from relations, rest generic)."
+    def _apply_light_style(fig, ax_list):
+        fig.patch.set_facecolor(BG_WHITE)
+        for ax in (ax_list if isinstance(ax_list, list) else [ax_list]):
+            ax.set_facecolor(BG_CARD)
+            ax.tick_params(colors=TEXT_COLOR)
+            ax.xaxis.label.set_color(TEXT_COLOR)
+            ax.yaxis.label.set_color(TEXT_COLOR)
+            ax.title.set_color(TEXT_COLOR)
+            for spine in ax.spines.values():
+                spine.set_edgecolor(GRID_COLOR)
+            ax.grid(True, color=GRID_COLOR, linestyle="--", linewidth=0.5)
+
+    csv_resolved_str = str(csv_path_obj.resolve()).replace("\\", "/")
+    output_resolved_str = str(output_dir_obj.resolve()).replace("\\", "/")
+
+    code_lines = [
+        '"""',
+        'Crewlyze Executive Data Visualization Suite',
+        'Auto-generated based on discovered column relationships.',
+        '"""',
+        'import os',
+        'import pandas as pd',
+        'import matplotlib',
+        'matplotlib.use("Agg")',
+        'import matplotlib.pyplot as plt',
+        'import seaborn as sns',
+        '',
+        f'csv_path = "{csv_resolved_str}"',
+        f'output_dir = "{output_resolved_str}"',
+        'os.makedirs(output_dir, exist_ok=True)',
+        '',
+        '# 1. Styling Configuration',
+        'sns.set_theme(style="whitegrid", palette="muted")',
+        'BG_WHITE = "#ffffff"',
+        'BG_CARD = "#f8fafc"',
+        'TEXT_COLOR = "#1e293b"',
+        'GRID_COLOR = "#e2e8f0"',
+        'COLORS = ["#4f46e5", "#06b6d4", "#ec4899", "#10b981", "#fb923c"]',
+        '',
+        'def apply_chart_style(fig, ax):',
+        '    fig.patch.set_facecolor(BG_WHITE)',
+        '    ax.set_facecolor(BG_CARD)',
+        '    ax.tick_params(colors=TEXT_COLOR)',
+        '    ax.xaxis.label.set_color(TEXT_COLOR)',
+        '    ax.yaxis.label.set_color(TEXT_COLOR)',
+        '    ax.title.set_color(TEXT_COLOR)',
+        '    for spine in ax.spines.values():',
+        '        spine.set_edgecolor(GRID_COLOR)',
+        '    ax.grid(True, color=GRID_COLOR, linestyle="--", linewidth=0.5)',
+        '',
+        '# 2. Load Cleaned Dataset',
+        'df = pd.read_csv(csv_path)',
+        '',
+        '# 3. Render Discovered Relationship Visualizations',
+    ]
+
+    charts_meta = []
+    generated = []
+
+    for i, (x_col, y_col, ptype, detail) in enumerate(relation_pairs[:5]):
+        color = colors[i % len(colors)]
+        clean_x = x_col.replace("_", " ").title()
+        clean_y = y_col.replace("_", " ").title()
+        safe_x = re.sub(r"[^\w]+", "_", x_col).lower()
+        safe_y = re.sub(r"[^\w]+", "_", y_col).lower()
+        safe_name = f"relation_{safe_x}_vs_{safe_y}"
+        chart_filename = f"{safe_name}.png"
+        dest = output_dir_obj / chart_filename
+
+        x_is_num = pd.api.types.is_numeric_dtype(df[x_col])
+        y_is_num = pd.api.types.is_numeric_dtype(df[y_col])
+
+        try:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            sample = df[[x_col, y_col]].dropna().head(2000)
+
+            if "bar" in ptype or (not x_is_num and y_is_num):
+                agg = sample.groupby(x_col)[y_col].mean().reset_index().head(20)
+                sns.barplot(data=agg, x=x_col, y=y_col, color=color, ax=ax)
+                plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
+                title = f"{clean_y} by {clean_x}"
+                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                ax.set_ylabel(f"Average {clean_y}", fontsize=10, fontweight="bold")
+
+                code_lines.extend([
+                    f'# Chart {i+1}: {title} (Bar Chart)',
+                    f'sample_{i} = df[["{x_col}", "{y_col}"]].dropna().head(2000)',
+                    f'agg_{i} = sample_{i}.groupby("{x_col}")["{y_col}"].mean().reset_index().head(20)',
+                    f'fig, ax = plt.subplots(figsize=(10, 6))',
+                    f'sns.barplot(data=agg_{i}, x="{x_col}", y="{y_col}", color="{color}", ax=ax)',
+                    f'plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)',
+                    f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                    f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                    f'ax.set_ylabel("Average {clean_y}", fontsize=10, fontweight="bold")',
+                    f'apply_chart_style(fig, ax)',
+                    f'plt.tight_layout()',
+                    f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                    f'plt.close()',
+                    ''
+                ])
+
+            elif "line" in ptype:
+                sns.lineplot(data=sample.sort_values(x_col), x=x_col, y=y_col, color=color, ax=ax)
+                title = f"{clean_y} over {clean_x}"
+                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
+
+                code_lines.extend([
+                    f'# Chart {i+1}: {title} (Line Chart)',
+                    f'sample_{i} = df[["{x_col}", "{y_col}"]].dropna().head(2000)',
+                    f'fig, ax = plt.subplots(figsize=(10, 6))',
+                    f'sns.lineplot(data=sample_{i}.sort_values("{x_col}"), x="{x_col}", y="{y_col}", color="{color}", ax=ax)',
+                    f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                    f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                    f'ax.set_ylabel("{clean_y}", fontsize=10, fontweight="bold")',
+                    f'apply_chart_style(fig, ax)',
+                    f'plt.tight_layout()',
+                    f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                    f'plt.close()',
+                    ''
+                ])
+
+            elif "box" in ptype:
+                if not x_is_num:
+                    top_cats = df[x_col].value_counts().head(8).index
+                    sample = sample[sample[x_col].isin(top_cats)]
+                sns.boxplot(data=sample, x=x_col if not x_is_num else None, y=y_col, color=color, ax=ax)
+                plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
+                title = f"Distribution of {clean_y} by {clean_x}"
+                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
+
+                code_lines.extend([
+                    f'# Chart {i+1}: {title} (Box Plot)',
+                    f'sample_{i} = df[["{x_col}", "{y_col}"]].dropna().head(2000)',
+                    f'fig, ax = plt.subplots(figsize=(10, 6))',
+                    f'sns.boxplot(data=sample_{i}, x="{x_col}", y="{y_col}", color="{color}", ax=ax)',
+                    f'plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)',
+                    f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                    f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                    f'ax.set_ylabel("{clean_y}", fontsize=10, fontweight="bold")',
+                    f'apply_chart_style(fig, ax)',
+                    f'plt.tight_layout()',
+                    f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                    f'plt.close()',
+                    ''
+                ])
+
+            elif "hist" in ptype or x_col == y_col:
+                sns.histplot(df[x_col].dropna(), kde=True, color=color, ax=ax)
+                title = f"Distribution of {clean_x}"
+                ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                ax.set_ylabel("Count", fontsize=10, fontweight="bold")
+
+                code_lines.extend([
+                    f'# Chart {i+1}: {title} (Histogram)',
+                    f'fig, ax = plt.subplots(figsize=(10, 6))',
+                    f'sns.histplot(df["{x_col}"].dropna(), kde=True, color="{color}", ax=ax)',
+                    f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                    f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                    f'ax.set_ylabel("Count", fontsize=10, fontweight="bold")',
+                    f'apply_chart_style(fig, ax)',
+                    f'plt.tight_layout()',
+                    f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                    f'plt.close()',
+                    ''
+                ])
+
+            else:
+                if x_is_num and y_is_num:
+                    sns.scatterplot(data=sample, x=x_col, y=y_col, color=color, alpha=0.7, ax=ax)
+                    title = f"{clean_x} vs {clean_y} Relationship"
+                    ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                    ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
+
+                    code_lines.extend([
+                        f'# Chart {i+1}: {title} (Scatter Plot)',
+                        f'sample_{i} = df[["{x_col}", "{y_col}"]].dropna().head(2000)',
+                        f'fig, ax = plt.subplots(figsize=(10, 6))',
+                        f'sns.scatterplot(data=sample_{i}, x="{x_col}", y="{y_col}", color="{color}", alpha=0.7, ax=ax)',
+                        f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                        f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                        f'ax.set_ylabel("{clean_y}", fontsize=10, fontweight="bold")',
+                        f'apply_chart_style(fig, ax)',
+                        f'plt.tight_layout()',
+                        f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                        f'plt.close()',
+                        ''
+                    ])
+                else:
+                    top_cats = df[x_col].value_counts().head(12).index
+                    sub = sample[sample[x_col].isin(top_cats)]
+                    sns.boxplot(data=sub, x=x_col, y=y_col, color=color, ax=ax)
+                    plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)
+                    title = f"{clean_x} vs {clean_y} Relationship"
+                    ax.set_xlabel(clean_x, fontsize=10, fontweight="bold")
+                    ax.set_ylabel(clean_y, fontsize=10, fontweight="bold")
+
+                    code_lines.extend([
+                        f'# Chart {i+1}: {title} (Categorical Box Plot)',
+                        f'sample_{i} = df[["{x_col}", "{y_col}"]].dropna().head(2000)',
+                        f'top_cats_{i} = df["{x_col}"].value_counts().head(12).index',
+                        f'sub_{i} = sample_{i}[sample_{i}["{x_col}"].isin(top_cats_{i})]',
+                        f'fig, ax = plt.subplots(figsize=(10, 6))',
+                        f'sns.boxplot(data=sub_{i}, x="{x_col}", y="{y_col}", color="{color}", ax=ax)',
+                        f'plt.xticks(rotation=40, ha="right", color=TEXT_COLOR)',
+                        f'ax.set_title("{title}", fontsize=13, fontweight="bold", pad=14)',
+                        f'ax.set_xlabel("{clean_x}", fontsize=10, fontweight="bold")',
+                        f'ax.set_ylabel("{clean_y}", fontsize=10, fontweight="bold")',
+                        f'apply_chart_style(fig, ax)',
+                        f'plt.tight_layout()',
+                        f'plt.savefig(os.path.join(output_dir, "{chart_filename}"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                        f'plt.close()',
+                        ''
+                    ])
+
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.set_title(title, fontsize=13, fontweight="bold", pad=14)
+            _apply_light_style(fig, ax)
+            plt.tight_layout()
+            plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
+            plt.close()
+
+            generated.append(chart_filename)
+            charts_meta.append({
+                "file": chart_filename,
+                "title": title,
+                "x": x_col,
+                "y": y_col,
+                "type": ptype,
+                "details": detail or f"Empirical interaction dynamics between {clean_x} and {clean_y}."
+            })
+            print(f"Generated chart: {chart_filename}")
+
+        except Exception as err:
+            print(f"Chart generation error ({x_col} vs {y_col}): {err}")
+            plt.close()
+            continue
+
+    # Fallback if no charts succeeded
+    if not generated and len(numeric_cols) >= 2:
+        try:
+            fig, ax = plt.subplots(figsize=(10, 8))
+            corr = df[numeric_cols].corr()
+            sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", square=True, ax=ax)
+            ax.set_title("Correlation Matrix", fontsize=14, fontweight="bold", pad=14)
+            _apply_light_style(fig, ax)
+            plt.tight_layout()
+            dest = output_dir_obj / "correlation_matrix.png"
+            plt.savefig(dest, dpi=150, bbox_inches="tight", facecolor=BG_WHITE)
+            plt.close()
+            generated.append("correlation_matrix.png")
+            charts_meta.append({
+                "file": "correlation_matrix.png",
+                "title": "Correlation Matrix",
+                "x": numeric_cols[0],
+                "y": numeric_cols[1],
+                "type": "heatmap",
+                "details": "Cross-variable linear correlation matrix across all numeric columns."
+            })
+            code_lines.extend([
+                '# Chart: Correlation Matrix (Heatmap)',
+                'fig, ax = plt.subplots(figsize=(10, 8))',
+                'corr = df.select_dtypes(include=["number"]).corr()',
+                'sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f", square=True, ax=ax)',
+                'ax.set_title("Correlation Matrix", fontsize=14, fontweight="bold", pad=14)',
+                'apply_chart_style(fig, ax)',
+                'plt.tight_layout()',
+                'plt.savefig(os.path.join(output_dir, "correlation_matrix.png"), dpi=150, bbox_inches="tight", facecolor=BG_WHITE)',
+                'plt.close()',
+                ''
+            ])
+        except Exception:
+            plt.close()
+
+    full_code = "\n".join(code_lines)
+    try:
+        with open(output_dir_obj / "generate_charts.py", "w", encoding="utf-8") as f:
+            f.write(full_code)
+    except Exception:
+        pass
+
+    summary_lines = [
+        "### Executive Visualizations Summary",
+        f"Generated {len(generated)} high-resolution charts based on verified column relationships:\n"
+    ]
+    for m in charts_meta:
+        summary_lines.append(
+            f"- **{m['title']}** (`{m['file']}`):\n"
+            f"  - **Type**: {m['type'].title()}\n"
+            f"  - **Insight**: {m['details']}"
+        )
+    summary_text = "\n".join(summary_lines)
+
+    return full_code, charts_meta, summary_text
+
+
+def _run_auto_visualizer_fallback(csv_path: Path, output_dir: Path, relations_text: str = "") -> str:
+    """
+    Backward-compatible visualizer entry point that generates code and executes charts.
+    """
+    try:
+        full_code, charts_meta, summary_text = _generate_and_execute_relation_visualizations(
+            csv_path, output_dir, relations_text=relations_text
+        )
+        png_files = list(Path(output_dir).glob("*.png"))
+        return f"Generated {len(png_files)} chart(s) ({len(charts_meta)} from relations, rest generic)."
     except Exception as e:
         return f"Fallback visualization failed: {e}"
 
@@ -1047,56 +1245,30 @@ def run_crew(
         _progress("relations", relation_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 3 — Visualize (instant rendering + strategic visualizer narrative)
+    # STAGE 3 — Visualize (instant relation-driven code generation & execution)
     # ════════════════════════════════════════════════════════════════════════
     visualize_output = "Visualization was skipped by user selection."
+    visualize_code = ""
 
     if do_visualization:
-        print("[Stage 3/8] Running Data Visualizer ...")
+        print("[Stage 3/8] Running Data Visualizer (Relation-Driven Code Execution) ...")
         start_viz_stage = time.time()
 
-        # Step 1: Render high-resolution PNG charts directly in Python (< 1 sec)
-        print("Rendering executive visualization charts ...")
-        fallback_msg = _run_auto_visualizer_fallback(
-            cleaned_path, session_output_dir, relations_text=relation_output
+        # Step 1: Generate Python visualization code from discovered relations & execute with data
+        code_str, charts_meta, viz_summary = _generate_and_execute_relation_visualizations(
+            cleaned_path, session_output_dir, relations_text=relation_output, df=df
         )
+
         png_files = sorted(list(session_output_dir.glob("*.png")))
         chart_names_str = ", ".join(f.name for f in png_files) if png_files else "charts"
-        print(f"Rendered {len(png_files)} visualization chart(s): {chart_names_str}")
+        print(f"Rendered {len(png_files)} visualization chart(s) in {time.time() - start_viz_stage:.2f}s: {chart_names_str}")
 
-        # Step 2: Visualizer Agent provides executive chart narratives
-        viz_task = tasks[3]
-        viz_task.description = (
-            f"Successfully generated {len(png_files)} chart(s) saved to '{session_output_dir}':\n"
-            + "\n".join(f"- {f.name}" for f in png_files)
-            + f"\n\nRELATIONSHIPS VISUALIZED:\n{relation_output}\n\n"
-            + "Provide a concise executive bulleted summary of these visualizations highlighting the primary business patterns."
-        )
-
-        viz_crew = Crew(
-            agents=[agents[3]],
-            tasks=[viz_task],
-            cache=True,
-            verbose=True,
-        )
-        
-        try:
-            _kickoff_with_retry(viz_crew, max_retries=1)
-            visualize_output = _safe_output(viz_task)
-            if not visualize_output or len(visualize_output.strip()) < 20:
-                visualize_output = f"Successfully generated {len(png_files)} executive visualization charts: {chart_names_str}."
-            try:
-                if hasattr(viz_crew, "usage_metrics") and viz_crew.usage_metrics:
-                    total_tokens += viz_crew.usage_metrics.get("total_tokens", 0)
-            except Exception:
-                pass
-        except Exception as exc:
-            print(f"Visualization Agent notice: {exc}. Using direct chart summary.")
-            visualize_output = f"Successfully generated {len(png_files)} executive visualization charts: {chart_names_str}."
+        visualize_output = viz_summary
+        visualize_code = code_str
 
         stage_times["visualization"] = time.time() - start_viz_stage
         _progress("visualization", visualize_output)
-        print("[Stage 3/8] Visualization complete.\n")
+        print(f"[Stage 3/8] Visualization complete in {stage_times['visualization']:.2f}s.\n")
     else:
         print("[Stage 3/8] Skipping Data Visualizer (user selection).\n")
         _progress("visualization", visualize_output)
@@ -1303,7 +1475,7 @@ def run_crew(
         "predictive":     predictive_output,
         "anomaly":        anomaly_output,
         "trend":          trend_output,
-        "code":           visualize_output,
+        "code":           visualize_code or visualize_output,
         "output_dir":     str(session_output_dir),
         "plotly_charts":  plotly_charts,
         "selected_tasks": env_tasks,

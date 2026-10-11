@@ -1216,7 +1216,7 @@ def run_crew_in_background(
                         "rows_count":     int(result["dataframe"].shape[0]),
                         "cols_count":     int(result["dataframe"].shape[1]),
                         "numeric_count":  int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
-                        "cat_count":      int(len(result["dataframe"].select_dtypes(include=["object"]).columns))
+                        "cat_count":      int(result["dataframe"].shape[1]) - int(len(result["dataframe"].select_dtypes(include=["number"]).columns))
                     }
 
                     # Cache first 100 rows as JSON data preview
