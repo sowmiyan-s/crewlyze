@@ -28,6 +28,8 @@ import shutil
 import sys
 import time
 import traceback
+import threading
+import concurrent.futures
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -824,6 +826,7 @@ def run_crew(
     start_run = time.time()
     stage_times = {}
     total_tokens = 0
+    _tokens_lock = threading.Lock()
 
     def _progress(stage: str, data: object = None) -> None:
         if on_progress:
@@ -1157,15 +1160,16 @@ def run_crew(
         _progress("insights", insights_output)
 
     # ════════════════════════════════════════════════════════════════════════
-    # STAGE 5 — Specialized Analysis (linear, after insights)
+    # STAGES 5, 6, 7 — Specialized Analysis (Parallelized)
     # Predictive / Anomaly / Trend calculations run in Python first (< 0.5s),
-    # then specialized LLM agents synthesize strategic business takeaways.
+    # then specialized LLM agents run concurrently across worker threads.
     # ════════════════════════════════════════════════════════════════════════
     predictive_output = _run_auto_predictive_fallback(df, project_goal)
     anomaly_output    = _run_auto_anomaly_fallback(df)
     trend_output      = _run_auto_trend_fallback(df)
 
-    if deep_analysis or "predictive" in env_tasks:
+    def _run_predictive_worker():
+        nonlocal predictive_output, total_tokens
         print("[Stage 5/8] Running Predictive Auto-ML ...")
         start_pred_stage = time.time()
         pred_task = tasks[4]
@@ -1181,6 +1185,9 @@ def run_crew(
             out_txt = _safe_output(pred_task)
             if out_txt and len(out_txt) > 20:
                 predictive_output = out_txt
+            if hasattr(pred_crew, "usage_metrics") and pred_crew.usage_metrics:
+                with _tokens_lock:
+                    total_tokens += pred_crew.usage_metrics.get("total_tokens", 0)
         except Exception as e:
             print(f"Predictive Agent error: {e}")
             predictive_output = _run_auto_predictive_fallback(df, project_goal)
@@ -1188,8 +1195,10 @@ def run_crew(
         stage_times["predictive"] = time.time() - start_pred_stage
         _progress("predictive", predictive_output)
 
-    if "anomaly" in env_tasks or deep_analysis:
+    def _run_anomaly_worker():
+        nonlocal anomaly_output, total_tokens
         print("[Stage 6/8] Running Anomaly & Risk Auditor ...")
+        start_anom_stage = time.time()
         try:
             anom_task = tasks[5]
             anom_task.description = (
@@ -1201,13 +1210,20 @@ def run_crew(
             out_anom = _safe_output(anom_task)
             if out_anom and len(out_anom) > 20:
                 anomaly_output = out_anom
+            if hasattr(anom_crew, "usage_metrics") and anom_crew.usage_metrics:
+                with _tokens_lock:
+                    total_tokens += anom_crew.usage_metrics.get("total_tokens", 0)
         except Exception as e:
             print(f"Anomaly Agent error: {e}")
             anomaly_output = _run_auto_anomaly_fallback(df)
+
+        stage_times["anomaly"] = time.time() - start_anom_stage
         _progress("anomaly", anomaly_output)
 
-    if "trend" in env_tasks or deep_analysis:
+    def _run_trend_worker():
+        nonlocal trend_output, total_tokens
         print("[Stage 7/8] Running Time-Series Trend Analyst ...")
+        start_trend_stage = time.time()
         try:
             trend_t = tasks[6]
             trend_t.description = (
@@ -1219,10 +1235,28 @@ def run_crew(
             out_tr = _safe_output(trend_t)
             if out_tr and len(out_tr) > 20:
                 trend_output = out_tr
+            if hasattr(tr_crew, "usage_metrics") and tr_crew.usage_metrics:
+                with _tokens_lock:
+                    total_tokens += tr_crew.usage_metrics.get("total_tokens", 0)
         except Exception as e:
             print(f"Trend Agent error: {e}")
             trend_output = _run_auto_trend_fallback(df)
+
+        stage_times["trend"] = time.time() - start_trend_stage
         _progress("trend", trend_output)
+
+    workers = []
+    if deep_analysis or "predictive" in env_tasks:
+        workers.append(_run_predictive_worker)
+    if "anomaly" in env_tasks or deep_analysis:
+        workers.append(_run_anomaly_worker)
+    if "trend" in env_tasks or deep_analysis:
+        workers.append(_run_trend_worker)
+
+    if workers:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(workers)) as executor:
+            futures = [executor.submit(w) for w in workers]
+            concurrent.futures.wait(futures)
 
     # ── Generate interactive Plotly charts (pure Python, no LLM) ─────────────
     print("[Stage 8/8] Building interactive Plotly charts ...")
