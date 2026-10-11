@@ -1,0 +1,89 @@
+name: Build & Release Windows Installer
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      upload_to_release:
+        description: 'Attach built installer to release'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    name: Build & Package Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js Runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python 3.11 Runtime
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies & Test Suite
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install --prefer-binary -r requirements.txt pytest
+
+      - name: Run Automated Test Suite
+        run: |
+          pytest tests/ -v
+
+      - name: Synchronize Version Metadata
+        run: |
+          node bin/sync-version.js
+
+      - name: Install Inno Setup 6 Compiler
+        run: |
+          choco install innosetup --no-progress --yes
+
+      - name: Compile Inno Setup Windows Installer
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\crewlyze_installer.iss
+
+      - name: Verify Output Binary
+        run: |
+          $installer = Get-Item installer\dist\Crewlyze_Setup_*.exe
+          if (-not $installer) {
+            Write-Error "Installer executable was not generated."
+            exit 1
+          }
+          Write-Host "Generated: $($installer.FullName) ($([math]::Round($installer.Length / 1MB, 2)) MB)"
+
+      - name: Upload Installer as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Crewlyze-Windows-Setup-Installer
+          path: installer/dist/Crewlyze_Setup_*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach Installer to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.upload_to_release)
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/dist/Crewlyze_Setup_*.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

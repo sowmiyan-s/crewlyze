@@ -4797,13 +4797,25 @@ app.mount("/", StaticFiles(directory=str(web_dir), html=True), name="web")
 def cli_main():
     """CLI entry point for global crewlyze command and python main.py execution."""
     import uvicorn
+    import webbrowser
+    import threading
+    import time
+
     try:
         from config.cli_formatter import print_banner, print_server_ready
         print_banner()
         print_server_ready("http://127.0.0.1:8000", 8000)
     except Exception:
         print("Crewlyze server running at http://127.0.0.1:8000")
-        
+
+    def _open_browser():
+        time.sleep(1.2)
+        try:
+            webbrowser.open("http://127.0.0.1:8000")
+        except Exception:
+            pass
+
+    threading.Thread(target=_open_browser, daemon=True).start()
     uvicorn.run("main:app", host="127.0.0.1", port=8000)
 
 

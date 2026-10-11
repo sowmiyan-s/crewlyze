@@ -1,0 +1,304 @@
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/3.INSIDE PROJECT.png" alt="Inside Project" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>Project Workspace</h4>
+            <p>Stay-on-page workspace with data preview and navigation</p>
+          </div>
+        </div>
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/4.CHAT AI.png" alt="AI Chat" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>AI Chat &amp; Custom Viz</h4>
+            <p>Real-time streaming chat with 1-click PNG download</p>
+          </div>
+        </div>
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/5.DATA ANALYSIS.png" alt="Data Analysis" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>Data Analysis Pipeline</h4>
+            <p>Agent selection with dependency-enforced task cards</p>
+          </div>
+        </div>
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/6.ANALYSING.png" alt="Analysing" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>Live Analysis</h4>
+            <p>Real-time agent execution with streaming logs</p>
+          </div>
+        </div>
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/7.BUSINESS INSIGHTS.png" alt="Business Insights" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>Business Insights</h4>
+            <p>C-suite strategic insights, SWOT matrices, and risk alerts</p>
+          </div>
+        </div>
+        <div class="screenshot-card">
+          <img src="/assets/Screenshots/8.VISUALIZATION.png" alt="Visualization" loading="lazy" />
+          <div class="screenshot-overlay">
+            <h4>Interactive Dashboards</h4>
+            <p>Autonomous Plotly charts with hover tooltips and zoom</p>
+          </div>
+        </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ UNIQUE FEATURES DEEP DIVE ═══════════════════════ -->
+  <section class="unique-section">
+    <div class="section-header">
+      <span class="section-eyebrow">What Makes Crewlyze Unique</span>
+      <h2>Features You Won't Find Anywhere Else</h2>
+    </div>
+    <div class="unique-grid">
+      <div class="unique-card">
+        <div class="unique-number">01</div>
+        <h3>Strict Linear Pipeline Orchestration</h3>
+        <p>
+          Unlike chaotic multi-agent frameworks, Crewlyze enforces a strict
+          linear order. The Data Cleaner always runs first. Relationships are
+          mapped before visualization. Insights are synthesized last. Optional
+          agents (Anomaly, Trend, Predictive) run only when selected — never
+          wasting LLM calls on unrequested analysis.
+        </p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">02</div>
+        <h3>Auto-Healing Subprocess Sandbox</h3>
+        <p>
+          Every generated Python script runs in an isolated subprocess via
+          <code class="inline-code">subprocess.run()</code>. If execution fails, the system
+          auto-retries with healing logic. Path traversal guards validate all
+          file paths with <code class="inline-code">.resolve()</code> and
+          <code class="inline-code">.relative_to()</code> security checks.
+        </p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">03</div>
+        <h3>Smart Encoding Detection</h3>
+        <p>
+          Automatically inspects and decodes raw files across UTF-8, Latin-1,
+          CP1252, and ISO-8859-1 encodings. No more ingestion crashes on
+          complex legacy enterprise files with obscure encodings.
+        </p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">04</div>
+        <h3>Slash / Column Autocomplete Picker</h3>
+        <p>
+          Type <code class="inline-code">/</code> in the chat input to launch an
+          interactive dropdown listing all dataset columns with their data types
+          (int64, float64, object). No more guessing column names.
+        </p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">05</div>
+        <h3>Stay-on-Page Reload Persistence</h3>
+        <p>
+          Your active project, section tab, and chat history survive browser
+          refreshes. <code class="inline-code">localStorage</code> state management
+          restores you to exactly where you were — no lost work on F5.
+        </p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">06</div>
+        <h3>Zero-Compiler Cross-Platform Launcher</h3>
+        <p>
+          Run <code class="inline-code">npx crewlyze</code> on Windows, macOS, or Linux
+          without needing C++ or Rust compilers. Binary wheel flags
+          (<code class="inline-code">--prefer-binary</code>) avoid source compilation entirely.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ INSTALL ═══════════════════════ -->
+  <section id="install" class="install-section">
+    <div class="install-bg">
+      <div class="install-glow"></div>
+    </div>
+    <div class="install-container">
+      <div class="section-header">
+        <span class="section-eyebrow">Get Started</span>
+        <h2>Install in Seconds, No Compiler Needed</h2>
+        <p>Three ways to run Crewlyze. Pick the one that fits your workflow.</p>
+      </div>
+
+      <div class="install-methods">
+        <!-- Method 1: Windows Installer -->
+        <div class="install-card">
+          <div class="install-icon windows">
+            <i data-lucide="monitor" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 1</div>
+          <h3>Windows One-Click Installer</h3>
+          <p class="install-desc">
+            The easiest way. No Node.js or Git required. The installer registers
+            <code class="inline-code">crewlyze</code> to your system PATH and auto-configures
+            Python & dependencies.
+          </p>
+          <div class="install-steps">
+            <div class="install-step">
+              <span class="step-badge">1</span>
+              <span>Download <code class="inline-code-sm">Crewlyze_Setup_v1.2.3.exe</code> from GitHub Releases</span>
+            </div>
+            <div class="install-step">
+              <span class="step-badge">2</span>
+              <span>Run the installer wizard</span>
+            </div>
+            <div class="install-step">
+              <span class="step-badge">3</span>
+              <span>Open Command Prompt and type <code class="inline-code-sm">crewlyze</code></span>
+            </div>
+          </div>
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases" class="install-link" target="_blank">
+            <i data-lucide="external-link" style="width:14px;height:14px;"></i>
+            Download Installer v1.2.3
+          </a>
+        </div>
+
+        <!-- Method 2: NPM -->
+        <div class="install-card featured">
+          <div class="install-icon npm">
+            <i data-lucide="box" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-badge">Recommended</div>
+          <div class="install-number">Option 2</div>
+          <h3>NPM Launcher</h3>
+          <p class="install-desc">
+            Works out-of-the-box on Windows, macOS, and Linux. Prebuilt Python
+            binary wheels install automatically.
+          </p>
+          <div class="install-code-block">
+            <div class="code-line"><span class="code-prompt">$</span> npm install -g crewlyze</div>
+            <div class="code-line"><span class="code-prompt">$</span> crewlyze</div>
+          </div>
+          <p class="install-note">
+            <i data-lucide="zap" style="width:14px;height:14px;"></i>
+            Zero-compiler setup. The backend auto-starts on port 8000 and opens
+            your browser automatically.
+          </p>
+          <a href="https://www.npmjs.com/package/crewlyze" class="install-link" target="_blank">
+            <i data-lucide="external-link" style="width:14px;height:14px;"></i>
+            View on npm
+          </a>
+        </div>
+
+        <!-- Method 3: Docker -->
+        <div class="install-card">
+          <div class="install-icon docker">
+            <i data-lucide="container" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 3</div>
+          <h3>Docker Compose</h3>
+          <p class="install-desc">
+            Full containerized deployment for production environments.
+          </p>
+          <div class="install-code-block">
+            <div class="code-line"><span class="code-prompt">$</span> git clone https://github.com/sowmiyan-s/crewlyze.git</div>
+            <div class="code-line"><span class="code-prompt">$</span> cd crewlyze</div>
+            <div class="code-line"><span class="code-prompt">$</span> docker-compose up --build -d</div>
+          </div>
+        </div>
+
+        <!-- Method 4: Python Dev -->
+        <div class="install-card">
+          <div class="install-icon python">
+            <i data-lucide="code" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 4</div>
+          <h3>Python Developer Setup</h3>
+          <p class="install-desc">
+            For contributors and developers who want full control.
+          </p>
+          <div class="install-code-block">
+            <div class="code-line"><span class="code-prompt">$</span> git clone https://github.com/sowmiyan-s/crewlyze.git</div>
+            <div class="code-line"><span class="code-prompt">$</span> cd crewlyze</div>
+            <div class="code-line"><span class="code-prompt">$</span> python -m venv venv</div>
+            <div class="code-line"><span class="code-prompt">$</span> pip install -r requirements.txt</div>
+            <div class="code-line"><span class="code-prompt">$</span> python main.py</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ TESTIMONIAL / CTA BAND ═══════════════════════ -->
+  <section class="cta-band">
+    <div class="cta-inner">
+      <div class="cta-content">
+        <span class="cta-eyebrow">Start Your Free Analysis</span>
+        <h2>Your Data Has Answers. <span class="gradient-text">Crewlyze Finds Them.</span></h2>
+        <p>
+          Join data teams who replaced hours of manual EDA with 3-minute
+          AI-powered insights. MIT licensed. Free for commercial use.
+        </p>
+        <div class="cta-actions">
+          <a href="#install" class="btn-primary btn-lg">
+            <i data-lucide="download" style="width:20px;height:20px;"></i>
+            Install Crewlyze Free
+          </a>
+          <a href="https://github.com/sowmiyan-s/crewlyze" class="btn-secondary btn-lg" target="_blank">
+            <i data-lucide="github" style="width:20px;height:20px;"></i>
+            Star on GitHub
+          </a>
+        </div>
+        <div class="cta-shields">
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases" target="_blank">
+            <img src="https://img.shields.io/badge/Release-v1.2.3-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+          </a>
+          <a href="https://www.npmjs.com/package/crewlyze" target="_blank">
+            <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM" />
+          </a>
+          <a href="https://github.com/sowmiyan-s/crewlyze/stargazers" target="_blank">
+            <img src="https://img.shields.io/badge/Stars-%E2%98%85%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
+          </a>
+          <a href="https://opensource.org/licenses/MIT" target="_blank">
+            <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="MIT License" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ FOOTER ═══════════════════════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="/assets/logo.png" alt="Crewlyze" class="footer-logo" />
+        <span class="footer-brand-name">Crew<span class="footer-accent">lyze</span></span>
+        <p class="footer-tagline">Autonomous Multi-Agent Business Intelligence &amp; Data Science Platform</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#install">Install</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="https://github.com/sowmiyan-s/crewlyze" target="_blank">GitHub</a>
+          <a href="https://www.npmjs.com/package/crewlyze" target="_blank">npm</a>
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases" target="_blank">Releases</a>
+          <a href="#">Documentation</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">License (MIT)</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>Built with <i data-lucide="heart" style="width:12px;height:12px;color:var(--crimson);"></i> by <strong>Sowmiyan S</strong> and the Open Source Community</span>
+      <span>Crewlyze v1.2.3</span>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

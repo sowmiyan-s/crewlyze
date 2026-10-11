@@ -20,7 +20,7 @@ OPENAI_API_KEY=
 GROQ_API_KEY=
 GEMINI_API_KEY=
 ANTHROPIC_API_KEY=
-LLM_MODEL=nvidia_nim/meta/llama-3.3-70b-instruct
+LLM_MODEL=nvidia_nim/meta/llama-3.1-70b-instruct
 
 # ── Workspace Directories ────────────────────────────────────────────────────
 LOG_LEVEL=INFO
@@ -55,15 +55,17 @@ def ensure_env_loaded():
     if project_env.exists():
         load_dotenv(dotenv_path=project_env, override=True)
 
-    # Auto-migrate deprecated/retired models to their active equivalents
+    # Auto-migrate deprecated/retired models to active Llama 3.1 70B
     model_env = os.environ.get("LLM_MODEL", "")
-    if "llama-3.1-8b-instruct" in model_env:
-        os.environ["LLM_MODEL"] = "nvidia_nim/meta/llama-3.3-70b-instruct"
+    if "llama-3.3-70b-instruct" in model_env or "llama-3.1-8b-instruct" in model_env:
+        os.environ["LLM_MODEL"] = "nvidia_nim/meta/llama-3.1-70b-instruct"
         if home_env.exists():
             try:
                 txt = home_env.read_text(encoding="utf-8")
-                if "llama-3.1-8b-instruct" in txt:
-                    home_env.write_text(txt.replace("llama-3.1-8b-instruct", "llama-3.3-70b-instruct"), encoding="utf-8")
+                for old in ("llama-3.3-70b-instruct", "llama-3.1-8b-instruct"):
+                    if old in txt:
+                        txt = txt.replace(old, "llama-3.1-70b-instruct")
+                home_env.write_text(txt, encoding="utf-8")
             except Exception:
                 pass
 

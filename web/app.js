@@ -24,7 +24,6 @@ const DEFAULT_THUMBNAIL_SVG = '/assets/placeholder_thumbnail.png';
 // ────────────────────────────────────────────────────────────────────────────
 const MODEL_OPTIONS = {
   nvidia:      [
-    'nvidia_nim/meta/llama-3.3-70b-instruct',
     'nvidia_nim/meta/llama-3.1-70b-instruct',
     'nvidia_nim/meta/llama-3.1-405b-instruct',
     'nvidia_nim/meta/llama-3.2-1b-instruct',

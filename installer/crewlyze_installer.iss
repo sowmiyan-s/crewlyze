@@ -38,7 +38,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "addtopath"; Description: "Add Crewlyze to system PATH (allows typing 'crewlyze' in any Command Prompt or PowerShell window)"; GroupDescription: "System Integration:"; Flags: checkedonce
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}:"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}:"
 Name: "setuppython"; Description: "Prepare Python environment and install required dependencies automatically"; GroupDescription: "Python Environment:"; Flags: checkedonce
 
 [Files]

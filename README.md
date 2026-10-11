@@ -119,15 +119,15 @@ In modern data-driven organizations, the biggest bottleneck is no longer data co
 
 | Feature / Capability | Crewlyze | Traditional BI (Tableau / PowerBI) | ChatGPT / Claude Web | Custom Python Scripts |
 | :--- | :---: | :---: | :---: | :---: |
-| **Autonomous Multi-Agent Swarm** | ✅ **7 Specialized Agents** | ❌ Manual | ❌ Single-Turn | ❌ Requires Coding |
+| **Autonomous Multi-Agent Pipeline** | ✅ **7 Specialized Agents** | ❌ Manual | ❌ Single-Turn | ❌ Requires Coding |
 | **Real-Time Token Streaming** | ✅ **Built-in (SSE)** | ❌ N/A | ✅ Web Only | ❌ Complex Setup |
 | **Unlimited Custom Viz Engine** | ✅ **Matplotlib/Seaborn (<0.2s)** | ⚠️ Rigid Templates | ⚠️ Basic Code Execution | ⚠️ Manual Scripting |
 | **C-Suite PDF Executive Reports** | ✅ **ReportLab Dynamic PDF** | ⚠️ Manual Export | ❌ Text Only | ❌ Custom Scripting |
-| **Cyberpunk CLI & Env Manager** | ✅ **ANSI 256 Banner & Loader** | ❌ None | ❌ N/A | ❌ Custom Scripting |
+| **Zero Cloud Lock-in / 100% Free** | ✅ **MIT / Self-Hosted** | ❌ High SaaS License Costs | ❌ Recurring Subscription | ✅ Free (High Dev Time) |
 | **100% Offline Air-Gapped Mode** | ✅ **Ollama Local** | ❌ Cloud-gated | ❌ Requires Cloud | ✅ Manual Local |
 | **Outbound Email & Discord Dispatch** | ✅ **Automated (SMTP/Discord)** | ⚠️ Expensive Addons | ❌ None | ❌ Manual Webhooks |
 | **Read-Only SQL Timeout Guard** | ✅ **Built-in (3s Guard)** | ⚠️ Manual Queries | ❌ None | ❌ Manual Guardrails |
-| **Zero-Compiler Setup** | ✅ **`npx crewlyze`** | ❌ Complex Desktop App | ❌ Web Browser Only | ❌ Complex Venv Setup |
+| **Cross-Platform Portability** | ✅ **`pipx` / `uvx` / `npx` / Docker** | ❌ Proprietary OS Lock-in | ⚠️ Browser Only | ⚠️ Complex Venv Setup |
 
 ---
 
@@ -257,15 +257,15 @@ Ask the AI Chat for ANY custom visualization request and Crewlyze generates it i
 
 ---
 
-### 💻 Cyberpunk CLI & Universal Environment Manager
-- **Cyberpunk Terminal Formatting (`config/cli_formatter.py`):** Features an ANSI 256 color terminal banner, stylized execution log step badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`), and an interactive server ready indicator box.
-- **Universal Environment Manager (`config/env_loader.py`):** Automatically searches and loads configuration from `~/.crewlyze/.env`, project root `.env`, and CWD `.env`; provisions `~/.crewlyze/data` and `~/.crewlyze/outputs` runtime directories across any environment.
-- **Cross-Platform NPM Package Integration (`bin/crewlyze.js`, `bin/install-python.js`):** Run `npx crewlyze` or `npm start` anywhere with automatic virtual environment initialization.
+### 💻 Terminal DX & Universal Environment Manager
+- **Styled Terminal CLI (`config/cli_formatter.py`):** Clean ANSI terminal banners, execution step badges (`[INFO]`, `[SUCCESS]`, `[WARNING]`, `[ERROR]`), and an instant local web server ready indicator.
+- **Universal Environment Manager (`config/env_loader.py`):** Automatically discovers and merges configurations from `~/.crewlyze/.env`, project root `.env`, and active working directory; provisions isolated runtime storage for data and generated assets.
+- **Cross-Platform Launcher Integration (`bin/crewlyze.js`, `bin/install-python.js`):** Run `npx crewlyze` or `uvx crewlyze` anywhere with automatic virtual environment initialization.
 
 ---
 
-### 🔄 Stay-on-Page Workspace Reload Persistence
-- **Reload State Manager:** `localStorage` session state management automatically preserves your active project session and section tab (`Crew Chat`, `Crew Analysis`, or `Hub`) on browser refresh (`F5`), bringing you straight back to your active work.
+### 🔄 Session State & Workspace Persistence
+- **Client Session Manager:** `localStorage` session state management automatically preserves your active project session and section tab (`Crew Chat`, `Crew Analysis`, or `Hub`) across page reloads, ensuring zero interruption during deep workflows.
 
 ---
 
@@ -414,6 +414,26 @@ python main.py
 | `GET` | `/api/export-pdf` | Download ReportLab HTML-escaped PDF executive report. |
 | `GET` | `/api/export-pptx` | Download PowerPoint (`.pptx`) slide deck. |
 | `GET` | `/api/export-zip` | Download complete ZIP workspace archive. |
+
+---
+
+## 🧪 Automated Testing & Reliability
+
+Crewlyze maintains an automated unit and integration test suite covering dataset sanitization, read-only SQL guardrails, LLM provider routing, and FastAPI backend endpoints:
+
+```bash
+# Run full automated test suite via pytest
+pytest tests/ -v
+
+# Or run via npm
+npm test
+```
+
+### Verified Test Contracts:
+- **Data Coercion & Deduplication:** Tests robust parsing for currency formats (`$1,000`), percentages (`95%`), 4-digit years, ISO dates, and automated duplicate row removal.
+- **Read-Only SQL Timeout & Injection Guards:** Verifies that analytical queries (`SELECT`, `WITH`, `EXPLAIN`) execute smoothly while mutating statements (`DROP`, `DELETE`, `UPDATE`, `ALTER`, `ATTACH`) are safely blocked.
+- **Provider Parameter Normalization:** Ensures LiteLLM model prefixes and CrewAI constructor arguments remain strictly conforming across all 13+ supported LLM providers.
+- **API Endpoint Contracts:** Validates system health checks, updater endpoints, and session dataset missing-state error handling.
 
 ---
 
