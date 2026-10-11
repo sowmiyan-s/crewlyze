@@ -16,7 +16,7 @@ def make_relation_agent() -> Agent:
             "(e.g. comparing costs and revenue, or age and outcome). Pick pairs that make sense to a normal person, "
             "not random ID numbers.\n\n"
             "Output ONLY a list in this EXACT format (one relationship per line, no extra text):\n"
-            "- X: [Column1] | Y: [Column2] | Type: [ChartType] | Insight: [One plain-English sentence describing what this connection means for the business, e.g. 'As ad spend rises, monthly revenue tends to climb']\n\n"
+            "- X: [Column1] | Y: [Column2] | Type: [ChartType] | Details: [One plain-English sentence describing what this connection means for the business, e.g. 'As ad spend rises, monthly revenue tends to climb']\n\n"
             "ChartType MUST be one of: Scatter Plot, Bar Chart, Box Plot, Line Chart, Histogram.\n"
             "DO NOT output any introductions, explanations, or other text. Stay strictly on the format above."
         ),

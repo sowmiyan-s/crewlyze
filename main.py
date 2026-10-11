@@ -3755,6 +3755,8 @@ async def get_dynamic_preview(project_id: str):
     try:
         df = read_csv_robust(str(csv_path))
         rows_count, cols_count = df.shape
+        num_count = int(len(df.select_dtypes(include=["number"]).columns))
+        cat_count = cols_count - num_count
         preview = df.head(100).fillna("").to_dict(orient="records")
         col_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
         columns = list(df.columns)
@@ -3778,6 +3780,8 @@ async def get_dynamic_preview(project_id: str):
             "col_types": col_types,
             "rows_count": rows_count,
             "cols_count": cols_count,
+            "numeric_count": num_count,
+            "cat_count": cat_count,
             "preview": preview
         }
     except Exception as e:

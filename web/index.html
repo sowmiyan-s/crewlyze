@@ -329,7 +329,10 @@
           <div id="configDatasetBanner" class="config-dataset-banner"></div>
 
           <div>
-            <div class="config-section-title" style="margin-bottom: 6px;"><i data-lucide="layers" style="width: 15px; height: 15px; color: var(--violet-light);"></i> Select AI Agents &amp; Pipeline Stages</div>
+            <div class="config-section-title" style="margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span><i data-lucide="layers" style="width: 15px; height: 15px; color: var(--violet-light);"></i> Select AI Agents &amp; Pipeline Stages</span>
+              <span id="activeAgentsBadge" style="font-size: 0.76rem; padding: 3px 10px; border-radius: 12px; background: rgba(255, 37, 42, 0.15); color: #ff5252; border: 1px solid rgba(255, 37, 42, 0.3); font-weight: 600;">4 of 7 Active (Standard Mode)</span>
+            </div>
             <p class="modal-hint" style="margin-top: 0; margin-bottom: 16px; color: var(--text-secondary); font-size: 0.82rem; line-height: 1.4;">Choose which AI agents to include in this analysis run. Stage dependencies are enforced automatically.</p>
 
             <!-- Task cards Grid (3-column spacious layout) -->

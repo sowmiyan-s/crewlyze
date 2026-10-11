@@ -1865,6 +1865,8 @@ async function refreshPreviewData(sessionId) {
       state.colTypes = data.col_types || {};
       state.totalDatasetRows = data.rows_count || 0;
       state.totalDatasetCols = data.cols_count || (data.columns ? data.columns.length : 0);
+      if (data.numeric_count !== undefined) state.totalNumericCount = data.numeric_count;
+      if (data.cat_count !== undefined) state.totalCatCount = data.cat_count;
       renderPreview(data.preview || []);
       if (els.chatPreviewDims) {
         els.chatPreviewDims.textContent = `(${data.rows_count?.toLocaleString() || 0} rows × ${data.cols_count || 0} columns)`;
@@ -1989,6 +1991,12 @@ function switchSection(sec) {
 
 async function switchToProject(p) {
   state.activeProject = p;
+  if (p) {
+    if (p.rows_count) state.totalDatasetRows = p.rows_count;
+    if (p.cols_count) state.totalDatasetCols = p.cols_count;
+    if (p.numeric_count !== undefined) state.totalNumericCount = p.numeric_count;
+    if (p.cat_count !== undefined) state.totalCatCount = p.cat_count;
+  }
   localStorage.setItem('crewlyze_active_project_id', p.id);
   renderProjectsList();
   setBreadcrumb(p.name);
@@ -2344,6 +2352,19 @@ async function handleFileSelected(file) {
     state.uploadedSession = data.id;
     state.totalDatasetRows = data.rows_count || 0;
     state.totalDatasetCols = data.cols_count || 0;
+    state.totalNumericCount = data.numeric_count || 0;
+    state.totalCatCount = data.cat_count || 0;
+
+    // Load preview and schema immediately for accurate modal metrics
+    try {
+      const prevRes = await fetch(`/api/projects/${data.id}/preview`);
+      if (prevRes.ok) {
+        const prevData = await prevRes.json();
+        state.columns = prevData.columns || [];
+        state.colTypes = prevData.col_types || {};
+        state.rawPreviewRows = prevData.preview || [];
+      }
+    } catch (_) {}
 
     const dimStr = data.rows_count ? ` (${data.rows_count.toLocaleString()} rows × ${data.cols_count} cols)` : '';
     els.uploadedFileMeta.textContent = `✓ ${file.name} — ${(file.size / 1024).toFixed(1)} KB${dimStr} uploaded`;
@@ -2448,10 +2469,24 @@ function renderConfigDatasetBanner() {
   if (!bannerEl) return;
 
   const results = state.results || {};
-  let rowsCount = state.totalDatasetRows || results.rows_count || (state.activeProject && state.activeProject.rows_count) || (state.rawPreviewRows ? state.rawPreviewRows.length : 0);
-  let colsCount = state.totalDatasetCols || results.cols_count || (state.activeProject && state.activeProject.cols_count) || (state.columns ? state.columns.length : 0);
-  let numCount  = results.numeric_count || (state.activeProject && state.activeProject.numeric_count) || 0;
-  let catCount  = results.cat_count || (state.activeProject && state.activeProject.cat_count) || 0;
+  const activeProj = state.activeProject || {};
+  let rowsCount = state.totalDatasetRows || activeProj.rows_count || results.rows_count || (state.rawPreviewRows ? state.rawPreviewRows.length : 0);
+  let colsCount = state.totalDatasetCols || activeProj.cols_count || results.cols_count || (state.columns ? state.columns.length : 0);
+  let numCount = (state.totalNumericCount !== undefined && state.totalNumericCount !== null)
+    ? state.totalNumericCount
+    : (activeProj.numeric_count !== undefined ? activeProj.numeric_count : (results.numeric_count || 0));
+  let catCount = (state.totalCatCount !== undefined && state.totalCatCount !== null)
+    ? state.totalCatCount
+    : (activeProj.cat_count !== undefined ? activeProj.cat_count : (results.cat_count || 0));
+
+  if (!numCount && !catCount && state.colTypes && Object.keys(state.colTypes).length > 0) {
+    const numCols = Object.values(state.colTypes).filter(t => /int|float|double|number|decimal/i.test(t)).length;
+    numCount = numCols;
+    catCount = Math.max(0, colsCount - numCols);
+  }
+  if (!catCount && colsCount >= numCount) {
+    catCount = colsCount - numCount;
+  }
 
   if (!rowsCount && !colsCount && (!state.columns || state.columns.length === 0)) {
     bannerEl.style.display = 'none';
@@ -2463,8 +2498,6 @@ function renderConfigDatasetBanner() {
   let missingCount = 0;
   let totalCells = 0;
 
-  // Prefer the full-dataset preview when available so the data-quality banner
-  // and the stat chips use the SAME source (no inconsistent numbers).
   const fullPreview = state.fullPreviewRows || state.rawPreviewRows || [];
   if (fullPreview.length > 0 && state.columns && state.columns.length > 0) {
     totalCells = fullPreview.length * state.columns.length;
@@ -2489,20 +2522,19 @@ function renderConfigDatasetBanner() {
   }
 
   const missingPct = totalCells > 0 ? ((missingCount / totalCells) * 100).toFixed(1) : 0;
-  const sampleScope = (state.rawPreviewRows && state.fullPreviewRows !== state.rawPreviewRows && totalCells > 0 && state.rawPreviewRows.length < (rowsCount || 0));
 
   if (missingCount > 0) {
     missingAlertHtml = `
       <div class="data-quality-alert warning">
         <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #f59e0b;"></i>
-        <span><strong>Data Quality Notice:</strong> Detected ${missingCount.toLocaleString()} missing/null entries (${missingPct}% missing${sampleScope ? ' in preview sample' : ''}). <em>Data Cleaning Agent is recommended.</em></span>
+        <span><strong>Data Quality Notice:</strong> Detected ${missingCount.toLocaleString()} missing/null entries (${missingPct}% missing). <em>Data Cleaning Agent is recommended.</em></span>
       </div>
     `;
   } else {
     missingAlertHtml = `
       <div class="data-quality-alert success">
         <i data-lucide="check-circle-2" style="width: 16px; height: 16px; color: #10b981;"></i>
-        <span><strong>Data Quality Verified:</strong> ${rowsCount.toLocaleString()} records parsed cleanly${sampleScope ? ' (preview sample)' : ''}. Dataset ready for multi-agent reasoning.</span>
+        <span><strong>Data Quality Verified:</strong> Verified ${rowsCount.toLocaleString()} records across all ${colsCount} columns (${numCount} numeric, ${catCount} categorical). Full dataset ready for multi-agent reasoning.</span>
       </div>
     `;
   }
@@ -2518,7 +2550,7 @@ function renderConfigDatasetBanner() {
         <span class="chip-lbl">Total Columns</span>
       </div>
       <div class="dataset-stat-chip" style="--accent: var(--emerald);">
-        <span class="chip-val">${numCount || (colsCount - catCount)}</span>
+        <span class="chip-val">${numCount}</span>
         <span class="chip-lbl">Numeric Fields</span>
       </div>
       <div class="dataset-stat-chip" style="--accent: var(--amber);">
@@ -2541,6 +2573,7 @@ function openConfigModal() {
   const newProjModal = $('newProjectModal');
   if (newProjModal) newProjModal.classList.add('hidden');
   renderConfigDatasetBanner();
+  syncTaskCards();
 }
 
 function closeConfigModal() {
@@ -2584,7 +2617,7 @@ function syncTaskCards() {
     els.taskViz.checked = false;
   }
 
-  // Update visual state
+  // Update visual state for all 7 agent cards
   [
     [els.taskCleaning,   els.taskCardCleaning,   true],
     [els.taskRelations,  els.taskCardRelations,  cleanChecked],
@@ -2599,6 +2632,36 @@ function syncTaskCards() {
     card.classList.toggle('disabled', !enabled);
     if (!enabled) chk.checked = false;
   });
+
+  // Calculate active agents count
+  const allTasks = [
+    els.taskCleaning,
+    els.taskRelations,
+    els.taskInsights,
+    els.taskViz,
+    els.taskPredictive,
+    els.taskAnomaly,
+    els.taskTrend
+  ];
+  const activeCount = allTasks.filter(t => t && t.checked).length;
+
+  const deepRadio = document.querySelector('input[name="depth"][value="true"]');
+  const isDeep = deepRadio ? deepRadio.checked : false;
+
+  const badge = $('activeAgentsBadge');
+  if (badge) {
+    if (isDeep || activeCount === 7) {
+      badge.textContent = `${activeCount} of 7 Active (Deep Analysis)`;
+      badge.style.background = 'rgba(168, 85, 247, 0.18)';
+      badge.style.color = '#c084fc';
+      badge.style.borderColor = 'rgba(168, 85, 247, 0.4)';
+    } else {
+      badge.textContent = `${activeCount} of 7 Active (Standard Mode)`;
+      badge.style.background = 'rgba(255, 37, 42, 0.15)';
+      badge.style.color = '#ff5252';
+      badge.style.borderColor = 'rgba(255, 37, 42, 0.3)';
+    }
+  }
 }
 
 ['taskCleaning','taskRelations','taskInsights','taskViz','taskPredictive','taskAnomaly','taskTrend'].forEach(id => {
@@ -2606,28 +2669,49 @@ function syncTaskCards() {
   if (!el) return;
   const card = el.closest('.task-card');
   if (card) {
-    card.addEventListener('click', () => {
-      if (!card.classList.contains('disabled')) {
-        el.checked = !el.checked;
-        syncTaskCards();
+    card.addEventListener('click', (e) => {
+      if (card.classList.contains('disabled')) {
+        e.preventDefault();
+        e.stopPropagation();
       }
     });
   }
+  el.addEventListener('change', () => {
+    syncTaskCards();
+  });
 });
 syncTaskCards();
 
 // ── Depth selector ───────────────────────────────────────────────────────────
 $$('.depth-option').forEach(opt => {
-  opt.addEventListener('click', () => {
+  opt.addEventListener('click', (e) => {
+    const radio = opt.querySelector('input[type="radio"]');
+    const isDeep = radio?.value === 'true';
+
     $$('.depth-option').forEach(o => o.classList.remove('active'));
     opt.classList.add('active');
-    const isDeep = opt.querySelector('input')?.value === 'true';
+    if (radio) radio.checked = true;
+
     if (isDeep) {
+      // Deep Analysis: enable all 7 specialized agents
+      if (els.taskCleaning)   els.taskCleaning.checked = true;
+      if (els.taskRelations)  els.taskRelations.checked = true;
+      if (els.taskInsights)   els.taskInsights.checked = true;
+      if (els.taskViz)        els.taskViz.checked = true;
       if (els.taskPredictive) els.taskPredictive.checked = true;
       if (els.taskAnomaly)    els.taskAnomaly.checked = true;
       if (els.taskTrend)      els.taskTrend.checked = true;
-      syncTaskCards();
+    } else {
+      // Standard Analysis: reset to core 4 agents
+      if (els.taskCleaning)   els.taskCleaning.checked = true;
+      if (els.taskRelations)  els.taskRelations.checked = true;
+      if (els.taskInsights)   els.taskInsights.checked = true;
+      if (els.taskViz)        els.taskViz.checked = true;
+      if (els.taskPredictive) els.taskPredictive.checked = false;
+      if (els.taskAnomaly)    els.taskAnomaly.checked = false;
+      if (els.taskTrend)      els.taskTrend.checked = false;
     }
+    syncTaskCards();
   });
 });
 
