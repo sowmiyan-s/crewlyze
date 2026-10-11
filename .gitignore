@@ -81,19 +81,25 @@ feedback_submissions.json
 *.log
 
 # Test Artifacts, Results, Verification Scripts & Scratch Files
-test_*.py
-*_test.py
-verify_*.py
-test_*.csv
-test_data.csv
-test_*.json
+/test_*.py
+/*_test.py
+/verify_*.py
+/test_*.csv
+/test_data.csv
+/test_*.json
 *_test_results.json
 test_results.json
 hardening_test_results.json
 overhaul_test_results.json
-test_dry_run.py
-test_workspace/
-test_sessions/
+/test_dry_run.py
+/test_workspace/
+/test_sessions/
+
+# Allow automated test suite in tests/
+!tests/
+!tests/**
+tests/**/__pycache__/
+
 
 # NPM packaging artifacts & node
 *.tgz

@@ -10,6 +10,7 @@ litellm>=1.0.0
 fastapi
 uvicorn[standard]
 python-multipart
+httpx
 
 # ── Data / ML ────────────────────────────────────────────────────────────────
 numpy>=1.24.0,<2.1.0
