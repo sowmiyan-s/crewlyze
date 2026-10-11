@@ -29,6 +29,7 @@ import zipfile
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
+from contextlib import asynccontextmanager
 
 # Initialize central environment loader
 try:
@@ -258,10 +259,50 @@ def _load_crew():
 os.environ["CREWAI_TELEMETRY_OPT_OUT"] = "true"
 os.environ["OTEL_SDK_DISABLED"]        = "true"
 
+# ---------------------------------------------------------------------------
+# State & Directory Setup
+# ---------------------------------------------------------------------------
+
+USER_HOME = Path.home() / ".crewlyze"
+DATA_DIR = Path(os.getenv("CREWLYZE_DATA_DIR", str(USER_HOME / "data")))
+SESSIONS_DIR = DATA_DIR / "sessions"
+OUTPUTS_DIR = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(USER_HOME / "outputs")))
+
+for path in (DATA_DIR, SESSIONS_DIR, OUTPUTS_DIR):
+    path.mkdir(exist_ok=True, parents=True)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Scan all session metadata files on boot and reset any stale projects stuck in the running status."""
+    try:
+        if SESSIONS_DIR.exists() and SESSIONS_DIR.is_dir():
+            for session_dir in SESSIONS_DIR.iterdir():
+                if session_dir.is_dir():
+                    metadata_path = session_dir / "metadata.json"
+                    if metadata_path.exists():
+                        try:
+                            with open(metadata_path, "r", encoding="utf-8") as f:
+                                meta = json.load(f)
+                            if meta.get("status") == "running":
+                                meta["status"] = "failed"
+                                done_path = session_dir / "done.txt"
+                                if not done_path.exists():
+                                    with open(done_path, "w") as df:
+                                        df.write("done")
+                                with open(metadata_path, "w", encoding="utf-8") as f:
+                                    json.dump(meta, f, indent=2)
+                                print(f"Reset stale running session: {session_dir.name}")
+                        except Exception as e:
+                            print(f"Failed to reset metadata for {session_dir.name}: {e}")
+    except Exception as e:
+        print(f"Error during startup stale session cleanup: {e}")
+    yield
+
 app = FastAPI(
     title="Crewlyze API",
     description="Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
-    version="1.2.3"
+    version="1.2.3",
+    lifespan=lifespan
 )
 
 # Enable CORS for local development flexibility
@@ -290,44 +331,6 @@ class OptionalAuthMiddleware(BaseHTTPMiddleware):
         return response
 
 app.add_middleware(OptionalAuthMiddleware)
-
-# ---------------------------------------------------------------------------
-# State & Directory Setup
-# ---------------------------------------------------------------------------
-
-USER_HOME = Path.home() / ".crewlyze"
-DATA_DIR = Path(os.getenv("CREWLYZE_DATA_DIR", str(USER_HOME / "data")))
-SESSIONS_DIR = DATA_DIR / "sessions"
-OUTPUTS_DIR = Path(os.getenv("CREWLYZE_OUTPUTS_DIR", str(USER_HOME / "outputs")))
-
-for path in (DATA_DIR, SESSIONS_DIR, OUTPUTS_DIR):
-    path.mkdir(exist_ok=True, parents=True)
-
-@app.on_event("startup")
-async def cleanup_stale_analyses():
-    """Scan all session metadata files on boot and reset any stale projects stuck in the running status."""
-    try:
-        if SESSIONS_DIR.exists() and SESSIONS_DIR.is_dir():
-            for session_dir in SESSIONS_DIR.iterdir():
-                if session_dir.is_dir():
-                    metadata_path = session_dir / "metadata.json"
-                    if metadata_path.exists():
-                        try:
-                            with open(metadata_path, "r", encoding="utf-8") as f:
-                                meta = json.load(f)
-                            if meta.get("status") == "running":
-                                meta["status"] = "failed"
-                                done_path = session_dir / "done.txt"
-                                if not done_path.exists():
-                                    with open(done_path, "w") as df:
-                                        df.write("done")
-                                with open(metadata_path, "w", encoding="utf-8") as f:
-                                    json.dump(meta, f, indent=2)
-                                print(f"Reset stale running session: {session_dir.name}")
-                        except Exception as e:
-                            print(f"Failed to reset metadata for {session_dir.name}: {e}")
-    except Exception as e:
-        print(f"Error during startup stale session cleanup: {e}")
 
 
 def is_safe_id(id_str: str) -> bool:
