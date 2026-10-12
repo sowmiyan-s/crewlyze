@@ -4752,7 +4752,7 @@ async def trigger_system_update():
     if not updater_ps1.exists():
         updater_ps1 = base_dir / "updater.ps1"
     
-    if updater_ps1.exists():
+    if updater_ps1.exists() and sys.platform == "win32":
         cmd = [
             "powershell.exe",
             "-NoProfile",
