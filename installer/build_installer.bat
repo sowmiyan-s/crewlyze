@@ -54,7 +54,7 @@ if errorlevel 1 (
 echo.
 echo ===================================================================
 echo [SUCCESS] Installer successfully built!
-echo           Installer executable: %SCRIPT_DIR%dist\Crewlyze_Setup_v1.2.3.exe
+echo           Installer executable: %SCRIPT_DIR%dist\Crewlyze_Setup_v1.2.4.exe
 echo ===================================================================
 
 exit /b 0

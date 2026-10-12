@@ -372,6 +372,79 @@ code.inline-code-sm {
   font-size: 0.95rem;
 }
 
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-ghost:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-mid);
+}
+
+.hero-version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-low);
+  border-radius: var(--r-full);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  margin-top: 4px;
+}
+
+.hero-version-pill .pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.hero-version-pill .pill-link {
+  color: var(--crimson-light);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.hero-version-pill .pill-link:hover {
+  text-decoration: underline;
+}
+
+.install-direct-action {
+  margin: 14px 0 10px;
+}
+
+.install-download-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 13px 20px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--crimson) 0%, #b91c1c 100%);
+  border-radius: var(--r-md);
+}
+
+.install-download-btn:hover {
+  background: linear-gradient(135deg, var(--crimson-light) 0%, var(--crimson) 100%);
+}
+
+
 .hero-stats {
   display: flex;
   align-items: center;
@@ -1171,6 +1244,8 @@ code.inline-code-sm {
   gap: 12px;
   transition: all 0.25s;
   position: relative;
+  /* Avoid rigid equal-height cards — let content define height */
+  align-items: flex-start;
 }
 
 .install-card:hover {
@@ -1235,67 +1310,84 @@ code.inline-code-sm {
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
+  width: 100%;
 }
 
 .install-desc {
   font-size: 0.8rem;
   color: var(--text-secondary);
   line-height: 1.5;
-  flex: 1;
 }
 
-.install-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 4px;
-}
-
-.install-step {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-}
-
-.step-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: rgba(255, 37, 42, 0.1);
-  border: 1px solid rgba(255, 37, 42, 0.2);
-  color: var(--crimson-light);
-  font-size: 0.65rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.install-code-block {
-  background: rgba(0, 0, 0, 0.4);
+/* Copyable code snippet */
+.install-snippet {
+  margin-top: 8px;
   border: 1px solid var(--border-low);
   border-radius: var(--r-md);
-  padding: 10px 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.45);
+  width: 100%;
+}
+
+.snippet-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-low);
+}
+
+.snippet-lang {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.copy-btn {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--crimson-light);
+  background: none;
+  border: 1px solid var(--border-mid);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-body);
+}
+
+.copy-btn:hover {
+  background: rgba(255, 37, 42, 0.1);
+  border-color: var(--crimson-light);
+  color: #fff;
+}
+
+.copy-btn:active {
+  transform: scale(0.97);
+}
+
+.install-snippet pre {
+  margin: 0;
+  padding: 12px 14px;
   font-family: var(--font-mono);
   font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
 }
 
-.code-line {
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.code-prompt {
-  color: var(--crimson-light);
-  margin-right: 8px;
-  user-select: none;
+.install-snippet code {
+  font-family: inherit;
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .install-note {
@@ -1549,15 +1641,14 @@ code.inline-code-sm {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 720px) {
   .nav-links {
     display: none;
   }
 
   .features-grid,
   .who-grid,
-  .unique-grid,
-  .screenshots-grid {
+  .unique-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1569,13 +1660,42 @@ code.inline-code-sm {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .hero {
+    min-height: auto;
+    padding: calc(var(--nav-h) + 32px) 20px 48px;
+  }
+
+  .hero-title {
+    font-size: clamp(2.2rem, 12vw, 3rem);
+  }
+
+  .hero-subtitle {
+    font-size: 1rem;
+  }
+
   .hero-stats {
-    gap: 16px;
-    padding: 12px 20px;
+    gap: 14px;
+    padding: 12px 18px;
+    width: 100%;
   }
 
   .stat-divider {
     display: none;
+  }
+
+  .section-header {
+    margin-bottom: 32px;
+  }
+
+  /* Give each section its own breathing room instead of uniform spacing */
+  .features-section,
+  .who-section,
+  .unique-section,
+  .workflow-section,
+  .compare-section,
+  .screenshots-section,
+  .install-section {
+    margin-top: 56px;
   }
 
   .cta-inner {
@@ -1602,4 +1722,32 @@ code.inline-code-sm {
     width: 100%;
     justify-content: center;
   }
+
+  .trust-inner {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .trust-logos {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+/* Prevent code blocks from overflowing narrow screens */
+@media (max-width: 480px) {
+  .install-snippet pre {
+    font-size: 0.65rem;
+    padding: 10px 10px;
+  }
+}
+
+/* Remove any accidental forced-equal-height on cards in older browsers */
+.install-card,
+.feature-card,
+.who-card,
+.unique-card,
+.screenshot-card {
+  height: auto !important;
 }

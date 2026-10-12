@@ -24,7 +24,7 @@ if (-not (Test-Path "$AppDir\package.json")) {
     $AppDir = $ScriptDir
 }
 
-$LocalVersion = "1.2.3"
+$LocalVersion = "1.2.4"
 $pkgPath = Join-Path $AppDir "package.json"
 if (Test-Path $pkgPath) {
     try {

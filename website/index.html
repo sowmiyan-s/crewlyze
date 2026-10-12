@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crewlyze — Autonomous AI Data Analyst Platform</title>
+  <meta name="description" content="Upload a CSV and watch AI agents clean it, map relationships, generate visual charts, and deliver C-suite business insights in under 3 minutes. Zero-coding, 100% private." />
+  <link rel="stylesheet" href="promo.css" />
+  <script src="libs/lucide.min.js"></script>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+</head>
+<body>
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <img src="assets/logo.png" alt="Crewlyze" class="nav-logo" />
+        <span class="nav-brand-text">Crew<span class="nav-accent">lyze</span></span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#workflow">Workflow</a></li>
+        <li><a href="#compare">Compare</a></li>
+        <li><a href="#screenshots">Screenshots</a></li>
+        <li><a href="#install">Install</a></li>
+      </ul>
+      <a href="https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe" class="nav-cta" download>
+        <i data-lucide="download" style="width:16px;height:16px;"></i>
+        Download .exe (v1.2.4)
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-bg">
+      <img src="assets/logo.png" alt="" class="hero-logo-bg" />
+      <div class="hero-glow"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Autonomous Multi-Agent BI Platform
+      </div>
+      <h1 class="hero-title">
+        <span class="gradient-text">Crewlyze</span>
+      </h1>
+      <p class="hero-subtitle">
+        Upload your CSV, Excel, or SQLite dataset. AI agents clean it, map relationships,
+        run parallel predictive & anomaly modeling, and generate C-suite executive reports —
+        <strong class="highlight">in under 3 minutes.</strong>
+        Zero coding. 100% private.
+      </p>
+      <div class="hero-actions">
+        <a href="https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe" class="btn-primary" download>
+          <i data-lucide="download" style="width:18px;height:18px;"></i>
+          Download for Windows (.exe)
+        </a>
+        <a href="#install" class="btn-secondary">
+          <i data-lucide="terminal" style="width:16px;height:16px;"></i>
+          NPM & Other Options
+        </a>
+        <a href="#features" class="btn-ghost">
+          Explore Features
+          <i data-lucide="arrow-down-right" style="width:16px;height:16px;"></i>
+        </a>
+      </div>
+      <div class="hero-version-pill">
+        <span class="pill-dot"></span>
+        <span>Latest Release: <strong>v1.2.4</strong> • Windows x64 (~7.9 MB) • Zero Setup</span>
+        <a href="https://github.com/sowmiyan-s/crewlyze/releases/tag/v1.2.4" target="_blank" class="pill-link">Changelog &rarr;</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-val">7</span>
+          <span class="stat-lbl">AI Agents</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-val">13+</span>
+          <span class="stat-lbl">LLM Providers</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-val">98%</span>
+          <span class="stat-lbl">Time Savings</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <span class="stat-val">3 min</span>
+          <span class="stat-lbl">Full Analysis</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll-hint">
+      <span>Scroll to explore</span>
+      <i data-lucide="chevron-down" style="width:20px;height:20px;"></i>
+    </div>
+  </header>
+
+  <!-- TRUST BAR -->
+  <section class="trust-bar">
+    <div class="trust-inner">
+      <span class="trust-label">Trusted by data teams at</span>
+      <div class="trust-logos">
+        <span class="trust-logo">Finance</span>
+        <span class="trust-logo">Healthcare</span>
+        <span class="trust-logo">E-Commerce</span>
+        <span class="trust-logo">Manufacturing</span>
+        <span class="trust-logo">Research</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM / SOLUTION -->
+  <section class="problem-solution">
+    <div class="ps-grid">
+      <div class="ps-section ps-problem">
+        <div class="ps-icon problem">
+          <i data-lucide="alert-triangle" style="width:28px;height:28px;"></i>
+        </div>
+        <h2>The Data Analysis Bottleneck</h2>
+        <p>
+          Data analysts spend <strong>80% of their time</strong> writing repetitive
+          Pandas cleaning scripts, running correlation matrices manually, and
+          formatting slide decks for leadership. By the time insights reach
+          decision-makers, the moment has passed.
+        </p>
+        <ul class="ps-list">
+          <li><i data-lucide="x-circle" style="width:16px;height:16px;"></i>Hours wasted on repetitive data cleaning</li>
+          <li><i data-lucide="x-circle" style="width:16px;height:16px;"></i>Manual correlation and visualization work</li>
+          <li><i data-lucide="x-circle" style="width:16px;height:16px;"></i>Insights trapped in Jupyter notebooks</li>
+          <li><i data-lucide="x-circle" style="width:16px;height:16px;"></i>No executive-ready PDF reports</li>
+        </ul>
+      </div>
+      <div class="ps-divider"></div>
+      <div class="ps-section ps-solution">
+        <div class="ps-icon solution">
+          <i data-lucide="sparkles" style="width:28px;height:28px;"></i>
+        </div>
+        <h2>Crewlyze Changes Everything</h2>
+        <p>
+          Crewlyze deploys a <strong>swarm of 7 specialized AI agents</strong>
+          that collaborate like a full data science department — cleaning data,
+          finding relationships, generating charts, and producing strategic
+          recommendations automatically.
+        </p>
+        <ul class="ps-list check">
+          <li><i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>Upload CSV / Excel / SQLite — get results in 3 minutes</li>
+          <li><i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>Zero coding required — works for everyone</li>
+          <li><i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>Interactive Plotly dashboards + executive PDF reports</li>
+          <li><i data-lucide="check-circle-2" style="width:16px;height:16px;"></i>100% air-gapped private with Ollama local mode</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="features-section">
+    <div class="section-header">
+      <span class="section-eyebrow">Core Capabilities</span>
+      <h2>Everything a Data Team Needs, Automated</h2>
+      <p>
+        From raw file upload to executive-ready PDF report — every step is
+        handled by specialized AI agents working in a coordinated pipeline.
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon swarm">
+          <i data-lucide="git-branch" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>Autonomous 7-Agent Swarm</h3>
+        <p>
+          Specialized AI agents operate in an optimized pipeline — Cleaner and Relationship Mapper establish verified data structure, followed by parallelized deep analysis agents (Predictive ML, Anomaly Audit, and Trend Forecast) executing concurrently for maximal throughput, synthesized by Business Insights.
+        </p>
+        <div class="feature-agents">
+          <span class="agent-tag"><i data-lucide="brush" style="width:12px;height:12px;"></i> Data Cleaner</span>
+          <span class="agent-tag"><i data-lucide="link" style="width:12px;height:12px;"></i> Relationship Mapper</span>
+          <span class="agent-tag"><i data-lucide="lightbulb" style="width:12px;height:12px;"></i> Business Insights</span>
+          <span class="agent-tag"><i data-lucide="trending-up" style="width:12px;height:12px;"></i> Visualizer</span>
+          <span class="agent-tag"><i data-lucide="cpu" style="width:12px;height:12px;"></i> Predictive ML</span>
+          <span class="agent-tag"><i data-lucide="shield" style="width:12px;height:12px;"></i> Anomaly Audit</span>
+          <span class="agent-tag"><i data-lucide="activity" style="width:12px;height:12px;"></i> Trend Forecast</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon llm">
+          <i data-lucide="layers" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>13+ LLM Providers, One Config</h3>
+        <p>
+          Built on LiteLLM — supports OpenAI, Anthropic, Gemini, NVIDIA NIM, Groq,
+          Mistral, DeepSeek, Cohere, HuggingFace, Ollama, and more.
+          Configure once, switch anytime.
+        </p>
+        <div class="provider-grid">
+          <span class="provider-chip">OpenAI</span>
+          <span class="provider-chip">Anthropic</span>
+          <span class="provider-chip">Gemini</span>
+          <span class="provider-chip">NVIDIA NIM</span>
+          <span class="provider-chip">Groq</span>
+          <span class="provider-chip">Mistral</span>
+          <span class="provider-chip">DeepSeek</span>
+          <span class="provider-chip">Ollama (Offline)</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon viz">
+          <i data-lucide="trending-up" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>Unlimited Custom Visualizations</h3>
+        <p>
+          Instant direct-execution visualization engine generating relation maps, correlation heatmaps,
+          histograms, scatter plots, 3D scatter, and radar plots in &lt;0.2s via Matplotlib/Seaborn
+          and interactive Plotly without LLM freezes.
+        </p>
+        <div class="viz-types">
+          <span class="viz-chip">Histograms</span>
+          <span class="viz-chip">Scatter Plots</span>
+          <span class="viz-chip">Heatmaps</span>
+          <span class="viz-chip">Box/Violin</span>
+          <span class="viz-chip">3D Scatter</span>
+          <span class="viz-chip">Pie/Donut</span>
+          <span class="viz-chip">Radar</span>
+          <span class="viz-chip">Time-Series</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon pdf">
+          <i data-lucide="file-text" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>C-Suite Executive PDF Reports</h3>
+        <p>
+          ReportLab-powered dynamic PDF engine generates multi-page executive
+          summaries with SWOT analysis, strategic pillars, risk alerts, embedded
+          charts, and numbered pages — ready to present.
+        </p>
+        <div class="export-options">
+          <span class="export-chip pdf"><i data-lucide="file-text" style="width:12px;height:12px;"></i> PDF Report</span>
+          <span class="export-chip pptx"><i data-lucide="presentation" style="width:12px;height:12px;"></i> PowerPoint</span>
+          <span class="export-chip zip"><i data-lucide="archive" style="width:12px;height:12px;"></i> ZIP Workspace</span>
+          <span class="export-chip ipynb"><i data-lucide="file-code" style="width:12px;height:12px;"></i> Jupyter Notebook</span>
+          <span class="export-chip csv"><i data-lucide="table" style="width:12px;height:12px;"></i> Cleaned CSV</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon chat">
+          <i data-lucide="message-square" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>Real-Time AI Chat Copilot</h3>
+        <p>
+          Interrogate your dataset conversationally. Type <code class="inline-code">/column</code>
+          to autocomplete column names. Ask for filters, stats, or custom charts —
+          all streamed in real-time via SSE with a blinking "Thinking..." indicator.
+        </p>
+        <div class="chat-features">
+          <span class="chat-chip">Natural Language Queries</span>
+          <span class="chat-chip">Slash / Column Picker</span>
+          <span class="chat-chip">Live SSE Streaming</span>
+          <span class="chat-chip">1-Click PNG Download</span>
+          <span class="chat-chip">Auto-Saved Chat History</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon sql">
+          <i data-lucide="database" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>Read-Only SQL Query Workbench</h3>
+        <p>
+          Ask plain English questions like "Show top 10 rows by revenue" and
+          Crewlyze compiles them to SQL automatically. Includes a 3-second
+          timeout guard and read-only safety — no DROP, DELETE, or UPDATE
+          statements ever execute.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon privacy">
+          <i data-lucide="shield-check" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>100% Air-Gapped Privacy</h3>
+        <p>
+          Connect to Ollama on <code class="inline-code">localhost:11434</code> and run
+          entirely offline. Zero data bytes leave your machine. Your datasets,
+          chats, and reports never touch external servers.
+        </p>
+        <div class="privacy-badges">
+          <span class="privacy-badge">No Cloud Upload</span>
+          <span class="privacy-badge">Local Ollama</span>
+          <span class="privacy-badge">Subprocess Sandbox</span>
+          <span class="privacy-badge">Path Traversal Guards</span>
+        </div>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon integrate">
+          <i data-lucide="share-2" style="width:28px;height:28px;"></i>
+        </div>
+        <h3>Outbound Integrations Hub</h3>
+        <p>
+          Auto-dispatch reports on completion. Configure SMTP email, Discord
+          webhooks, Slack webhooks, or custom REST endpoints — all from the
+          settings panel.
+        </p>
+        <div class="integration-chips">
+          <span class="int-chip"><i data-lucide="mail" style="width:12px;height:12px;"></i> SMTP Email</span>
+          <span class="int-chip"><i data-lucide="message-square" style="width:12px;height:12px;"></i> Discord Webhook</span>
+          <span class="int-chip"><i data-lucide="slack" style="width:12px;height:12px;"></i> Slack Webhook</span>
+          <span class="int-chip"><i data-lucide="plug" style="width:12px;height:12px;"></i> Custom REST</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHO NEEDS THIS -->
+  <section class="who-section">
+    <div class="section-header">
+      <span class="section-eyebrow">Built For</span>
+      <h2>Who Needs Crewlyze?</h2>
+      <p>If you work with data and need answers fast — Crewlyze is for you.</p>
+    </div>
+    <div class="who-grid">
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="briefcase" style="width:24px;height:24px;"></i></div>
+        <h3>Business Analysts</h3>
+        <p>Skip the manual Pandas grind. Upload a dataset and get cleaning, correlations, charts, and strategic recommendations instantly.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="building" style="width:24px;height:24px;"></i></div>
+        <h3>Data Science Teams</h3>
+        <p>Accelerate exploratory data analysis. Let AI agents handle the repetitive EDA so your team focuses on high-value modeling work.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="landmark" style="width:24px;height:24px;"></i></div>
+        <h3>C-Suite Executives</h3>
+        <p>Upload a CSV and receive a polished executive PDF with SWOT analysis, risk alerts, and strategic recommendations — no SQL or Python needed.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="graduation-cap" style="width:24px;height:24px;"></i></div>
+        <h3>Researchers & Students</h3>
+        <p>Load research datasets and get comprehensive statistical summaries, visualizations, and insights in minutes — not hours.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="shopping-cart" style="width:24px;height:24px;"></i></div>
+        <h3>E-Commerce & Retail</h3>
+        <p>Analyze sales data, identify top-performing segments, forecast trends, and get actionable recommendations for inventory and pricing.</p>
+      </div>
+      <div class="who-card">
+        <div class="who-icon"><i data-lucide="heart-pulse" style="width:24px;height:24px;"></i></div>
+        <h3>Healthcare & Finance</h3>
+        <p>Audit datasets for anomalies, detect risk outliers, and generate compliance-ready reports — all with 100% data privacy via Ollama offline mode.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WORKFLOW -->
+  <section id="workflow" class="workflow-section">
+    <div class="section-header">
+      <span class="section-eyebrow">How It Works</span>
+      <h2>From Raw Data to Executive Insights in 3 Minutes</h2>
+      <p>A coordinated pipeline of AI agents — each stage builds on the last, delivering a complete analysis automatically.</p>
+    </div>
+    <div class="workflow-container">
+      <div class="workflow-visual">
+        <img src="assets/complete_workflow.svg" alt="Crewlyze Pipeline Workflow" class="workflow-svg" />
+      </div>
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <span class="step-num">01</span>
+          <div class="step-body">
+            <h4>Upload Your Dataset</h4>
+            <p>CSV, Excel, or SQLite — Crewlyze auto-detects encoding and profiles your data.</p>
+          </div>
+          <div class="step-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;"></i></div>
+        </div>
+        <div class="workflow-step">
+          <span class="step-num">02</span>
+          <div class="step-body">
+            <h4>AI Agents Process Data</h4>
+            <p>Cleaner fixes quality issues, Relationship Mapper finds correlations, Visualizer builds charts.</p>
+          </div>
+          <div class="step-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;"></i></div>
+        </div>
+        <div class="workflow-step">
+          <span class="step-num">03</span>
+          <div class="step-body">
+            <h4>Strategic Insights Generated</h4>
+            <p>Business Insights agent synthesizes findings into SWOT analysis and actionable recommendations.</p>
+          </div>
+          <div class="step-arrow"><i data-lucide="chevron-right" style="width:18px;height:18px;"></i></div>
+        </div>
+        <div class="workflow-step">
+          <span class="step-num">04</span>
+          <div class="step-body">
+            <h4>Export & Share</h4>
+            <p>Download PDF executive report, PowerPoint deck, Jupyter notebook, or share via email / Discord / Slack.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPARE -->
+  <section id="compare" class="compare-section">
+    <div class="section-header">
+      <span class="section-eyebrow">Enterprise Comparison</span>
+      <h2>Why Crewlyze Beats the Alternatives</h2>
+    </div>
+    <div class="compare-table-wrapper">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th class="col-crewlyze">Crewlyze</th>
+            <th>Traditional BI<br/><small>Tableau / PowerBI</small></th>
+            <th>ChatGPT / Claude<br/><small>Web Chat</small></th>
+            <th>Custom Python<br/><small>Scripts</small></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Autonomous Multi-Agent Swarm</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> 7 Specialized Agents</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Manual</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Single-Turn</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Requires Coding</td>
+          </tr>
+          <tr>
+            <td><strong>Real-Time Token Streaming</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Built-in (SSE)</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> N/A</td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Web Only</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Complex Setup</td>
+          </tr>
+          <tr>
+            <td><strong>Unlimited Custom Viz Engine</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Matplotlib/Seaborn &lt;0.2s</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Rigid Templates</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Basic Execution</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Manual Scripting</td>
+          </tr>
+          <tr>
+            <td><strong>C-Suite PDF Executive Reports</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> ReportLab Dynamic PDF</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Manual Export</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Text Only</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Custom Scripting</td>
+          </tr>
+          <tr>
+            <td><strong>100% Offline Air-Gapped Mode</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Ollama Local</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Cloud-gated</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Requires Cloud</td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Manual Local</td>
+          </tr>
+          <tr>
+            <td><strong>Outbound Email & Discord Dispatch</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Automated (SMTP/Discord)</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Expensive Addons</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> None</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Manual Webhooks</td>
+          </tr>
+          <tr>
+            <td><strong>Read-Only SQL Timeout Guard</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> Built-in 3s Guard</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Manual Queries</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> None</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Manual Guardrails</td>
+          </tr>
+          <tr>
+            <td><strong>Zero-Compiler Setup</strong></td>
+            <td class="check-yes"><i data-lucide="check-circle-2" style="width:18px;height:18px;"></i> <code class="inline-code-sm">npx crewlyze</code></td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Complex Desktop App</td>
+            <td class="check-warn"><i data-lucide="alert-triangle" style="width:18px;height:18px;"></i> Web Browser Only</td>
+            <td class="check-no"><i data-lucide="x-circle" style="width:18px;height:18px;"></i> Complex Venv Setup</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section id="screenshots" class="screenshots-section">
+    <div class="section-header">
+      <span class="section-eyebrow">Live Application</span>
+      <h2>See It In Action</h2>
+      <p>Real screenshots captured from an active Crewlyze workspace session.</p>
+    </div>
+    <div class="screenshots-grid">
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/1.HOME PAGE.png" alt="Home Page" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Dashboard Home</h4>
+          <p>Project hub with dataset upload and recent projects</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/2.SETTINGS.png" alt="Settings" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>LLM Configuration</h4>
+          <p>Configure 100+ cloud & local LLM providers</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/3.INSIDE PROJECT.png" alt="Inside Project" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Project Workspace</h4>
+          <p>Stay-on-page workspace with data preview and navigation</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/4.CHAT AI.png" alt="AI Chat" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>AI Chat & Custom Viz</h4>
+          <p>Real-time streaming chat with 1-click PNG download</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/5.DATA ANALYSIS.png" alt="Data Analysis" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Data Analysis Pipeline</h4>
+          <p>Agent selection with dependency-enforced task cards</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/6.ANALYSING.png" alt="Analysing" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Live Analysis</h4>
+          <p>Real-time agent execution with streaming logs</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/7.BUSINESS INSIGHTS.png" alt="Business Insights" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Business Insights</h4>
+          <p>C-suite strategic insights, SWOT matrices, and risk alerts</p>
+        </div>
+      </div>
+      <div class="screenshot-card">
+        <img src="assets/Screenshots/8.VISUALIZATION.png" alt="Visualization" loading="lazy" />
+        <div class="screenshot-overlay">
+          <h4>Interactive Dashboards</h4>
+          <p>Autonomous Plotly charts with hover tooltips and zoom</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- UNIQUE FEATURES -->
+  <section class="unique-section">
+    <div class="section-header">
+      <span class="section-eyebrow">What Makes Crewlyze Unique</span>
+      <h2>Features You Won't Find Anywhere Else</h2>
+    </div>
+    <div class="unique-grid">
+      <div class="unique-card">
+        <div class="unique-number">01</div>
+        <h3>Strict Linear Pipeline Orchestration</h3>
+        <p>Unlike chaotic multi-agent frameworks, Crewlyze enforces a strict linear order. The Data Cleaner always runs first. Relationships are mapped before visualization. Insights are synthesized last. Optional agents run only when selected — never wasting LLM calls.</p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">02</div>
+        <h3>Auto-Healing Subprocess Sandbox</h3>
+        <p>Every generated Python script runs in an isolated subprocess via subprocess.run(). If execution fails, the system auto-retries with healing logic. Path traversal guards validate all file paths with .resolve() and .relative_to() security checks.</p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">03</div>
+        <h3>Smart Encoding Detection</h3>
+        <p>Automatically inspects and decodes raw files across UTF-8, Latin-1, CP1252, and ISO-8859-1 encodings. No more ingestion crashes on complex legacy enterprise files with obscure encodings.</p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">04</div>
+        <h3>Slash / Column Autocomplete Picker</h3>
+        <p>Type / in the chat input to launch an interactive dropdown listing all dataset columns with their data types (int64, float64, object). No more guessing column names.</p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">05</div>
+        <h3>Stay-on-Page Reload Persistence</h3>
+        <p>Your active project, section tab, and chat history survive browser refreshes. localStorage state management restores you to exactly where you were — no lost work on F5.</p>
+      </div>
+      <div class="unique-card">
+        <div class="unique-number">06</div>
+        <h3>Zero-Compiler Cross-Platform Launcher</h3>
+        <p>Run npx crewlyze on Windows, macOS, or Linux without needing C++ or Rust compilers. Binary wheel flags (--prefer-binary) avoid source compilation entirely.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" class="install-section">
+    <div class="install-bg">
+      <div class="install-glow"></div>
+    </div>
+    <div class="install-container">
+      <div class="section-header">
+        <span class="section-eyebrow">Get Started</span>
+        <h2>Install in Seconds, No Compiler Needed</h2>
+        <p>Three ways to run Crewlyze. Pick the one that fits your workflow.</p>
+      </div>
+      <div class="install-methods">
+        <div class="install-card">
+          <div class="install-icon windows">
+            <i data-lucide="monitor" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 1</div>
+          <h3>Windows One-Click Installer</h3>
+          <p class="install-desc">The easiest way. No Node.js or Git required. The installer registers crewlyze to your system PATH and auto-configures Python & dependencies.</p>
+          <div class="install-steps">
+            <div class="install-step"><span class="step-badge">1</span><span>Download Crewlyze_Setup_v1.2.4.exe from GitHub Releases</span></div>
+            <div class="install-step"><span class="step-badge">2</span><span>Run the installer wizard</span></div>
+            <div class="install-step"><span class="step-badge">3</span><span>Open Command Prompt and type crewlyze</span></div>
+          </div>
+          <div class="install-direct-action">
+            <a href="https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe" class="btn-primary install-download-btn" download>
+              <i data-lucide="download" style="width:18px;height:18px;"></i>
+              Download Crewlyze_Setup_v1.2.4.exe (7.9 MB)
+            </a>
+          </div>
+          <div class="install-snippet">
+            <div class="snippet-header">
+              <span class="snippet-lang">cmd</span>
+              <button class="copy-btn" data-copy="curl -L -o Crewlyze_Setup_v1.2.4.exe https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe && start Crewlyze_Setup_v1.2.4.exe">Copy</button>
+            </div>
+            <pre><code>curl -L -o Crewlyze_Setup_v1.2.4.exe https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe
+start Crewlyze_Setup_v1.2.4.exe</code></pre>
+          </div>
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases/tag/v1.2.4" class="install-link" target="_blank">
+            <i data-lucide="external-link" style="width:14px;height:14px;"></i> View GitHub Release v1.2.4
+          </a>
+        </div>
+
+        <div class="install-card featured">
+          <div class="install-icon npm">
+            <i data-lucide="box" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-badge">Recommended</div>
+          <div class="install-number">Option 2</div>
+          <h3>NPM Launcher</h3>
+          <p class="install-desc">Works out-of-the-box on Windows, macOS, and Linux. Prebuilt Python binary wheels install automatically.</p>
+          <div class="install-snippet">
+            <div class="snippet-header">
+              <span class="snippet-lang">bash</span>
+              <button class="copy-btn" data-copy="npm install -g crewlyze && crewlyze">Copy</button>
+            </div>
+            <pre><code>npm install -g crewlyze
+crewlyze</code></pre>
+          </div>
+          <p class="install-note"><i data-lucide="zap" style="width:14px;height:14px;"></i> Zero-compiler setup. The backend auto-starts on port 8000 and opens your browser automatically.</p>
+          <a href="https://www.npmjs.com/package/crewlyze" class="install-link" target="_blank">
+            <i data-lucide="external-link" style="width:14px;height:14px;"></i> View on npm
+          </a>
+        </div>
+
+        <div class="install-card">
+          <div class="install-icon docker">
+            <i data-lucide="container" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 3</div>
+          <h3>Docker Compose</h3>
+          <p class="install-desc">Full containerized deployment for production environments.</p>
+          <div class="install-snippet">
+            <div class="snippet-header">
+              <span class="snippet-lang">bash</span>
+              <button class="copy-btn" data-copy="git clone https://github.com/sowmiyan-s/crewlyze.git && cd crewlyze && docker-compose up --build -d">Copy</button>
+            </div>
+            <pre><code>git clone https://github.com/sowmiyan-s/crewlyze.git
+cd crewlyze
+docker-compose up --build -d</code></pre>
+          </div>
+        </div>
+
+        <div class="install-card">
+          <div class="install-icon python">
+            <i data-lucide="code" style="width:28px;height:28px;"></i>
+          </div>
+          <div class="install-number">Option 4</div>
+          <h3>Python Developer Setup</h3>
+          <p class="install-desc">For contributors and developers who want full control.</p>
+          <div class="install-snippet">
+            <div class="snippet-header">
+              <span class="snippet-lang">bash</span>
+              <button class="copy-btn" data-copy="git clone https://github.com/sowmiyan-s/crewlyze.git && cd crewlyze && python -m venv venv && pip install -r requirements.txt && python main.py">Copy</button>
+            </div>
+            <pre><code>git clone https://github.com/sowmiyan-s/crewlyze.git
+cd crewlyze
+python -m venv venv
+pip install -r requirements.txt
+python main.py</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section class="cta-band">
+    <div class="cta-inner">
+      <div class="cta-content">
+        <span class="cta-eyebrow">Start Your Free Analysis</span>
+        <h2>Your Data Has Answers. <span class="gradient-text">Crewlyze Finds Them.</span></h2>
+        <p>Join data teams who replaced hours of manual EDA with 3-minute AI-powered insights. MIT licensed. Free for commercial use.</p>
+        <div class="cta-actions">
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases/download/v1.2.4/Crewlyze_Setup_v1.2.4.exe" class="btn-primary btn-lg" download>
+            <i data-lucide="download" style="width:20px;height:20px;"></i> Download Windows .exe (v1.2.4)
+          </a>
+          <a href="#install" class="btn-secondary btn-lg">
+            <i data-lucide="terminal" style="width:18px;height:18px;"></i> NPM / CLI Setup
+          </a>
+          <a href="https://github.com/sowmiyan-s/crewlyze" class="btn-secondary btn-lg" target="_blank">
+            <i data-lucide="github" style="width:20px;height:20px;"></i> Star on GitHub
+          </a>
+        </div>
+        <div class="cta-shields">
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases" target="_blank">
+            <img src="https://img.shields.io/badge/Release-v1.2.4-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+          </a>
+          <a href="https://www.npmjs.com/package/crewlyze" target="_blank">
+            <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM" />
+          </a>
+          <a href="https://github.com/sowmiyan-s/crewlyze/stargazers" target="_blank">
+            <img src="https://img.shields.io/badge/Stars-%E2%98%85%20Trending-f59e0b?style=for-the-badge&logo=github" alt="Stars" />
+          </a>
+          <a href="https://opensource.org/licenses/MIT" target="_blank">
+            <img src="https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge" alt="MIT License" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="assets/logo.png" alt="Crewlyze" class="footer-logo" />
+        <span class="footer-brand-name">Crew<span class="footer-accent">lyze</span></span>
+        <p class="footer-tagline">Autonomous Multi-Agent Business Intelligence & Data Science Platform</p>
+      </div>
+      <div class="footer-links">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#screenshots">Screenshots</a>
+          <a href="#install">Install</a>
+        </div>
+        <div class="footer-col">
+          <h4>Resources</h4>
+          <a href="https://github.com/sowmiyan-s/crewlyze" target="_blank">GitHub</a>
+          <a href="https://www.npmjs.com/package/crewlyze" target="_blank">npm</a>
+          <a href="https://github.com/sowmiyan-s/crewlyze/releases" target="_blank">Releases</a>
+          <a href="#">Documentation</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">License (MIT)</a>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>Built with <i data-lucide="heart" style="width:12px;height:12px;color:var(--crimson);"></i> by <strong>Sowmiyan S</strong> and the Open Source Community</span>
+      <span>Crewlyze v1.2.4</span>
+    </div>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = btn.getAttribute('data-copy');
+        const pre = btn.closest('.install-snippet').querySelector('pre');
+        let copied = false;
+
+        // Try modern Clipboard API first (requires HTTPS / localhost)
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(() => {
+            copied = true;
+            flashCopied(btn);
+          }).catch(() => {
+            fallbackCopy(text, pre);
+          });
+        } else {
+          // Non-secure context: use execCommand fallback immediately
+          fallbackCopy(text, pre);
+        }
+      });
+
+      function fallbackCopy(text, pre) {
+        // Use a temp textarea + execCommand as a reliable fallback for HTTP
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '-9999px';
+        ta.setAttribute('readonly', '');
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          const ok = document.execCommand('copy');
+          if (ok) {
+            flashCopied(btn);
+          } else {
+            // Last resort: select the visible code block for manual copy
+            const range = document.createRange();
+            range.selectNodeContents(pre);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        } catch (e) {
+          const range = document.createRange();
+          range.selectNodeContents(pre);
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+        document.body.removeChild(ta);
+      }
+
+      function flashCopied(btn) {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.style.color = '#10b981';
+        btn.style.borderColor = '#10b981';
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.style.color = '';
+          btn.style.borderColor = '';
+        }, 1400);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/npm/v/crewlyze?style=for-the-badge&color=cb3837&logo=npm" alt="NPM Version" />
   </a>
   <a href="https://github.com/sowmiyan-s/crewlyze/releases">
-    <img src="https://img.shields.io/badge/Release-v1.2.1-7c3aed?style=for-the-badge&logo=github" alt="Release" />
+    <img src="https://img.shields.io/badge/Release-v1.2.4-7c3aed?style=for-the-badge&logo=github" alt="Release" />
   </a>
   <a href="https://python.org">
     <img src="https://img.shields.io/badge/Python-3.10%20to%203.13-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />

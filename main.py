@@ -301,7 +301,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Crewlyze API",
     description="Autonomous Multi-Agent Business Intelligence and Data Engineering Platform",
-    version="1.2.3",
+    version="1.2.4",
     lifespan=lifespan
 )
 

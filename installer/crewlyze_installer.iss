@@ -2,7 +2,7 @@
 ; Produces a standalone, globalized Windows Installer for Crewlyze
 
 #define MyAppName "Crewlyze"
-#define MyAppVersion "1.2.3"
+#define MyAppVersion "1.2.4"
 #define MyAppPublisher "Sowmiyan S"
 #define MyAppURL "https://github.com/sowmiyan-s/crewlyze"
 #define MyAppExeName "crewlyze.cmd"

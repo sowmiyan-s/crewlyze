@@ -1,6 +1,6 @@
 # Quick online check for newer installer release
 param (
-    [string]$CurrentVersion = "1.2.3",
+    [string]$CurrentVersion = "1.2.4",
     [string]$Repo = "sowmiyan-s/crewlyze"
 )
 

@@ -119,21 +119,24 @@ if (fs.existsSync(mainPyPath)) {
 }
 
 // 5. Sync README.md Release badge
-if (fs.existsSync(readmePath)) {
-  try {
-    let content = fs.readFileSync(readmePath, 'utf8');
-    const releaseBadgeRegex = /(img\.shields\.io\/badge\/Release-v)[^"-]+(-7c3aed)/;
-    if (releaseBadgeRegex.test(content)) {
-      const updatedContent = content.replace(releaseBadgeRegex, `$1${version}$2`);
-      if (content !== updatedContent) {
-        fs.writeFileSync(readmePath, updatedContent, 'utf8');
-        console.log('✅ Updated README.md release badge');
-      } else {
-        console.log('➖ README.md release badge is already up to date');
+const readmeFiles = [readmePath, path.join(root, 'README-NPM.md')];
+for (const rPath of readmeFiles) {
+  if (fs.existsSync(rPath)) {
+    try {
+      let content = fs.readFileSync(rPath, 'utf8');
+      const releaseBadgeRegex = /(img\.shields\.io\/badge\/Release-v)[^"-]+(-7c3aed)/;
+      if (releaseBadgeRegex.test(content)) {
+        const updatedContent = content.replace(releaseBadgeRegex, `$1${version}$2`);
+        if (content !== updatedContent) {
+          fs.writeFileSync(rPath, updatedContent, 'utf8');
+          console.log(`✅ Updated ${path.basename(rPath)} release badge`);
+        } else {
+          console.log(`➖ ${path.basename(rPath)} release badge is already up to date`);
+        }
       }
+    } catch (err) {
+      console.error(`❌ Error updating ${path.basename(rPath)}:`, err.message);
     }
-  } catch (err) {
-    console.error('❌ Error updating README.md:', err.message);
   }
 }
 
@@ -236,5 +239,36 @@ if (fs.existsSync(buildBatPath)) {
   }
 }
 
+// 11. Sync website files (promo.html and index.html)
+const websiteFiles = [
+  path.join(root, 'website', 'promo.html'),
+  path.join(root, 'website', 'index.html')
+];
+
+for (const webFile of websiteFiles) {
+  if (fs.existsSync(webFile)) {
+    try {
+      let content = fs.readFileSync(webFile, 'utf8');
+      let updatedContent = content
+        .replace(/Crewlyze_Setup_v[0-9]+\.[0-9]+\.[0-9]+\.exe/g, `Crewlyze_Setup_v${version}.exe`)
+        .replace(/Release-v[0-9]+\.[0-9]+\.[0-9]+/g, `Release-v${version}`)
+        .replace(/Crewlyze v[0-9]+\.[0-9]+\.[0-9]+/g, `Crewlyze v${version}`)
+        .replace(/\/download\/v[0-9]+\.[0-9]+\.[0-9]+\//g, `/download/v${version}/`)
+        .replace(/Download Installer v[0-9]+\.[0-9]+\.[0-9]+/g, `Download Installer v${version}`)
+        .replace(/Installer v[0-9]+\.[0-9]+\.[0-9]+/g, `Installer v${version}`);
+
+      if (content !== updatedContent) {
+        fs.writeFileSync(webFile, updatedContent, 'utf8');
+        console.log(`✅ Updated ${path.relative(root, webFile)} version references`);
+      } else {
+        console.log(`➖ ${path.relative(root, webFile)} is already up to date`);
+      }
+    } catch (err) {
+      console.error(`❌ Error updating ${path.relative(root, webFile)}:`, err.message);
+    }
+  }
+}
+
 console.log('✨ Version synchronization complete!');
+
 

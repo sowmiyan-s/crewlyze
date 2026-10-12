@@ -372,6 +372,79 @@ code.inline-code-sm {
   font-size: 0.95rem;
 }
 
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.btn-ghost:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-mid);
+}
+
+.hero-version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-low);
+  border-radius: var(--r-full);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  backdrop-filter: blur(8px);
+  margin-top: 4px;
+}
+
+.hero-version-pill .pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.hero-version-pill .pill-link {
+  color: var(--crimson-light);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.hero-version-pill .pill-link:hover {
+  text-decoration: underline;
+}
+
+.install-direct-action {
+  margin: 14px 0 10px;
+}
+
+.install-download-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 13px 20px;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--crimson) 0%, #b91c1c 100%);
+  border-radius: var(--r-md);
+}
+
+.install-download-btn:hover {
+  background: linear-gradient(135deg, var(--crimson-light) 0%, var(--crimson) 100%);
+}
+
+
 .hero-stats {
   display: flex;
   align-items: center;
