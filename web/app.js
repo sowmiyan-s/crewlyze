@@ -250,7 +250,6 @@ const els = {
   // Sidebar Export
   sidebarProjectActions: $('sidebarProjectActions'),
   sidebarExportPdfBtn:   $('sidebarExportPdfBtn'),
-  sidebarExportPptxBtn:  $('sidebarExportPptxBtn'),
   sidebarExportZipBtn:   $('sidebarExportZipBtn'),
   sidebarDownloadCsvBtn: $('sidebarDownloadCsvBtn'),
   sidebarReRunBtn:       $('sidebarReRunBtn'),
@@ -704,7 +703,6 @@ function populateSettingsModal() {
 
   const featKeys = [
     ['featExportPdf', 'feat_export_pdf'],
-    ['featExportPptx', 'feat_export_pptx'],
     ['featExportNotebook', 'feat_export_notebook'],
     ['featReRun', 'feat_rerun'],
     ['featShareDiscord', 'feat_share_discord'],
@@ -783,7 +781,6 @@ async function saveSettingsModal() {
 
   const featKeys = [
     ['featExportPdf', 'feat_export_pdf'],
-    ['featExportPptx', 'feat_export_pptx'],
     ['featExportNotebook', 'feat_export_notebook'],
     ['featReRun', 'feat_rerun'],
     ['featShareDiscord', 'feat_share_discord'],
@@ -1897,14 +1894,12 @@ async function updateSidebarProjectActionsVisibility(sec) {
           const emailEnabled = Array.isArray(cfg.SMTP_ACCOUNTS) && cfg.SMTP_ACCOUNTS.length > 0;
           
           const pdfEnabled      = localStorage.getItem('feat_export_pdf') !== 'false';
-          const pptxEnabled     = localStorage.getItem('feat_export_pptx') !== 'false';
           const notebookEnabled = localStorage.getItem('feat_export_notebook') !== 'false';
           const rerunEnabled    = localStorage.getItem('feat_rerun') !== 'false';
           const discordFeat     = localStorage.getItem('feat_share_discord') !== 'false';
           const csvEnabled      = localStorage.getItem('feat_download_csv') !== 'false';
 
           document.getElementById('sidebarExportPdfBtn')?.classList.toggle('hidden', !pdfEnabled);
-          document.getElementById('sidebarExportPptxBtn')?.classList.toggle('hidden', !pptxEnabled);
           document.getElementById('sidebarExportNotebookBtn')?.classList.toggle('hidden', !notebookEnabled);
           document.getElementById('sidebarDownloadCsvBtn')?.classList.toggle('hidden', !csvEnabled);
           document.getElementById('sidebarReRunBtn')?.classList.toggle('hidden', !rerunEnabled);
@@ -2604,24 +2599,18 @@ window.toggleConfigCleaningRules = function() {
 
 // ── Task card dependency logic ───────────────────────────────────────────────
 function syncTaskCards() {
-  const cleanChecked     = els.taskCleaning ? els.taskCleaning.checked : true;
   const relationsChecked = els.taskRelations ? els.taskRelations.checked : true;
 
-  // Relations & Insights require Cleaning
-  if (!cleanChecked) {
-    if (els.taskRelations) els.taskRelations.checked = false;
-    if (els.taskInsights)  els.taskInsights.checked  = false;
-  }
   // Viz requires Relations
   if (!relationsChecked && els.taskViz) {
     els.taskViz.checked = false;
   }
 
-  // Update visual state for all 7 agent cards
+  // Update visual state for all 7 agent cards (zero cleaning dependency for BI & Growth)
   [
     [els.taskCleaning,   els.taskCardCleaning,   true],
-    [els.taskRelations,  els.taskCardRelations,  cleanChecked],
-    [els.taskInsights,   els.taskCardInsights,   cleanChecked],
+    [els.taskRelations,  els.taskCardRelations,  true],
+    [els.taskInsights,   els.taskCardInsights,   true],
     [els.taskViz,        els.taskCardViz,        els.taskRelations ? els.taskRelations.checked : true],
     [els.taskPredictive, els.taskCardPredictive, true],
     [els.taskAnomaly,    els.taskCardAnomaly,    true],
@@ -2693,8 +2682,8 @@ $$('.depth-option').forEach(opt => {
     if (radio) radio.checked = true;
 
     if (isDeep) {
-      // Deep Analysis: enable all 7 specialized agents
-      if (els.taskCleaning)   els.taskCleaning.checked = true;
+      // Deep Growth Analysis: enable all specialized BI & Growth agents
+      if (els.taskCleaning)   els.taskCleaning.checked = false;
       if (els.taskRelations)  els.taskRelations.checked = true;
       if (els.taskInsights)   els.taskInsights.checked = true;
       if (els.taskViz)        els.taskViz.checked = true;
@@ -2702,8 +2691,8 @@ $$('.depth-option').forEach(opt => {
       if (els.taskAnomaly)    els.taskAnomaly.checked = true;
       if (els.taskTrend)      els.taskTrend.checked = true;
     } else {
-      // Standard Analysis: reset to core 4 agents
-      if (els.taskCleaning)   els.taskCleaning.checked = true;
+      // Standard BI Analysis: reset to core growth agents (no cleaning)
+      if (els.taskCleaning)   els.taskCleaning.checked = false;
       if (els.taskRelations)  els.taskRelations.checked = true;
       if (els.taskInsights)   els.taskInsights.checked = true;
       if (els.taskViz)        els.taskViz.checked = true;
@@ -2719,13 +2708,20 @@ $$('.depth-option').forEach(opt => {
 els.runAnalysisBtn.addEventListener('click', async () => {
   if (!checkApiKeySet()) return;
   const tasks = [];
-  if (els.taskCleaning && els.taskCleaning.checked)     tasks.push('cleaning');
-  if (els.taskRelations && els.taskRelations.checked)   tasks.push('relations');
-  if (els.taskInsights && els.taskInsights.checked)     tasks.push('insights');
-  if (els.taskViz && els.taskViz.checked)              tasks.push('visualization');
-  if (els.taskPredictive && els.taskPredictive.checked) tasks.push('predictive');
-  if (els.taskAnomaly && els.taskAnomaly.checked)       tasks.push('anomaly');
-  if (els.taskTrend && els.taskTrend.checked)           tasks.push('trend');
+  // 1. Gather checked individual agents
+  document.querySelectorAll('input[name="agents"]:checked').forEach(cb => {
+    tasks.push(cb.value);
+  });
+  // 2. If none checked, gather checked categories
+  if (!tasks.length) {
+    document.querySelectorAll('.cat-checkbox:checked').forEach(cb => {
+      tasks.push(cb.getAttribute('data-cat'));
+    });
+  }
+  // 3. Fallback to growth_bi preset
+  if (!tasks.length) {
+    tasks.push('growth_bi');
+  }
 
   if (!tasks.length) { toast('Select at least one task.', 'warning'); return; }
 
@@ -2910,8 +2906,8 @@ async function _processStageQueue() {
 
   renderStagePov(stage);
 
-  // Guarantee 10 full seconds of visual display per agent stage
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  // Fast, responsive visual transition matching live backend SSE stream
+  await new Promise(resolve => setTimeout(resolve, 600));
 
   document.querySelectorAll('.stage-item').forEach(el => {
     if (el.getAttribute('data-stage') === stage) {
@@ -2938,20 +2934,15 @@ function renderStagePov(stage) {
     els.stagePovPanel.innerHTML = mk(
       '#38bdf8',
       '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#38bdf8" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16v16H4z" opacity=".4"/><path d="M8 8h8M8 12h5M8 16h3"/></svg>',
-      'Dataset Matrix Inspector',
-      'Profiling schema types, column cardinality, null density, and descriptive statistical distributions across all features...',
-      `<div class="pov-profiling-grid">
-        <div class="ppg-col">
-          <div class="ppg-label" style="color:#38bdf8">SCHEMA PROFILE</div>
-          ${['col_a: int64','col_b: float32','col_c: object','col_d: datetime','col_e: bool'].map((r,i)=>`<div class="ppg-row" style="animation-delay:${i*0.18}s">${r}</div>`).join('')}
-        </div>
-        <div class="ppg-col">
-          <div class="ppg-label" style="color:#38bdf8">NULL DENSITY</div>
-          ${[92,78,55,100,41].map((v,i)=>`<div class="ppg-bar-wrap" style="animation-delay:${i*0.2}s"><div class="ppg-bar" style="width:${v}%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);"></div><span>${v}%</span></div>`).join('')}
-        </div>
-        <div class="ppg-col">
-          <div class="ppg-label" style="color:#38bdf8">STATISTICS</div>
-          ${['mean: 42.3','std: 11.7','min: 0.1','max: 99.9','median: 40.2'].map((r,i)=>`<div class="ppg-stat" style="animation-delay:${i*0.18}s">${r}</div>`).join('')}
+      'Dataset Matrix & Schema Inspector',
+      'Profiling schema types, column cardinality, null density, and empirical baseline distributions across all features...',
+      `<div class="pov-cleaning-full">
+        <div class="pcf-status-bar"><div class="pcf-status-fill"></div><span class="pcf-status-txt">Inspecting Full Dataset Dimensions...</span></div>
+        <div class="pcf-ops">
+          <div class="pcf-op" style="animation-delay:0s"><span class="pcf-dot" style="background:#38bdf8;"></span>[SCHEMA] Auditing column types &amp; non-null counts</div>
+          <div class="pcf-op" style="animation-delay:0.2s"><span class="pcf-dot" style="background:#38bdf8;"></span>[CARDINALITY] Mapping high-variance categorical &amp; numeric metrics</div>
+          <div class="pcf-op" style="animation-delay:0.4s"><span class="pcf-dot" style="background:#38bdf8;"></span>[DISTRIBUTION] Calculating medians, means &amp; interquartile bounds</div>
+          <div class="pcf-op" style="animation-delay:0.6s"><span class="pcf-dot" style="background:#38bdf8;"></span>[HYGIENE] Zero-loss validation for multi-agent investigation</div>
         </div>
       </div>`
     );
@@ -2959,14 +2950,14 @@ function renderStagePov(stage) {
   } else if (stage === 'cleaning') {
     els.stagePovPanel.innerHTML = mk(
       '#10b981',
-      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>',
-      'Data Sanitizer Active',
-      'Scanning column profiles, auditing data formatting anomalies, and executing Python sanitization code on the full dataset...',
+      '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7M4 7c0-2 1.5-3 3.5-3h9c2 0 3.5 1 3.5 3M4 7h16m-8 4v6m-3-3h6"/></svg>',
+      'Raw Data Ingestion & Growth Profiling Active',
+      'Auditing raw business data fidelity, detecting commercial domain signatures, and establishing KPI baselines for autonomous growth analysis...',
       `<div class="pov-cleaning-full">
         <div class="pcf-laser"></div>
-        <div class="pcf-status-bar"><div class="pcf-status-fill"></div><span class="pcf-status-txt">Sanitizing...</span></div>
+        <div class="pcf-status-bar"><div class="pcf-status-fill"></div><span class="pcf-status-txt">Ingesting Raw Data...</span></div>
         <div class="pcf-ops">
-          ${['[DTYPE] int64 → coerced','[NULLS] 3.2% → median-filled','[STRIP] whitespace removed','[DEDUP] 14 rows removed','[ENCODE] categoricals mapped','[OUTLIER] IQR clipped'].map((op,i)=>`<div class="pcf-op" style="animation-delay:${i*0.4}s"><span class="pcf-dot"></span>${op}</div>`).join('')}
+          ${['[FIDELITY] 100% Raw data retained', '[DOMAIN] Adaptive commercial model', '[DIMENSIONS] Core metrics & cohorts mapped', '[SCHEMA] Data integrity validated', '[ZERO CLEANING] Direct analysis mode', '[PERFORMANCE] Baseline KPIs indexed'].map((op,i)=>`<div class="pcf-op" style="animation-delay:${i*0.2}s"><span class="pcf-dot"></span>${op}</div>`).join('')}
         </div>
       </div>`
     );
@@ -2975,30 +2966,28 @@ function renderStagePov(stage) {
     els.stagePovPanel.innerHTML = mk(
       '#06b6d4',
       '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
-      'Correlation Detector Engaged',
-      'Computing Pearson/Spearman coefficients, identifying multi-variable dependencies, and mapping full feature relationship graph...',
+      'Growth Opportunity Scout Active',
+      'Executing computational tools to discover cross-variable commercial leverage, high-impact growth connections, and revenue driver relationships...',
       `<div class="pov-relations-full">
-        <svg class="prf-svg" viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+        <svg class="prf-svg" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
           <defs><filter id="nd"><feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#06b6d4" flood-opacity="0.8"/></filter></defs>
-          <line x1="200" y1="110" x2="80" y2="50" stroke="#06b6d4" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge"/>
-          <line x1="200" y1="110" x2="80" y2="170" stroke="#22d3ee" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.3s"/>
-          <line x1="200" y1="110" x2="320" y2="50" stroke="#06b6d4" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.6s"/>
-          <line x1="200" y1="110" x2="320" y2="170" stroke="#22d3ee" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.9s"/>
-          <line x1="200" y1="110" x2="200" y2="20" stroke="#0891b2" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:1.2s"/>
-          <line x1="200" y1="110" x2="200" y2="200" stroke="#0891b2" stroke-width="1.5" opacity="0.5" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:1.5s"/>
-          <circle cx="80" cy="50" r="18" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node"/>
-          <circle cx="80" cy="170" r="18" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.3s"/>
-          <circle cx="320" cy="50" r="18" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.6s"/>
-          <circle cx="320" cy="170" r="18" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.9s"/>
-          <circle cx="200" cy="20" r="18" fill="#0f172a" stroke="#0891b2" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:1.2s"/>
-          <circle cx="200" cy="200" r="18" fill="#0f172a" stroke="#0891b2" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:1.5s"/>
-          <circle cx="200" cy="110" r="28" fill="rgba(6,182,212,0.15)" stroke="#06b6d4" stroke-width="2.5" filter="url(#nd)" class="prf-hub"/>
-          <text x="200" y="115" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="700">CORE</text>
+          <line x1="200" y1="100" x2="80" y2="45" stroke="#06b6d4" stroke-width="1.5" opacity="0.6" stroke-dasharray="5 3" class="prf-edge"/>
+          <line x1="200" y1="100" x2="80" y2="155" stroke="#22d3ee" stroke-width="1.5" opacity="0.6" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.3s"/>
+          <line x1="200" y1="100" x2="320" y2="45" stroke="#06b6d4" stroke-width="1.5" opacity="0.6" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.6s"/>
+          <line x1="200" y1="100" x2="320" y2="155" stroke="#22d3ee" stroke-width="1.5" opacity="0.6" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:0.9s"/>
+          <line x1="200" y1="100" x2="200" y2="20" stroke="#0891b2" stroke-width="1.5" opacity="0.6" stroke-dasharray="5 3" class="prf-edge" style="animation-delay:1.2s"/>
+          <circle cx="80" cy="45" r="16" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node"/>
+          <circle cx="80" cy="155" r="16" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.3s"/>
+          <circle cx="320" cy="45" r="16" fill="#0f172a" stroke="#06b6d4" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.6s"/>
+          <circle cx="320" cy="155" r="16" fill="#0f172a" stroke="#22d3ee" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:0.9s"/>
+          <circle cx="200" cy="20" r="16" fill="#0f172a" stroke="#0891b2" stroke-width="2" filter="url(#nd)" class="prf-node" style="animation-delay:1.2s"/>
+          <circle cx="200" cy="100" r="26" fill="rgba(6,182,212,0.18)" stroke="#06b6d4" stroke-width="2.5" filter="url(#nd)" class="prf-hub"/>
+          <text x="200" y="104" text-anchor="middle" fill="#22d3ee" font-size="9" font-weight="700">SCOUT</text>
         </svg>
         <div class="prf-legend">
-          <div class="prf-stat">0.82 <span>Revenue–Profit</span></div>
-          <div class="prf-stat">0.74 <span>Units–Revenue</span></div>
-          <div class="prf-stat">0.61 <span>Cost–Margin</span></div>
+          <div class="prf-stat"><span style="color:#06b6d4;">Active Tool</span> <span>query_segment_performance</span></div>
+          <div class="prf-stat"><span style="color:#22d3ee;">Correlation Engine</span> <span>calculate_driver_correlations</span></div>
+          <div class="prf-stat"><span style="color:#38bdf8;">Objective</span> <span>High-Impact Growth Levers</span></div>
         </div>
       </div>`
     );
@@ -3007,22 +2996,22 @@ function renderStagePov(stage) {
     els.stagePovPanel.innerHTML = mk(
       '#f59e0b',
       '<svg style="width:22px;height:22px;vertical-align:middle;margin-right:10px;" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>',
-      'Strategic Business Insights',
-      'Correlating discovered data patterns to business implications and drafting actionable McKinsey-grade executive strategy recommendations...',
+      'Chief Growth Strategist Engaged',
+      'Synthesizing high-ROI growth levers (Growth in X), diagnosing operational bottlenecks (Problem in Y likely), and drafting executive scaling roadmaps...',
       `<div class="pov-insights-full">
         <div class="pif-orb"></div>
         <div class="pif-cards">
           <div class="pif-card" style="animation-delay:0s;border-color:rgba(245,158,11,0.35)">
-            <div class="pif-card-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">&#x1F4A1;</div>
-            <div><div class="pif-card-title">Key Driver Analysis</div><div class="pif-card-desc">Identifying top revenue and growth levers across all business segments</div></div>
+            <div class="pif-card-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b;">🚀</div>
+            <div><div class="pif-card-title">Growth Levers (Growth in X)</div><div class="pif-card-desc">Identifying top revenue, customer, and volume expansion vectors</div></div>
           </div>
-          <div class="pif-card" style="animation-delay:0.4s;border-color:rgba(239,68,68,0.35)">
-            <div class="pif-card-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;">&#x26A0;&#xFE0F;</div>
-            <div><div class="pif-card-title">Risk &amp; Opportunity Matrix</div><div class="pif-card-desc">Mapping upside opportunities against operational risk vectors</div></div>
+          <div class="pif-card" style="animation-delay:0.3s;border-color:rgba(239,68,68,0.35)">
+            <div class="pif-card-icon" style="background:rgba(239,68,68,0.15);color:#ef4444;">⚠️</div>
+            <div><div class="pif-card-title">Problem Diagnostics (Problem in Y Likely)</div><div class="pif-card-desc">Diagnosing operational friction points, root causes, and immediate safeguards</div></div>
           </div>
-          <div class="pif-card" style="animation-delay:0.8s;border-color:rgba(34,197,94,0.35)">
-            <div class="pif-card-icon" style="background:rgba(34,197,94,0.15);color:#22c55e;">&#x2705;</div>
-            <div><div class="pif-card-title">Strategic Recommendations</div><div class="pif-card-desc">Drafting board-level action roadmap with prioritized initiatives</div></div>
+          <div class="pif-card" style="animation-delay:0.6s;border-color:rgba(34,197,94,0.35)">
+            <div class="pif-card-icon" style="background:rgba(34,197,94,0.15);color:#22c55e;">🎯</div>
+            <div><div class="pif-card-title">Strategic Scaling Roadmap</div><div class="pif-card-desc">Drafting board-ready 30-60-90 day milestone execution plan</div></div>
           </div>
         </div>
       </div>`
@@ -3040,15 +3029,15 @@ function renderStagePov(stage) {
             <span>Target Feature Importance Weight Matrix</span><span>Scikit-Learn ML</span>
           </div>
           <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0s;"></div></div>
-          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0.5s;"></div></div>
-          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 1.0s;"></div></div>
+          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0.3s;"></div></div>
+          <div class="anim-ml-meter-bar"><div class="anim-ml-meter-fill" style="animation-delay: 0.6s;"></div></div>
         </div>
       </div>`;
 
   } else if (stage === 'anomaly') {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
-        <div class="pov-title"><i data-lucide="shield-alert" style="width:20px; height:20px; color:#ef4444; vertical-align:middle; margin-right:8px;"></i> Anomaly & Risk Auditor</div>
+        <div class="pov-title"><i data-lucide="shield-alert" style="width:20px; height:20px; color:#ef4444; vertical-align:middle; margin-right:8px;"></i> Anomaly &amp; Risk Auditor</div>
         <div class="pov-desc">Scrutinizing distributions for statistical IQR/Z-score outliers, extreme variance, and compliance risk factors...</div>
       </div>
       <div class="pov-content">
@@ -3059,8 +3048,8 @@ function renderStagePov(stage) {
             <div class="anim-blip-red" style="bottom:30px; right:45px; animation-delay:0.6s;"></div>
           </div>
           <div style="margin-left:24px; display:flex; flex-direction:column; gap:6px;">
-            <div style="font-size:0.85rem; font-weight:700; color:#ef4444;">🛡️ Scanning IQR & Z-score Outliers</div>
-            <div style="font-size:0.78rem; color:var(--text-secondary);">Auditing dataset variance for risk spikes...</div>
+            <div style="font-size:0.85rem; font-weight:700; color:#ef4444;">🛡️ Scanning IQR &amp; Z-score Outliers</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary);">Auditing dataset variance for risk spikes &amp; margin leakage...</div>
           </div>
         </div>
       </div>`;
@@ -3069,7 +3058,7 @@ function renderStagePov(stage) {
     els.stagePovPanel.innerHTML = `
       <div class="pov-header">
         <div class="pov-title"><i data-lucide="trending-up" style="width:20px; height:20px; color:#14b8a6; vertical-align:middle; margin-right:8px;"></i> Time-Series Trend Analyst</div>
-        <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum & YoY growth projections...</div>
+        <div class="pov-desc">Detecting temporal columns and calculating trajectory momentum &amp; period-over-period growth projections...</div>
       </div>
       <div class="pov-content" style="overflow:visible !important; padding: 24px;">
         <div class="anim-trend-wrap" style="height:240px; overflow:visible !important;">
@@ -3088,16 +3077,14 @@ function renderStagePov(stage) {
                 </feMerge>
               </filter>
             </defs>
-            <!-- Unclipped smooth curve remaining well within viewBox bounds -->
             <path class="anim-trend-line" d="M 15 80 Q 60 40, 110 58 T 180 28 T 225 32" stroke="url(#trendGrad)" filter="url(#trendGlow)"></path>
-            <!-- Interactive Data Points -->
-            <circle cx="15" cy="80" r="5" class="trend-node-dot" data-info="Start Baseline: 100% (Historical Base)" />
-            <circle cx="60" cy="40" r="5" class="trend-node-dot" data-info="Q1 Trajectory: +28.4% YoY Expansion" />
-            <circle cx="110" cy="58" r="5" class="trend-node-dot" data-info="Q2 Mid-Cycle Adjustment: +19.1% Growth" />
-            <circle cx="180" cy="28" r="6" class="trend-node-dot active-pulse" data-info="Q3 Forecast Peak: +76.5% CAGR Horizon" />
-            <circle cx="225" cy="32" r="5" class="trend-node-dot" data-info="Q4 Steady-State Stabilization" />
+            <circle cx="15" cy="80" r="5" class="trend-node-dot" data-info="Historical Base Period" />
+            <circle cx="60" cy="40" r="5" class="trend-node-dot" data-info="Velocity Acceleration Phase" />
+            <circle cx="110" cy="58" r="5" class="trend-node-dot" data-info="Mid-Cycle Trend Point" />
+            <circle cx="180" cy="28" r="6" class="trend-node-dot active-pulse" data-info="Peak Trajectory Momentum" />
+            <circle cx="225" cy="32" r="5" class="trend-node-dot" data-info="Forward Run-Rate Horizon" />
           </svg>
-          <div class="trend-hover-badge" id="trendHoverBadge">Hover data nodes to inspect trajectory metrics</div>
+          <div class="trend-hover-badge" id="trendHoverBadge">Hover data nodes to inspect trajectory phase</div>
         </div>
       </div>`;
 
@@ -3107,12 +3094,12 @@ function renderStagePov(stage) {
       if (dots && badge) {
         dots.forEach(dot => {
           dot.addEventListener('mouseenter', () => {
-            badge.textContent = dot.getAttribute('data-info') || 'Trajectory node active';
+            badge.textContent = dot.getAttribute('data-info') || 'Trajectory phase active';
             badge.style.color = '#ffffff';
             badge.style.background = 'rgba(45, 212, 191, 0.3)';
           });
           dot.addEventListener('mouseleave', () => {
-            badge.textContent = 'Hover data nodes to inspect trajectory metrics';
+            badge.textContent = 'Hover data nodes to inspect trajectory phase';
             badge.style.color = '#2dd4bf';
             badge.style.background = 'rgba(20, 184, 166, 0.12)';
           });
@@ -3153,32 +3140,30 @@ function renderStagePov(stage) {
 }
 
 function markStage(stage, status) {
-  if (status === 'active') {
-    queueStagePov(stage);
-  } else {
-    const el = document.querySelector(`.stage-item[data-stage="${stage}"]`);
-    if (el) {
+  const el = document.querySelector(`.stage-item[data-stage="${stage}"]`);
+  if (el) {
+    if (status === 'active') {
+      el.classList.add('active');
+      el.classList.remove('done');
+    } else if (status === 'done') {
       el.classList.remove('active');
-      el.classList.add(status);
+      el.classList.add('done');
     }
   }
 }
 
 let _activeStage = null;
-const STAGE_ORDER = ['cleaning', 'relations', 'insights', 'predictive', 'anomaly', 'trend', 'visualization', 'plotly'];
+const STAGE_ORDER = ['data_analysis', 'business_analysis', 'data_mining', 'predictive_analysis', 'eda'];
 
 function updateProgressTrack(newStage) {
   const newIdx = STAGE_ORDER.indexOf(newStage);
   if (newIdx === -1) return;
 
   const currentIdx = STAGE_ORDER.indexOf(_activeStage);
-  
-  // We only progress forward. If newIdx is less than or equal to currentIdx, ignore.
-  if (newIdx <= currentIdx) return;
-
-  // Mark all stages before newStage as done
-  for (let i = 0; i < newIdx; i++) {
-    markStage(STAGE_ORDER[i], 'done');
+  if (currentIdx !== -1 && newIdx > currentIdx) {
+    for (let i = 0; i < newIdx; i++) {
+      markStage(STAGE_ORDER[i], 'done');
+    }
   }
 
   // Mark newStage as active
@@ -3187,158 +3172,65 @@ function updateProgressTrack(newStage) {
 
   // Update notification stage text
   const labels = {
-    cleaning:      'Cleaning dataset...',
-    relations:     'Mapping relationships...',
-    insights:      'Generating BI insights...',
-    predictive:    'Training Auto-ML models...',
-    anomaly:       'Auditing risk & outliers...',
-    trend:         'Forecasting time-series...',
-    visualization: 'Exporting charts...',
-    plotly:        'Building Plotly dashboards...'
+    data_analysis:       'Running Data Analysis Domain...',
+    business_analysis:   'Running Business Analysis Domain...',
+    data_mining:         'Running Data Mining Domain...',
+    predictive_analysis: 'Running Predictive Analysis Domain...',
+    eda:                 'Compiling Visualizations & EDA...'
   };
+
   const text = labels[newStage] || 'Analysing...';
   const el = $('notifActiveJob');
   if (el) el.textContent = text;
-  addNotification('Stage Transition', `Analysis transitioned to stage: ${newStage}`);
-
-  // Update Multi-Agent Progress Stepper
-  updatePipelineStepper(newStage);
+  if (typeof addNotification === 'function') {
+    addNotification('Domain Transition', `Switched execution context to: ${newStage.replace(/_/g, ' ').toUpperCase()}`);
+  }
 }
 
-function updatePipelineStepper(newStage) {
-  const stepper = document.getElementById('pipelineProgressStepper');
-  if (!stepper) return;
-
-  const badge = document.getElementById('stepperStatusBadge');
-  const items = stepper.querySelectorAll('.stepper-item');
-
-  const stageMap = {
-    cleaning: 1,
-    relations: 2,
-    insights: 3,
-    visualization: 4,
-    predictive: 5,
-    anomaly: 6,
-    trend: 7,
-    plotly: 8,
-    completed: 9
-  };
-
-  const currentNum = stageMap[newStage] || 0;
-
-  items.forEach((item) => {
-    const agent = item.getAttribute('data-agent');
-    const agentNum = agent === 'cleaner' ? 1
-      : agent === 'relation' ? 2
-      : agent === 'insights' ? 3
-      : agent === 'visualizer' || agent === 'visualization' ? 4
-      : agent === 'predictive' ? 5
-      : agent === 'anomaly' ? 6
-      : agent === 'trend' ? 7
-      : 8;
-    item.classList.remove('active', 'completed');
-    if (agentNum < currentNum || newStage === 'completed') {
-      item.classList.add('completed');
-    } else if (agentNum === currentNum) {
-      item.classList.add('active');
-    }
-  });
-
-  if (badge) {
-    if (newStage === 'completed') {
-      badge.textContent = '✓ Pipeline Completed';
-      badge.style.color = '#10b981';
-      badge.style.borderColor = 'rgba(16,185,129,0.3)';
-    } else if (currentNum > 0) {
-      badge.textContent = `Running Stage ${currentNum}/8...`;
-      badge.style.color = '#ff6b6e';
-      badge.style.borderColor = 'rgba(255,107,110,0.3)';
-    }
+function updatePipelineStepper(status) {
+  const counterEl = $('agentsProgressCounter');
+  const curAgentEl = $('currentAgentRunningText');
+  if (status === 'completed') {
+    if (counterEl) counterEl.textContent = 'Completed (All Agents)';
+    if (curAgentEl) curAgentEl.textContent = '✓ Multi-Agent Pipeline Complete';
   }
 }
 
 function inferStageFromLog(line) {
   const ll = line.toLowerCase();
   
-  // First, check for explicit stage indicators from stdout!
-  if (ll.includes('[stage 1/4]') || ll.includes('running data cleaner') || ll.includes('data clean')) {
-    return 'cleaning';
-  }
-  if (ll.includes('[stage 2/4]') || ll.includes('running relation analyst') || ll.includes('relation analyst + bi analyst')) {
-    return 'relations';
-  }
-  if (ll.includes('running bi analyst') || ll.includes('business intelligence analyst') || ll.includes('generating recommendations') || ll.includes('insights complete')) {
-    return 'insights';
-  }
-  if (ll.includes('predictive') || ll.includes('auto-ml') || ll.includes('random forest')) {
-    return 'predictive';
-  }
-  if (ll.includes('anomaly') || ll.includes('outlier') || ll.includes('risk audit')) {
-    return 'anomaly';
-  }
-  if (ll.includes('trend') || ll.includes('time-series') || ll.includes('growth momentum')) {
-    return 'trend';
-  }
-  if (ll.includes('[stage 3/4]') || ll.includes('running data visualizer') || ll.includes('visualization complete')) {
-    return 'visualization';
-  }
-  if (ll.includes('[stage 4/4]') || ll.includes('building interactive plotly charts') || ll.includes('plotly_charts') || ll.includes('interactive chart')) {
-    return 'plotly';
+  // Match live agent execution format: e.g. "[1/9] Executing data_cleaner (Data Cleaner Agent)..."
+  const execMatch = line.match(/\[(\d+\/\d+)\]\s+Executing\s+([^\n(]+)/i);
+  if (execMatch) {
+    const curAgentEl = $('currentAgentRunningText');
+    const counterEl = $('agentsProgressCounter');
+    if (curAgentEl) curAgentEl.textContent = `⚡ Executing: ${execMatch[2].trim()}`;
+    if (counterEl) counterEl.textContent = `Agent ${execMatch[1]}`;
   }
 
-  // Fallback to keywords but with strict boundary matching / ordering
-  for (const stage of STAGE_ORDER) {
-    const keywords = STAGE_KEYWORDS[stage];
-    if (keywords.some(k => {
-      if (k === 'chart' || k === 'plot') {
-        return ll.includes(k) && !ll.includes('plotly');
-      }
-      return ll.includes(k);
-    })) {
-      return stage;
-    }
+  if (ll.includes('data_analysis') || ll.includes('data cleaner') || ll.includes('statistical analysis') || ll.includes('comparative analysis') || ll.includes('trend analysis') || ll.includes('insight discovery')) {
+    return 'data_analysis';
   }
+  if (ll.includes('business_analysis') || ll.includes('sales analysis') || ll.includes('profitability') || ll.includes('expense optimization') || ll.includes('customer intelligence') || ll.includes('decision support')) {
+    return 'business_analysis';
+  }
+  if (ll.includes('data_mining') || ll.includes('pattern discovery') || ll.includes('relationship analysis') || ll.includes('segmentation') || ll.includes('anomaly detection') || ll.includes('association mining')) {
+    return 'data_mining';
+  }
+  if (ll.includes('predictive_analysis') || ll.includes('sales forecasting') || ll.includes('budget forecasting') || ll.includes('demand forecasting') || ll.includes('risk prediction') || ll.includes('what-if') || ll.includes('whatif')) {
+    return 'predictive_analysis';
+  }
+  if (ll.includes('eda') || ll.includes('visualization') || ll.includes('dataset explorer') || ll.includes('quality inspector') || ll.includes('storytelling') || ll.includes('plotly')) {
+    return 'eda';
+  }
+
   return null;
 }
 
-// Show only the stage chips that correspond to the user's selected tasks.
-// Unselected stages are hidden so the progress bar reflects exactly what was chosen.
-// (Cleaning + Relations are always implied/required for Insights & Viz in the pipeline.)
 function syncStageTrackToSelection() {
-  const selected = state.selectedTasks || [];
-  const stageMap = {
-    cleaning:      'cleaning',
-    relations:     'relations',
-    insights:      'insights',
-    visualization: 'visualization',
-    predictive:    'predictive',
-    anomaly:       'anomaly',
-    trend:         'trend',
-  };
-  // Build the set of stages that will actually run in the pipeline
-  const activeStages = new Set();
-  selected.forEach(t => {
-    if (t === 'visualization') activeStages.add('visualization'); // viz runs after relations
-    else if (stageMap[t]) activeStages.add(stageMap[t]);
-  });
-  // Insights & Viz require cleaning+relations internally; if chosen, those pre-stages still run
-  if (activeStages.has('insights') || activeStages.has('visualization')) {
-    activeStages.add('cleaning');
-    activeStages.add('relations');
-  }
-  if (activeStages.has('visualization')) activeStages.add('relations');
-  // Plotly + profiling always run as part of a successful pipeline
-  activeStages.add('plotly');
-
   document.querySelectorAll('.stage-item').forEach(el => {
-    const stage = el.getAttribute('data-stage');
-    if (activeStages.has(stage)) {
-      el.style.display = '';
-      el.classList.remove('hidden');
-    } else {
-      el.style.display = 'none';
-      el.classList.add('hidden');
-    }
+    el.style.display = '';
+    el.classList.remove('hidden');
   });
 }
 
@@ -3451,8 +3343,8 @@ function startSSEStream(sessionId) {
   els.logOutput.innerHTML = '';
   _activeStage = null;
 
-  // Instantly start stage 1 (cleaning) POV animation
-  queueStagePov('cleaning');
+  // Instantly start stage 1 (data_analysis)
+  updateProgressTrack('data_analysis');
 
   // Show topbar stop button next to the bell icon
   const topbarStopBtn = $('topbarStopBtn');
@@ -3838,6 +3730,15 @@ function syncTabsToSelection(data) {
 }
 
 function renderDashboard(data, sessionId) {
+  // Populate Storyboard Narrative
+  const narrEl = $('storyboardNarrativeText');
+  if (narrEl) {
+    narrEl.textContent = data.executive_narrative || (data.executive_findings && data.executive_findings[0]) || 'Analysis complete with verified multi-agent findings.';
+  }
+
+  // Populate 5-Domain Category Deliverables
+  renderCategories(data.categories || {});
+
   // Show only the analysis tabs the user actually selected. Hide Predictive ML,
   // Risk Audit (Anomaly) and Trend Forecasting unless they were chosen — so the
   // nav bar never shows a result the user didn't ask for.
@@ -3864,8 +3765,8 @@ function renderDashboard(data, sessionId) {
   // Default to AI Chat section
   switchSection('chat');
 
-  // Activate first tab inside agentic area
-  activateTab('cleaning');
+  // Activate first tab inside agentic area (Default to Strategic Growth Insights)
+  activateTab('storyboard');
 }
 
 // ── Predictive, Anomaly, and Trend Renderers ─────────────────────────────
@@ -4665,10 +4566,6 @@ function setupExport(sessionId) {
   const exportNotebook = () => {
     window.location = `/api/export-notebook?session_id=${sessionId}`;
   };
-  const exportPptx = (theme = 'dark') => {
-    toast('Generating PowerPoint slide deck...', 'info');
-    window.location = `/api/projects/${sessionId}/export-pptx?theme=${theme}`;
-  };
 
   const shareSlack = async () => {
     try {
@@ -4764,7 +4661,6 @@ function setupExport(sessionId) {
 
   els.exportPdfBtn.onclick = exportPdf;
   if (els.sidebarExportPdfBtn) els.sidebarExportPdfBtn.onclick = exportPdf;
-  if (els.sidebarExportPptxBtn) els.sidebarExportPptxBtn.onclick = () => exportPptx('dark');
 
   if (els.exportZipBtn) els.exportZipBtn.onclick = exportZip;
   if (els.sidebarExportZipBtn) els.sidebarExportZipBtn.onclick = exportZip;
@@ -4794,7 +4690,7 @@ function setupExport(sessionId) {
 function activateTab(name) {
   els.tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
   els.tabPanels.forEach(panel => panel.classList.toggle('active', panel.id === `panel-${name}`));
-  if (name === 'charts') {
+  if ((name === 'charts' || name === 'eda')) {
     setTimeout(() => {
       const chartElements = document.querySelectorAll('[id^="plotly_chart_"]');
       chartElements.forEach(el => Plotly.Plots?.resize?.(el));
@@ -5979,3 +5875,195 @@ function escHtml(str) {
     }
   }, 200);
 })();
+
+// ────────────────────────────────────────────────────────────────────────────
+// 25 Agentic Intelligence: Presets & Category Management
+// ────────────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Preset Chips Listener
+  document.querySelectorAll('.preset-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const preset = btn.getAttribute('data-preset');
+      applyAnalysisPreset(preset);
+    });
+  });
+
+  // Category Checkboxes Listener
+  document.querySelectorAll('.cat-checkbox').forEach(catCb => {
+    catCb.addEventListener('change', () => {
+      const catBlock = catCb.closest('.category-block');
+      if (!catBlock) return;
+      catBlock.querySelectorAll('input[name="agents"]').forEach(cb => {
+        cb.checked = catCb.checked;
+        cb.closest('.agent-chip')?.classList.toggle('checked', catCb.checked);
+      });
+      updateActiveAgentsBadge();
+    });
+  });
+
+  // Individual Agent Chips Listener
+  document.querySelectorAll('.agent-chip input[name="agents"]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      cb.closest('.agent-chip')?.classList.toggle('checked', cb.checked);
+      updateActiveAgentsBadge();
+    });
+  });
+});
+
+function applyAnalysisPreset(preset) {
+  const PRESET_MAP = {
+    growth_bi: ['data_cleaner', 'dataset_explorer', 'sales_analysis', 'profitability_analysis', 'customer_intelligence', 'relationship_analysis', 'visualization', 'decision_support', 'storytelling'],
+    quick_brief: ['dataset_explorer', 'quality_inspector', 'statistical_analysis', 'visualization', 'insight_discovery', 'storytelling'],
+    deep_mining: ['data_cleaner', 'statistical_analysis', 'pattern_discovery', 'relationship_analysis', 'segmentation', 'anomaly_detection', 'association_mining', 'risk_prediction', 'visualization'],
+    predictive_suite: ['dataset_explorer', 'trend_analysis', 'sales_forecasting', 'budget_forecasting', 'demand_forecasting', 'risk_prediction', 'whatif_simulation', 'visualization'],
+    full_audit: 'all'
+  };
+
+  const targetList = PRESET_MAP[preset] || PRESET_MAP.growth_bi;
+  const checkboxes = document.querySelectorAll('input[name="agents"]');
+  let checkedCount = 0;
+
+  checkboxes.forEach(cb => {
+    const isTarget = (targetList === 'all' || targetList.includes(cb.value));
+    cb.checked = isTarget;
+    cb.closest('.agent-chip')?.classList.toggle('checked', isTarget);
+    if (isTarget) checkedCount++;
+  });
+
+  document.querySelectorAll('.category-block').forEach(catBlock => {
+    const catCb = catBlock.querySelector('.cat-checkbox');
+    const agentCbs = catBlock.querySelectorAll('input[name="agents"]');
+    const anyChecked = Array.from(agentCbs).some(c => c.checked);
+    if (catCb) catCb.checked = anyChecked;
+  });
+
+  const badge = $('activeAgentsBadge');
+  if (badge) {
+    const presetNames = {
+      growth_bi: 'Growth BI Preset',
+      quick_brief: 'Quick Brief Preset',
+      deep_mining: 'Data Mining Preset',
+      predictive_suite: 'Predictive Suite Preset',
+      full_audit: 'Full 25-Agent Audit'
+    };
+    badge.textContent = `${checkedCount} of 25 Active (${presetNames[preset] || 'Custom'})`;
+  }
+}
+
+function updateActiveAgentsBadge() {
+  const checked = document.querySelectorAll('input[name="agents"]:checked').length;
+  const badge = $('activeAgentsBadge');
+  if (badge) badge.textContent = `${checked} of 25 Active (Custom Selection)`;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 25 Agentic Intelligence: 5-Domain Category Cards Renderer
+// ────────────────────────────────────────────────────────────────────────────
+function renderCategories(categories) {
+  if (!categories || typeof categories !== 'object') return;
+
+  const domainGridMap = {
+    data_analysis: $('dataAnalysisCardsGrid'),
+    business_analysis: $('businessAnalysisCardsGrid'),
+    data_mining: $('dataMiningCardsGrid'),
+    predictive_analysis: $('predictiveAnalysisCardsGrid'),
+    eda: $('edaCardsGrid'),
+  };
+
+  const domainIcons = {
+    data_cleaner: '🧹',
+    statistical_analysis: '📊',
+    trend_analysis: '📈',
+    comparative_analysis: '⚖️',
+    insight_discovery: '💡',
+    sales_analysis: '💰',
+    profitability_analysis: '💵',
+    expense_optimization: '✂️',
+    customer_intelligence: '👥',
+    decision_support: '🎯',
+    pattern_discovery: '🧩',
+    relationship_analysis: '🔗',
+    segmentation: '🏷️',
+    anomaly_detection: '🛡️',
+    association_mining: '🤝',
+    sales_forecasting: '📉',
+    budget_forecasting: '🏦',
+    demand_forecasting: '📦',
+    risk_prediction: '⚠️',
+    whatif_simulation: '🎲',
+    dataset_explorer: '🔭',
+    natural_query: '💬',
+    visualization: '🎨',
+    quality_inspector: '🩺',
+    storytelling: '📖',
+  };
+
+  Object.entries(domainGridMap).forEach(([domain, gridEl]) => {
+    if (!gridEl) return;
+    const agentsList = categories[domain] || [];
+    if (!agentsList.length) {
+      gridEl.innerHTML = '<div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-secondary); background: rgba(255,255,255,0.01); border-radius: var(--r-md); border: 1px dashed var(--border-low);">No agents in this category were executed for this run.</div>';
+      return;
+    }
+
+    gridEl.innerHTML = agentsList.map(agent => {
+      const icon = domainIcons[agent.agent_id] || '⚡';
+      const statusBadge = agent.status === 'completed'
+        ? '<span style="font-size:0.7rem; padding: 2px 8px; border-radius: 12px; background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-weight: 600;">✓ Completed</span>'
+        : (agent.status === 'ineligible'
+          ? '<span style="font-size:0.7rem; padding: 2px 8px; border-radius: 12px; background: rgba(255,255,255,0.06); color: var(--text-secondary); border: 1px solid var(--border-low);">⚪ Skipped</span>'
+          : '<span style="font-size:0.7rem; padding: 2px 8px; border-radius: 12px; background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); font-weight: 600;">❌ Error</span>');
+
+      const metricsChips = Object.entries(agent.metrics || {}).map(([k, v]) => {
+        const cleanK = k.replace(/_/g, ' ');
+        const cleanV = typeof v === 'number' ? v.toLocaleString() : v;
+        return `<span style="font-size:0.73rem; background: rgba(255,255,255,0.04); border: 1px solid var(--border-low); padding: 3px 8px; border-radius: 4px; color: var(--text-primary);"><strong style="color:var(--text-secondary); font-weight:500;">${cleanK}:</strong> ${cleanV}</span>`;
+      }).join(' ');
+
+      const findingsHtml = (agent.findings || []).map(f => {
+        return `<li style="margin-bottom: 6px; font-size: 0.83rem; line-height: 1.5; color: #e4e4e7;">${escHtml(f)}</li>`;
+      }).join('');
+
+      let tablesHtml = '';
+      if (agent.tables && agent.tables.length) {
+        tablesHtml = agent.tables.map(tbl => {
+          const rows = tbl.rows || [];
+          if (!rows.length) return '';
+          const keys = Object.keys(rows[0]).slice(0, 5);
+          const thead = keys.map(k => `<th style="padding: 6px 8px; text-align: left; font-size: 0.72rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-low); text-transform: uppercase;">${k.replace(/_/g, ' ')}</th>`).join('');
+          const tbody = rows.slice(0, 5).map(r => {
+            const cells = keys.map(k => `<td style="padding: 6px 8px; font-size: 0.78rem; border-bottom: 1px solid rgba(255,255,255,0.02);">${typeof r[k] === 'number' ? r[k].toLocaleString() : escHtml(String(r[k]))}</td>`).join('');
+            return `<tr>${cells}</tr>`;
+          }).join('');
+          return `
+            <div style="margin-top: 10px; background: rgba(0,0,0,0.2); border-radius: var(--r-sm); border: 1px solid var(--border-low); overflow-x: auto;">
+              <div style="font-size: 0.74rem; font-weight: 700; color: #fff; padding: 6px 8px; border-bottom: 1px solid var(--border-low);">${tbl.title || 'Summary Table'}</div>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead><tr>${thead}</tr></thead>
+                <tbody>${tbody}</tbody>
+              </table>
+            </div>`;
+        }).join('');
+      }
+
+      return `
+        <div class="agent-deliverable-card card" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); padding: 18px; display: flex; flex-direction: column; gap: 12px; transition: transform 0.2s, border-color 0.2s;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="font-size: 1.3rem;">${icon}</div>
+              <div>
+                <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #fff;">${agent.name}</h4>
+                <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">Executed in ${agent.execution_time}s</div>
+              </div>
+            </div>
+            ${statusBadge}
+          </div>
+          ${metricsChips ? `<div style="display: flex; flex-wrap: wrap; gap: 6px;">${metricsChips}</div>` : ''}
+          ${findingsHtml ? `<ul style="margin: 0; padding-left: 18px;">${findingsHtml}</ul>` : ''}
+          ${tablesHtml}
+        </div>`;
+    }).join('');
+  });
+}

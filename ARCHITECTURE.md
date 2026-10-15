@@ -13,10 +13,13 @@ The system integrates a custom gateway supporting **13+ LLM providers** through 
 ```
 .
 ├── agents/               # CrewAI Agent factories
-│   ├── cleaner.py        # 🧹 Data Cleaner Agent
-│   ├── relation.py       # 🔗 Relationship Analyst Agent
-│   ├── insights.py       # 💡 BI Insights Agent
-│   └── visualizer.py     # 📈 Matplotlib Visualizer Agent
+│   ├── insights.py       # 💡 Chief Growth Strategist & Executive BI Advisor
+│   ├── relation.py       # 🔗 Growth Opportunity & Revenue Driver Analyst
+│   ├── visualizer.py     # 📈 Executive BI Visualizer Agent
+│   ├── trend.py          # 🚀 Business Velocity & Growth Analyst
+│   ├── predictive.py     # 🤖 Predictive Growth Driver Analyst
+│   ├── anomaly.py        # 🛡️ Business Risk & Revenue Leakage Auditor
+│   └── cleaner.py        # 🧹 Data Quality Auditor (Optional)
 ├── config/               # Platform configuration
 │   ├── llm_config.py     # Multi-Provider settings and model catalog
 │   └── __init__.py

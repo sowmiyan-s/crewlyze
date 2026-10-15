@@ -379,6 +379,195 @@ def build_dataset_profile(csv_path: str, max_rows: int = 5000) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Business Intelligence Domain Detection & JSON Insights Formatter
+# ---------------------------------------------------------------------------
+
+def detect_business_domain(df: pd.DataFrame, goal: str = "") -> dict:
+    """
+    Inspects dataset columns and user objective to dynamically detect the business domain,
+    growth terminology, and risk vectors, making the entire AI crew adaptive to each project.
+    """
+    col_names = [str(c).lower() for c in df.columns]
+    goal_lower = (goal or "").lower()
+    combined = " ".join(col_names) + " " + goal_lower
+
+    domains = {
+        "B2B SaaS & Subscriptions": {
+            "keywords": ["mrr", "arr", "subscription", "plan", "churn", "renewal", "license", "tier", "active_days", "seats", "contract", "retention"],
+            "growth_terms": "Expansion MRR, Account Upgrade, Plan Tier Shift, Active User Retention",
+            "problem_terms": "Churn Leakage, Renewal Drop-off, Inactive Seats, License Under-utilization"
+        },
+        "E-Commerce & DTC Retail": {
+            "keywords": ["order", "cart", "sales", "revenue", "product", "sku", "item", "discount", "shipping", "quantity", "price", "category", "checkout"],
+            "growth_terms": "Average Order Value (AOV), Repeat Purchase Rate, Top Product Categories, Bundle Yield",
+            "problem_terms": "Checkout Cart Abandonment, Discount Margin Drag, Return/Refund Spikes, Shipping Friction"
+        },
+        "Digital Marketing & Acquisition": {
+            "keywords": ["campaign", "ad", "clicks", "impressions", "cpc", "ctr", "cpa", "roas", "spend", "lead", "conversion", "utm", "traffic"],
+            "growth_terms": "High-ROAS Ad Sets, Conversion Velocity, Scalable Lead Channels, Lower CPA Vectors",
+            "problem_terms": "Ad Fatigue, High CPA Bleed, Click-to-Lead Drop-off, Unprofitable Campaign Spend"
+        },
+        "FinTech & Financial Services": {
+            "keywords": ["loan", "balance", "transaction", "amount", "credit", "interest", "debt", "deposit", "risk", "default", "payment", "portfolio"],
+            "growth_terms": "Transaction Velocity, High-Yield Portfolios, Deposit Retention, Credit Expansion",
+            "problem_terms": "Default Risks, Payment Delinquency, Margin Compression, Abnormal Loss Clusters"
+        },
+        "Supply Chain & Operations": {
+            "keywords": ["delivery", "transit", "carrier", "warehouse", "origin", "destination", "lead_time", "delay", "fuel", "inventory", "stock", "freight"],
+            "growth_terms": "Turnaround Velocity, High-Throughput Fulfillment, Preferred Route Efficiency",
+            "problem_terms": "Transit Bottlenecks, Late Order Cancellations, Inventory Stockouts, Carrier Delay Penalties"
+        },
+        "HR & Talent Analytics": {
+            "keywords": ["employee", "salary", "department", "tenure", "attrition", "rating", "performance", "satisfaction", "hire", "turnover"],
+            "growth_terms": "High-Performer Retention, Productivity Output, Departmental Efficiency",
+            "problem_terms": "Key Talent Attrition, Tenure Burnout, Compensation Disparity, Onboarding Drop-off"
+        },
+        "Healthcare Operations": {
+            "keywords": ["patient", "doctor", "diagnosis", "admission", "stay", "treatment", "clinic", "bed", "discharge", "hospital"],
+            "growth_terms": "Patient Flow Efficiency, Care Plan Completion, Capacity Utilization",
+            "problem_terms": "Readmission Risks, Discharge Delays, Scheduling Bottlenecks, Equipment Downtime"
+        }
+    }
+
+    best_match = "General Commercial Enterprise"
+    max_score = 0
+    matched_meta = {
+        "growth_terms": "Revenue Acceleration, Customer Lifetime Value, High-Yield Segment Expansion",
+        "problem_terms": "Margin Leakage, Customer Drop-off, Operational Drag, Inefficiency Points"
+    }
+
+    for dom_name, dom_info in domains.items():
+        score = sum(1 for kw in dom_info["keywords"] if kw in combined)
+        if score > max_score:
+            max_score = score
+            best_match = dom_name
+            matched_meta = dom_info
+
+    g_terms = matched_meta["growth_terms"]
+    p_terms = matched_meta["problem_terms"]
+    if isinstance(g_terms, str):
+        g_terms = [t.strip() for t in g_terms.split(",") if t.strip()]
+    if isinstance(p_terms, str):
+        p_terms = [t.strip() for t in p_terms.split(",") if t.strip()]
+
+    return {
+        "domain": best_match,
+        "growth_terms": g_terms,
+        "problem_terms": p_terms
+    }
+
+
+
+def parse_growth_insights_json(raw_text: str) -> Optional[dict]:
+    """
+    Extracts and validates structured JSON output from the Chief Growth Strategist agent.
+    Handles markdown json fences (```json ... ```) or embedded JSON text.
+    """
+    if not raw_text or not raw_text.strip():
+        return None
+    
+    cleaned = raw_text.strip()
+    if "```" in cleaned:
+        m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", cleaned, re.DOTALL | re.IGNORECASE)
+        if m:
+            cleaned = m.group(1).strip()
+        else:
+            start = cleaned.find("{")
+            end = cleaned.rfind("}")
+            if start != -1 and end != -1 and end > start:
+                cleaned = cleaned[start:end+1].strip()
+    else:
+        start = cleaned.find("{")
+        end = cleaned.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            cleaned = cleaned[start:end+1].strip()
+
+    try:
+        import json
+        data = json.loads(cleaned)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
+    return None
+
+
+def format_growth_insights(json_data: dict, project_goal: str = "") -> str:
+    """
+    Transforms structured JSON into executive report markdown formatted with
+    'Growth in X' and 'Problem in Y likely' cards that integrate seamlessly
+    with both the web dashboard and ReportLab PDF export.
+    """
+    domain = json_data.get("detected_domain") or json_data.get("project_domain", "Commercial Enterprise")
+    exec_summary = json_data.get("executive_summary") or json_data.get("executive_growth_summary", "")
+    
+    report = []
+    report.append("### Objectives & Growth Goals")
+    goal_str = f"Targeted Objective: '{project_goal}'. " if project_goal else ""
+    report.append(f"{goal_str}Strategic Business Intelligence tailored for **{domain}**.\n")
+
+    if exec_summary:
+        report.append(f"**Executive Briefing**: {exec_summary}\n")
+
+    report.append("### Strategic Growth Levers (Growth in X)")
+    growth_levers = json_data.get("growth_levers") or json_data.get("growth_opportunities") or []
+    problem_areas = json_data.get("problem_areas") or json_data.get("problems_and_bottlenecks") or []
+
+    item_idx = 1
+    for g in growth_levers:
+        growth_in = g.get("growth_in", "Key Commercial Driver")
+        headline = g.get("headline") or f"Growth in {growth_in} accelerating"
+        obs = g.get("observation") or g.get("what_data_shows", "")
+        impl = g.get("business_implication") or g.get("commercial_impact", "")
+        strat = g.get("actionable_strategy") or g.get("action_to_scale", "")
+
+        report.append(f"{item_idx}. **🚀 Growth in {growth_in}: {headline}**")
+        report.append(f"- **Observation**: {obs}")
+        report.append(f"- **Business Implication**: {impl}")
+        report.append(f"- **Actionable Strategy**: {strat}\n")
+        item_idx += 1
+
+    if problem_areas:
+        report.append("### Critical Bottlenecks & Operational Risks (Problem in Y Likely)")
+        for p in problem_areas:
+            problem_in = p.get("problem_in", "Operational Area")
+            headline = p.get("headline") or f"Problem in {problem_in} Likely"
+            obs = p.get("observation") or p.get("what_data_shows", "")
+            root_cause = p.get("likely_root_cause", "Operational friction")
+            risk = p.get("commercial_risk", "Revenue leakage")
+            impl = f"Likely Root Cause: {root_cause}. Commercial Risk: {risk}."
+            strat = p.get("actionable_strategy") or p.get("immediate_fix", "")
+
+            report.append(f"{item_idx}. **⚠️ Problem in {problem_in} Likely: {headline}**")
+            report.append(f"- **Observation**: {obs}")
+            report.append(f"- **Business Implication**: {impl}")
+            report.append(f"- **Actionable Strategy**: {strat}\n")
+            item_idx += 1
+
+    roadmap = json_data.get("roadmap") or json_data.get("strategic_roadmap") or {}
+    if roadmap:
+        report.append("### Strategic Action Roadmap (30-60-90 Days)")
+        if "days_1_30" in roadmap or "days_30" in roadmap:
+            val = roadmap.get("days_1_30") or roadmap.get("days_30")
+            report.append(f"- **Days 1-30 (Immediate Quick Wins)**: {val}")
+        if "days_31_60" in roadmap or "days_60" in roadmap:
+            val = roadmap.get("days_31_60") or roadmap.get("days_60")
+            report.append(f"- **Days 31-60 (Process & Channel Optimization)**: {val}")
+        if "days_61_90" in roadmap or "days_90" in roadmap:
+            val = roadmap.get("days_61_90") or roadmap.get("days_90")
+            report.append(f"- **Days 61-90 (Strategic Scale)**: {val}")
+        report.append("")
+
+    alerts = json_data.get("alerts") or json_data.get("risks_and_alerts") or []
+    if alerts:
+        report.append("### Warnings, Revenue Leakage & Alerts")
+        for alert in alerts:
+            report.append(f"- ⚠️ {alert}")
+
+    return "\n".join(report).strip()
+
+
 def _save_plotly_png_safe(fig, png_path: str, timeout_sec: int = 2) -> None:
     """Safely export Plotly figure to PNG without blocking if Kaleido hangs or is missing."""
     import concurrent.futures

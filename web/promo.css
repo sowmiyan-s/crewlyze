@@ -825,10 +825,6 @@ code.inline-code-sm {
   color: var(--amber);
 }
 
-.export-chip.pptx {
-  border-color: rgba(59, 130, 246, 0.12);
-  color: #3b82f6;
-}
 
 .export-chip.zip {
   border-color: rgba(16, 185, 129, 0.12);

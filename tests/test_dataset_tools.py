@@ -73,3 +73,106 @@ def test_read_csv_robust():
     df = read_csv_robust(tmp_path)
     assert len(df) == 2
     assert list(df.columns) == ["col_a", "col_b"]
+
+
+def test_detect_business_domain_adaptive():
+    from tools.dataset_tools import detect_business_domain
+
+    df_ecommerce = pd.DataFrame({
+        "order_id": [1, 2, 3],
+        "cart_value": [45.0, 120.0, 89.0],
+        "shipping_cost": [5.0, 0.0, 8.0],
+        "sku": ["A1", "B2", "C3"]
+    })
+    domain_info = detect_business_domain(df_ecommerce, "Scale store revenue")
+    assert domain_info["domain"] == "E-Commerce & DTC Retail"
+    assert "Average Order Value (AOV)" in domain_info["growth_terms"]
+    assert any("Cart Abandonment" in term for term in domain_info["problem_terms"])
+
+    df_saas = pd.DataFrame({
+        "mrr": [1000, 2500, 5000],
+        "arr": [12000, 30000, 60000],
+        "churn_rate": [0.02, 0.01, 0.04],
+        "plan": ["Pro", "Enterprise", "Starter"]
+    })
+    saas_info = detect_business_domain(df_saas, "Reduce churn")
+    assert saas_info["domain"] == "B2B SaaS & Subscriptions"
+    assert "Expansion MRR" in saas_info["growth_terms"]
+
+
+def test_parse_and_format_growth_insights_json():
+    from tools.dataset_tools import parse_growth_insights_json, format_growth_insights
+
+    raw_json_str = """
+    ```json
+    {
+      "detected_domain": "B2B SaaS",
+      "executive_summary": "Strong ARR growth driven by enterprise tier accounts.",
+      "growth_levers": [
+        {
+          "growth_in": "Enterprise ARR",
+          "headline": "Enterprise ARR surging 42% YoY",
+          "observation": "Enterprise accounts account for $1.2M in annual expansion.",
+          "business_implication": "Expands gross margins to 82%.",
+          "actionable_strategy": "Double outbound enterprise sales capacity."
+        }
+      ],
+      "problem_areas": [
+        {
+          "problem_in": "Self-Serve Activation",
+          "headline": "Self-Serve Activation drop-off",
+          "observation": "New signups stall at the third onboarding step.",
+          "likely_root_cause": "Complex SSO setup requirements.",
+          "commercial_risk": "Estimated $140k ARR loss per quarter.",
+          "actionable_strategy": "Streamline self-serve signup flow."
+        }
+      ],
+      "roadmap": {
+        "days_1_30": "Deploy self-serve onboarding fix.",
+        "days_31_60": "Scale enterprise SDR hiring.",
+        "days_61_90": "Launch multi-seat team workspaces."
+      },
+      "alerts": [
+        "Customer concentration in top 3 logos exceeds 30%."
+      ]
+    }
+    ```
+    """
+    parsed = parse_growth_insights_json(raw_json_str)
+    assert parsed is not None
+    assert parsed["detected_domain"] == "B2B SaaS"
+    assert len(parsed["growth_levers"]) == 1
+    assert len(parsed["problem_areas"]) == 1
+
+    formatted = format_growth_insights(parsed, "Scale ARR")
+    assert "🚀 Growth in Enterprise ARR" in formatted
+    assert "⚠️ Problem in Self-Serve Activation Likely" in formatted
+    assert "**Observation**:" in formatted
+    assert "**Business Implication**:" in formatted
+    assert "**Actionable Strategy**:" in formatted
+    assert "Days 1-30" in formatted
+
+
+def test_auto_insights_fallback_produces_growth_and_problem():
+    from crew import _run_auto_insights_fallback
+
+    df = pd.DataFrame({
+        "revenue": [100, 200, 300, 400, 500],
+        "spend": [50, 80, 110, 150, 190],
+        "campaign": ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
+    })
+    formatted_text, json_data = _run_auto_insights_fallback(df, project_goal="Boost ROI", return_tuple=True)
+    
+    assert isinstance(json_data, dict)
+    assert "growth_levers" in json_data
+    assert "problem_areas" in json_data
+    assert len(json_data["growth_levers"]) >= 1
+    assert len(json_data["problem_areas"]) >= 1
+
+    # Ensure format matches Growth in X and Problem in Y likely
+    assert "Growth in" in formatted_text
+    assert "Problem in" in formatted_text
+    assert "**Observation**:" in formatted_text
+    assert "**Business Implication**:" in formatted_text
+    assert "**Actionable Strategy**:" in formatted_text
+

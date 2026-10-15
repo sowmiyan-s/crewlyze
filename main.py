@@ -988,6 +988,7 @@ def send_automated_discord(session_id: str, results_data: dict, meta: dict, cfg:
         opened_files = []
         
         session_dir = get_safe_session_dir(session_id)
+        output_dir = get_safe_output_dir(session_id)
         
         if attach_pdf:
             pdf_path = output_dir / f"{session_id}_report.pdf"
@@ -1178,7 +1179,7 @@ def run_crew_in_background(
             with contextlib.redirect_stdout(log_file):
                 try:
                     print("Initializing multi-agent workflows...", flush=True)
-                    print("[Stage 1/6] Running Data Cleaner Agent...", flush=True)
+                    print("[Coordinator] Ingesting Dataset & Initializing 25 Agentic Intelligence System...", flush=True)
                     _load_crew()
                     result = _run_crew(
                         csv_path,
@@ -1203,20 +1204,25 @@ def run_crew_in_background(
                     png_charts_list = [f.name for f in Path(result["output_dir"]).glob("*.png")]
 
                     serializable_result = {
-                        "cleaning_steps": result.get("cleaning_steps", ""),
-                        "relations":      result.get("relations", ""),
-                        "insights":       result.get("insights", ""),
-                        "predictive":     result.get("predictive", ""),
-                        "anomaly":        result.get("anomaly", ""),
-                        "trend":          result.get("trend", ""),
-                        "code":           result.get("code", ""),
-                        "output_dir":     result.get("output_dir", ""),
-                        "plotly_charts":  plotly_serializable,
-                        "png_charts":     png_charts_list,
-                        "rows_count":     int(result["dataframe"].shape[0]),
-                        "cols_count":     int(result["dataframe"].shape[1]),
-                        "numeric_count":  int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
-                        "cat_count":      int(result["dataframe"].shape[1]) - int(len(result["dataframe"].select_dtypes(include=["number"]).columns))
+                        "cleaning_steps":  result.get("cleaning_steps", ""),
+                        "relations":       result.get("relations", ""),
+                        "insights":        result.get("insights", ""),
+                        "insights_json":   result.get("insights_json"),
+                        "detected_domain": result.get("detected_domain", ""),
+                        "predictive":      result.get("predictive", ""),
+                        "anomaly":         result.get("anomaly", ""),
+                        "trend":           result.get("trend", ""),
+                        "code":            result.get("code", ""),
+                        "output_dir":      result.get("output_dir", ""),
+                        "plotly_charts":   plotly_serializable,
+                        "png_charts":      png_charts_list,
+                        "rows_count":      int(result["dataframe"].shape[0]),
+                        "cols_count":      int(result["dataframe"].shape[1]),
+                        "numeric_count":   int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
+                        "cat_count":       int(result["dataframe"].shape[1]) - int(len(result["dataframe"].select_dtypes(include=["number"]).columns)),
+                        "categories":      result.get("categories", {}),
+                        "executive_narrative": result.get("executive_narrative", ""),
+                        "executive_findings":  result.get("executive_findings", []),
                     }
 
                     # Cache first 100 rows as JSON data preview
@@ -1803,7 +1809,7 @@ async def trigger_analysis(
         if task.strip()
     ]
     if not selected_tasks:
-        selected_tasks = ["cleaning", "relations", "insights", "visualization"]
+        selected_tasks = ["relations", "insights", "visualization"]
 
     deep = deep_analysis.strip().lower() in {"true", "1", "yes", "on"}
 
@@ -1908,9 +1914,10 @@ async def stream_analysis_logs(session_id: str):
             await asyncio.sleep(0.1)
 
         if not log_path.exists():
-            yield "data: [Initializing pipeline...]\n\n"
+            yield "data: [Initializing Master Multi-Agent Orchestration...]\n\n"
         
-        yield "data: [Stage 1/4] Running Data Cleaner Agent...\n\n"
+        yield "data: [Stage 1/8] Ingesting raw dataset & initializing agent squad...\n\n"
+
 
         with open(log_path, "r", encoding="utf-8", errors="replace") as f:
             while True:
@@ -3812,443 +3819,6 @@ async def download_project_csv(project_id: str):
     download_filename = f"{base_name}_cleaned.csv"
 
     return FileResponse(csv_path, media_type="text/csv", filename=download_filename)
-
-
-# ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# PowerPoint (.pptx) Executive Slide Deck Export Engine
-# ---------------------------------------------------------------------------
-
-@app.get("/api/export-pptx")
-@app.get("/api/projects/{project_id}/export-pptx")
-async def export_project_pptx(project_id: Optional[str] = "new_project_tb_burden", theme: str = "dark"):
-    """Generates a 5-hour expert-crafted C-Suite PowerPoint slide deck from real LLM agent outputs."""
-    if not project_id or project_id == "default":
-        project_id = "new_project_tb_burden"
-        
-    session_dir = get_safe_session_dir(project_id)
-    results_path = session_dir / "results.json"
-    
-    if not results_path.exists():
-        raise HTTPException(status_code=400, detail="Data analysis results not available for this session. Please run the analysis pipeline first.")
-
-    try:
-        from pptx import Presentation
-        from pptx.util import Inches, Pt
-        from pptx.dml.color import RGBColor
-        from pptx.enum.text import PP_ALIGN
-        from pptx.enum.shapes import MSO_SHAPE
-    except ImportError:
-        import subprocess, sys
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-pptx"])
-        from pptx import Presentation
-        from pptx.util import Inches, Pt
-        from pptx.dml.color import RGBColor
-        from pptx.enum.text import PP_ALIGN
-        from pptx.enum.shapes import MSO_SHAPE
-
-    with open(results_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    meta = get_project_metadata(project_id)
-    report_title = meta.get("report_title", meta.get("name", "Executive Data Analysis"))
-    project_name = meta.get("name", "Crewlyze Project")
-
-    is_light = (theme.lower() == "light")
-
-    # Breathtaking C-Suite Dark Obsidian & Light Slate Palette
-    if is_light:
-        bg_rgb = (255, 255, 255)         # Pure White
-        card_rgb = (248, 250, 252)       # Soft Slate
-        card_border_rgb = (226, 232, 240) # Slate 200
-        text_head_rgb = (15, 23, 42)     # Deep Slate 900
-        text_body_rgb = (51, 65, 85)     # Slate 700
-        text_sub_rgb = (100, 116, 139)   # Slate 500
-        accent_purple = (124, 58, 237)   # Purple 600
-        accent_emerald = (5, 150, 105)   # Emerald 600
-        accent_cyan = (2, 132, 199)      # Sky 600
-        accent_amber = (217, 119, 6)     # Amber 600
-    else:
-        bg_rgb = (11, 15, 23)           # Executive Midnight
-        card_rgb = (22, 31, 51)          # Dark Obsidian Panel
-        card_border_rgb = (40, 53, 79)   # Subtle Line
-        text_head_rgb = (255, 255, 255)  # Crisp White
-        text_body_rgb = (226, 232, 240)  # High Contrast Body
-        text_sub_rgb = (148, 163, 184)   # Slate 400
-        accent_purple = (168, 85, 247)   # Purple Accent
-        accent_emerald = (16, 185, 129)  # Emerald Accent
-        accent_cyan = (14, 165, 233)     # Sky Accent
-        accent_amber = (245, 158, 11)    # Amber Accent
-
-    prs = Presentation()
-    prs.slide_width = Inches(13.333)
-    prs.slide_height = Inches(7.5)
-
-    def _add_bg(slide):
-        fill = slide.background.fill
-        fill.solid()
-        fill.fore_color.rgb = RGBColor(*bg_rgb)
-
-    def _clean_md(text: str) -> str:
-        if not text: return ""
-        if any(err_kw in text.lower() for err_kw in ("authenticationerror", "litellm", "nvidia_nimexception", "401", "traceback")):
-            return "Automated zero-loss data hygiene and schema validation applied."
-        cleaned = re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E0-\U0001F1FF\U0001F900-\U0001F9FF\U00002600-\U000026FF\U00002700-\U000027BF]+', '', text, flags=re.UNICODE)
-        cleaned = re.sub(r'^\s*#{1,6}\s*', '', cleaned, flags=re.MULTILINE)
-        cleaned = re.sub(r'\[Auto-Healing.*?\]', '', cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r'Warnings\s*&\s*Alerts:.*', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
-        cleaned = cleaned.replace('**', '').replace('__', '').strip()
-        return cleaned
-
-    def _add_textbox(slide, left, top, width, height, text, size=13.5, bold=False, color=text_body_rgb, align=PP_ALIGN.LEFT):
-        clean_t = _clean_md(text)
-        txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-        tf = txBox.text_frame
-        tf.word_wrap = True
-
-        if len(clean_t) > 450:
-            size = min(size, 11.0)
-            if len(clean_t) > 700:
-                clean_t = clean_t[:690] + "..."
-        elif len(clean_t) > 250:
-            size = min(size, 12.0)
-
-        p = tf.paragraphs[0]
-        p.text = clean_t
-        p.font.size = Pt(size)
-        p.font.bold = bold
-        p.font.color.rgb = RGBColor(*color)
-        p.alignment = align
-        return tf
-
-    def _add_card(slide, left, top, width, height, border_color=card_border_rgb, fill_color=card_rgb, top_accent=None):
-        """Creates a modern zero-border panel with optional top accent color strip."""
-        card = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
-        card.fill.solid()
-        card.fill.fore_color.rgb = RGBColor(*fill_color)
-        card.line.color.rgb = RGBColor(*border_color)
-        card.line.width = Pt(1.0)
-
-        if top_accent:
-            accent_bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(0.10))
-            accent_bar.fill.solid()
-            accent_bar.fill.fore_color.rgb = RGBColor(*top_accent)
-            accent_bar.line.fill.background()
-        return card
-
-    # Extract real LLM Insights
-    raw_insights = data.get("insights", "").strip()
-    insights_blocks = [b.strip() for b in raw_insights.split("\n\n") if b.strip() and not b.startswith("#")]
-    parsed_insights = []
-    
-    for block in insights_blocks:
-        obs_m = re.search(r"Observation:\s*(.*?)(?=Business Implication|Actionable Strategy|$)", block, re.DOTALL | re.IGNORECASE)
-        imp_m = re.search(r"Business Implication:\s*(.*?)(?=Observation|Actionable Strategy|$)", block, re.DOTALL | re.IGNORECASE)
-        strat_m = re.search(r"Actionable Strategy:\s*(.*?)(?=Observation|Business Implication|$)", block, re.DOTALL | re.IGNORECASE)
-        
-        obs = _clean_md(obs_m.group(1)) if obs_m else ""
-        imp = _clean_md(imp_m.group(1)) if imp_m else ""
-        strat = _clean_md(strat_m.group(1)) if strat_m else ""
-        
-        if obs or imp or strat:
-            parsed_insights.append({
-                "obs": obs or "Statistical distribution analysis across dataset variables shows key trends.",
-                "imp": imp or "Variable performance exhibits direct correlation with core business metrics.",
-                "strat": strat or "Establish continuous automated monitoring and operational resource controls."
-            })
-
-    while len(parsed_insights) < 3:
-        parsed_insights.append({
-            "obs": "Key driver variables demonstrate clear statistical patterns across sample clusters.",
-            "imp": "Variations in driver attributes impact operational throughput and efficiency.",
-            "strat": "Implement target safeguards to optimize parameter thresholds."
-        })
-
-    # ── SLIDE 1: Breathtaking Dramatic Cover ─────────────────────────────────
-    slide1 = prs.slides.add_slide(prs.slide_layouts[6])
-    _add_bg(slide1)
-
-    top_bar = slide1.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(0.7), Inches(11.733), Inches(0.12))
-    top_bar.fill.solid()
-    top_bar.fill.fore_color.rgb = RGBColor(*accent_cyan)
-    top_bar.line.fill.background()
-
-    _add_textbox(slide1, 0.8, 1.2, 11.0, 0.4, "EXECUTIVE BRIEFING • MULTI-AGENT BI PLATFORM", size=12, bold=True, color=accent_cyan)
-    
-    # Dynamic Cover Title Auto-Scaling
-    title_len = len(report_title)
-    cover_title_size = 44 if title_len <= 45 else (34 if title_len <= 85 else 26)
-    _add_textbox(slide1, 0.8, 1.7, 11.7, 1.8, report_title, size=cover_title_size, bold=True, color=text_head_rgb)
-    _add_textbox(slide1, 0.8, 3.7, 11.7, 0.6, f"Dataset Analysis: {project_name}", size=18, bold=True, color=accent_purple)
-    
-    import datetime
-    date_str = datetime.datetime.now().strftime('%B %d, %Y at %I:%M %p')
-    _add_textbox(slide1, 0.8, 4.3, 11.7, 0.4, f"Generated autonomously on {date_str}", size=13, color=text_sub_rgb)
-
-    _add_card(slide1, 0.8, 5.0, 11.733, 1.5, border_color=card_border_rgb, top_accent=accent_purple)
-    meta_text = f"📊 DATASET SCOPE: {data.get('rows_count', 0):,} Rows  ×  {data.get('cols_count', 0)} Columns   |   Numeric: {data.get('numeric_count', 0)}   |   Categorical: {data.get('cat_count', 0)}"
-    _add_textbox(slide1, 1.0, 5.5, 11.333, 0.6, meta_text, size=15, bold=True, color=text_head_rgb, align=PP_ALIGN.CENTER)
-
-    # ── SLIDE 2: 64pt/Dynamic KPI Dashboard ───────────────────────────────────
-    slide2 = prs.slides.add_slide(prs.slide_layouts[6])
-    _add_bg(slide2)
-
-    _add_textbox(slide2, 0.8, 0.5, 11.7, 0.4, "EXECUTIVE DASHBOARD", size=11, bold=True, color=accent_purple)
-    _add_textbox(slide2, 0.8, 0.9, 11.7, 0.6, "Data Profile & High-Level KPIs", size=32, bold=True, color=text_head_rgb)
-
-    kpis = [
-        ("TOTAL RECORDS", f"{data.get('rows_count', 0):,}", "Complete Data Rows", accent_purple),
-        ("TOTAL FEATURES", f"{data.get('cols_count', 0)}", "Dataset Columns", accent_cyan),
-        ("NUMERIC RATIO", f"{data.get('numeric_count', 0)} / {data.get('cols_count', 0)}", "Quantitative Features", accent_emerald),
-        ("DATA HYGIENE", "100%", "Cleaned & Validated", accent_amber)
-    ]
-
-    for idx, (title, val, sub, col_rgb) in enumerate(kpis):
-        left_pos = 0.8 + (idx * 2.98)
-        _add_card(slide2, left_pos, 1.7, 2.8, 2.5, border_color=card_border_rgb, top_accent=col_rgb)
-
-        # Dynamic KPI Stat Number Auto-Scaling
-        val_len = len(val)
-        kpi_font_size = 56 if val_len <= 5 else (44 if val_len <= 8 else 32)
-
-        _add_textbox(slide2, left_pos + 0.1, 1.9, 2.6, 0.3, title, size=11, bold=True, color=col_rgb, align=PP_ALIGN.CENTER)
-        _add_textbox(slide2, left_pos + 0.1, 2.3, 2.6, 1.1, val, size=kpi_font_size, bold=True, color=text_head_rgb, align=PP_ALIGN.CENTER)
-        _add_textbox(slide2, left_pos + 0.1, 3.6, 2.6, 0.4, sub, size=11, color=text_sub_rgb, align=PP_ALIGN.CENTER)
-
-    # Bottom Synthesis Banner Card
-    _add_card(slide2, 0.8, 4.45, 11.733, 2.45, border_color=card_border_rgb, top_accent=accent_emerald)
-    _add_textbox(slide2, 1.0, 4.65, 11.333, 0.35, "EXECUTIVE SYNTHESIS & PIPELINE SUMMARY", size=12, bold=True, color=accent_emerald)
-    
-    synth_text = f"The automated multi-agent pipeline ingested {data.get('rows_count', 0):,} records across {data.get('cols_count', 0)} features. Data hygiene verification performed zero-loss cleaning, and correlation agents identified top driver dependencies for strategic planning."
-    if parsed_insights:
-        synth_text = f"• {parsed_insights[0]['obs']}\n\n• {parsed_insights[0]['imp']}"
-        
-    _add_textbox(slide2, 1.0, 5.05, 11.333, 1.6, synth_text, size=13.5, color=text_body_rgb)
-
-    # ── SLIDE 3: Feature Descriptive Statistics Table ─────────────────────────
-    import pandas as pd
-    cleaned_csv = session_dir / "cleaned.csv"
-    stats_df = None
-    if cleaned_csv.exists():
-        try: stats_df = pd.read_csv(cleaned_csv)
-        except Exception: pass
-
-    slide3 = prs.slides.add_slide(prs.slide_layouts[6])
-    _add_bg(slide3)
-
-    _add_textbox(slide3, 0.8, 0.5, 11.7, 0.4, "DESCRIPTIVE ANALYTICS", size=11, bold=True, color=accent_emerald)
-    _add_textbox(slide3, 0.8, 0.9, 11.7, 0.6, "Feature Statistics Profile", size=32, bold=True, color=text_head_rgb)
-
-    if stats_df is not None:
-        numeric_cols = stats_df.select_dtypes(include=['number']).columns.tolist()
-        stats = []
-        for col in numeric_cols[:8]:
-            col_data = stats_df[col].dropna()
-            if not col_data.empty:
-                stats.append([
-                    col[:28],
-                    f"{col_data.min():.2f}" if col_data.dtype.kind in 'fc' else str(int(col_data.min())),
-                    f"{col_data.max():.2f}" if col_data.dtype.kind in 'fc' else str(int(col_data.max())),
-                    f"{col_data.mean():.2f}",
-                    f"{col_data.std():.2f}"
-                ])
-
-        if stats:
-            rows_len = len(stats) + 1
-            cols_len = 5
-            x, y, cx, cy = Inches(0.8), Inches(1.7), Inches(11.733), Inches(0.5 + 0.45 * len(stats))
-            table_shape = slide3.shapes.add_table(rows_len, cols_len, x, y, cx, cy)
-            table = table_shape.table
-
-            table.columns[0].width = Inches(3.733)
-            table.columns[1].width = Inches(2.0)
-            table.columns[2].width = Inches(2.0)
-            table.columns[3].width = Inches(2.0)
-            table.columns[4].width = Inches(2.0)
-
-            headers = ["Numeric Feature", "Min Value", "Max Value", "Arithmetic Mean", "Std Deviation"]
-            for c_idx, h_text in enumerate(headers):
-                cell = table.cell(0, c_idx)
-                cell.text = h_text
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = RGBColor(*accent_emerald)
-                p = cell.text_frame.paragraphs[0]
-                p.font.size = Pt(13)
-                p.font.bold = True
-                p.font.color.rgb = RGBColor(255, 255, 255)
-                p.alignment = PP_ALIGN.LEFT if c_idx == 0 else PP_ALIGN.RIGHT
-
-            for r_idx, row_data in enumerate(stats):
-                for c_idx, val in enumerate(row_data):
-                    cell = table.cell(r_idx + 1, c_idx)
-                    cell.text = val
-                    cell.fill.solid()
-                    cell.fill.fore_color.rgb = RGBColor(*card_rgb)
-                    p = cell.text_frame.paragraphs[0]
-                    p.font.size = Pt(11.5)
-                    p.font.color.rgb = RGBColor(*text_body_rgb)
-                    p.alignment = PP_ALIGN.LEFT if c_idx == 0 else PP_ALIGN.RIGHT
-
-    # ── SLIDE 4: Strategic Business Insights (Top Accent Color Strips) ───────
-    slide4 = prs.slides.add_slide(prs.slide_layouts[6])
-    _add_bg(slide4)
-
-    _add_textbox(slide4, 0.8, 0.5, 11.7, 0.4, "STRATEGIC RECOMMENDATIONS", size=11, bold=True, color=accent_amber)
-    _add_textbox(slide4, 0.8, 0.9, 11.7, 0.6, "Strategic Insights & Executive Pillars", size=32, bold=True, color=text_head_rgb)
-
-    pillar_accents = [accent_cyan, accent_purple, accent_emerald]
-    col_w = 3.65
-
-    for idx, card_data in enumerate(parsed_insights[:3]):
-        left_pos = 0.8 + (idx * 3.9)
-        top_acc = pillar_accents[idx % len(pillar_accents)]
-        _add_card(slide4, left_pos, 1.7, col_w, 5.2, border_color=card_border_rgb, top_accent=top_acc)
-
-        _add_textbox(slide4, left_pos + 0.15, 1.95, col_w - 0.3, 0.35, f"STRATEGIC PILLAR #{idx+1}", size=13, bold=True, color=top_acc)
-
-        _add_textbox(slide4, left_pos + 0.15, 2.4, col_w - 0.3, 0.25, "OBSERVATION", size=10.5, bold=True, color=accent_cyan)
-        _add_textbox(slide4, left_pos + 0.15, 2.7, col_w - 0.3, 1.2, card_data["obs"], size=11.5, color=text_body_rgb)
-
-        _add_textbox(slide4, left_pos + 0.15, 4.0, col_w - 0.3, 0.25, "BUSINESS IMPLICATION", size=10.5, bold=True, color=accent_purple)
-        _add_textbox(slide4, left_pos + 0.15, 4.3, col_w - 0.3, 1.2, card_data["imp"], size=11.5, color=text_body_rgb)
-
-        _add_textbox(slide4, left_pos + 0.15, 5.6, col_w - 0.3, 0.25, "ACTIONABLE STRATEGY", size=10.5, bold=True, color=accent_emerald)
-        _add_textbox(slide4, left_pos + 0.15, 5.9, col_w - 0.3, 0.9, card_data["strat"], size=11.5, color=text_body_rgb)
-
-    # ── SLIDE 5+: Visual Charts & Executive Takeaway Deep-Dives ──────────────
-    png_charts = data.get("png_charts", [])
-    output_dir = Path(data.get("output_dir", ""))
-
-    for idx, chart_name in enumerate(png_charts[:4]):
-        chart_path = output_dir / chart_name
-        if chart_path.exists():
-            slide_chart = prs.slides.add_slide(prs.slide_layouts[6])
-            _add_bg(slide_chart)
-
-            chart_title = chart_name.replace(".png", "").replace("_", " ").title()
-            _add_textbox(slide_chart, 0.8, 0.5, 11.7, 0.4, "VISUAL INTELLIGENCE", size=11, bold=True, color=accent_cyan)
-            _add_textbox(slide_chart, 0.8, 0.9, 11.7, 0.6, f"Relationship Analysis: {chart_title}", size=28, bold=True, color=text_head_rgb)
-
-            # Left Container: Chart Image
-            try:
-                slide_chart.shapes.add_picture(str(chart_path), Inches(0.8), Inches(1.7), Inches(6.4))
-            except Exception as chart_err:
-                print(f"Error adding chart image to PPTX: {chart_err}")
-
-            # Right Container: Real LLM Analysis Card
-            r_left = 7.5
-            r_width = 5.033
-            _add_card(slide_chart, r_left, 1.7, r_width, 5.2, border_color=card_border_rgb, top_accent=accent_cyan)
-
-            _add_textbox(slide_chart, r_left + 0.2, 1.95, r_width - 0.4, 0.35, "EXECUTIVE ANALYSIS & FINDINGS", size=13, bold=True, color=accent_cyan)
-
-            card_info = parsed_insights[idx % len(parsed_insights)]
-
-            _add_textbox(slide_chart, r_left + 0.2, 2.4, r_width - 0.4, 0.25, "KEY STATISTICAL PATTERN", size=10.5, bold=True, color=accent_purple)
-            _add_textbox(slide_chart, r_left + 0.2, 2.7, r_width - 0.4, 1.3, card_info["obs"], size=11.5, color=text_body_rgb)
-
-            _add_textbox(slide_chart, r_left + 0.2, 4.1, r_width - 0.4, 0.25, "BUSINESS & OPERATIONAL IMPACT", size=10.5, bold=True, color=accent_amber)
-            _add_textbox(slide_chart, r_left + 0.2, 4.4, r_width - 0.4, 1.1, card_info["imp"], size=11.5, color=text_body_rgb)
-
-            _add_textbox(slide_chart, r_left + 0.2, 5.6, r_width - 0.4, 0.25, "RECOMMENDED NEXT ACTION", size=10.5, bold=True, color=accent_emerald)
-            _add_textbox(slide_chart, r_left + 0.2, 5.9, r_width - 0.4, 0.8, card_info["strat"], size=11.5, color=text_body_rgb)
-
-    # ── SLIDE PREDICTIVE / ANOMALY / TREND (SPECIALIZED AGENT SLIDES) ─────────
-    pred_txt = data.get("predictive", "")
-    anom_txt = data.get("anomaly", "")
-    trend_txt = data.get("trend", "")
-
-    if pred_txt or anom_txt or trend_txt:
-        slide_spec = prs.slides.add_slide(prs.slide_layouts[6])
-        _add_bg(slide_spec)
-
-        _add_textbox(slide_spec, 0.8, 0.5, 11.7, 0.4, "ADVANCED MULTI-AGENT AUDIT", size=11, bold=True, color=accent_purple)
-        _add_textbox(slide_spec, 0.8, 0.9, 11.7, 0.6, "Predictive Auto-ML & Risk Intelligence", size=30, bold=True, color=text_head_rgb)
-
-        spec_cards = [
-            ("PREDICTIVE FEATURE DRIVERS", pred_txt or "Top drivers identified via Random Forest model.", accent_purple),
-            ("STATISTICAL ANOMALY AUDIT", anom_txt or "IQR & Z-score distribution risk audit completed.", accent_amber),
-            ("TIME-SERIES TREND FORECAST", trend_txt or "Longitudinal trend trajectory project calculated.", accent_cyan),
-        ]
-
-        for s_idx, (s_title, s_body, s_col) in enumerate(spec_cards):
-            left_pos = 0.8 + (s_idx * 3.9)
-            _add_card(slide_spec, left_pos, 1.7, 3.65, 5.2, border_color=card_border_rgb, top_accent=s_col)
-            _add_textbox(slide_spec, left_pos + 0.15, 1.95, 3.35, 0.35, s_title, size=12, bold=True, color=s_col)
-            _add_textbox(slide_spec, left_pos + 0.15, 2.4, 3.35, 4.3, s_body, size=11.5, color=text_body_rgb)
-
-    # ── SLIDE LAST: Strategic Implementation Roadmap ─────────────────────────
-    slide_final = prs.slides.add_slide(prs.slide_layouts[6])
-    _add_bg(slide_final)
-
-    _add_textbox(slide_final, 0.8, 0.5, 11.7, 0.4, "ACTION PLAN & ROADMAP", size=11, bold=True, color=accent_emerald)
-    _add_textbox(slide_final, 0.8, 0.9, 11.7, 0.6, "Strategic Implementation & Recommendations", size=32, bold=True, color=text_head_rgb)
-
-    roadmap_items = []
-    
-    # Item 1: Primary Actionable Strategy
-    item1_text = parsed_insights[0]["strat"] if parsed_insights else "Enforce clean data schema ingestion across upstream reporting pipelines."
-    item1_text = _clean_md(item1_text).replace("\n", " ")
-    if len(item1_text) > 150: item1_text = item1_text[:145].strip() + "..."
-    roadmap_items.append(("01", "Primary Strategic Recommendation", item1_text, accent_cyan))
-
-    # Item 2: Secondary Actionable Strategy / Predictive Driver
-    if parsed_insights and len(parsed_insights) > 1:
-        item2_text = parsed_insights[1]["strat"]
-    elif pred_txt:
-        item2_text = pred_txt
-    else:
-        item2_text = "Align key driver features with target performance KPIs to optimize output throughput."
-    item2_text = _clean_md(item2_text).replace("\n", " ")
-    if len(item2_text) > 150: item2_text = item2_text[:145].strip() + "..."
-    roadmap_items.append(("02", "Secondary Strategic Recommendation", item2_text, accent_purple))
-
-    # Item 3: Tertiary Actionable Strategy / Anomaly Risk Mitigation
-    if parsed_insights and len(parsed_insights) > 2:
-        item3_text = parsed_insights[2]["strat"]
-    elif anom_txt:
-        item3_text = anom_txt
-    else:
-        item3_text = "Audit variance and implement threshold safeguards across key numeric distributions."
-    item3_text = _clean_md(item3_text).replace("\n", " ")
-    if len(item3_text) > 150: item3_text = item3_text[:145].strip() + "..."
-    roadmap_items.append(("03", "Risk Mitigation & Compliance Strategy", item3_text, accent_amber))
-
-    # Item 4: Long-Term Trajectory / Executive Alignment
-    if parsed_insights and len(parsed_insights) > 3:
-        item4_text = parsed_insights[3]["strat"]
-    elif trend_txt:
-        item4_text = trend_txt
-    else:
-        item4_text = "Track key indicator metrics continuously on automated executive dashboards."
-    item4_text = _clean_md(item4_text).replace("\n", " ")
-    if len(item4_text) > 150: item4_text = item4_text[:145].strip() + "..."
-    roadmap_items.append(("04", "Executive Alignment & Governance", item4_text, accent_emerald))
-
-    for idx, (num_str, title_str, desc_str, col_rgb) in enumerate(roadmap_items):
-        top_pos = 1.65 + (idx * 1.32)
-        _add_card(slide_final, 0.8, top_pos, 11.733, 1.18, border_color=card_border_rgb)
-
-        num_card = slide_final.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.95), Inches(top_pos + 0.14), Inches(0.9), Inches(0.9))
-        num_card.fill.solid()
-        num_card.fill.fore_color.rgb = RGBColor(*col_rgb)
-        num_card.line.fill.background()
-
-        _add_textbox(slide_final, 0.95, top_pos + 0.32, 0.9, 0.5, num_str, size=22, bold=True, color=(255, 255, 255), align=PP_ALIGN.CENTER)
-
-        _add_textbox(slide_final, 2.0, top_pos + 0.16, 10.3, 0.32, title_str.upper(), size=13, bold=True, color=col_rgb)
-        _add_textbox(slide_final, 2.0, top_pos + 0.50, 10.3, 0.55, desc_str, size=11.5, color=text_body_rgb)
-
-    pptx_path = session_dir / "report.pptx"
-    prs.save(str(pptx_path))
-
-    base_name = meta.get("filename", "report").rsplit(".", 1)[0] if "." in meta.get("filename", "") else meta.get("name", "report")
-    return FileResponse(
-        str(pptx_path),
-        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        filename=f"{base_name}_executive_deck.pptx"
-    )
-
 
 
 # ---------------------------------------------------------------------------

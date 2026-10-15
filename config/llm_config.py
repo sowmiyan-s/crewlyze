@@ -237,8 +237,9 @@ def get_llm_params() -> dict:
         "model":       formatted_model,
         "temperature": config.get("temperature", 0.1),
         "max_retries": 1,
-        "timeout":     int(os.getenv("LLM_TIMEOUT", "60")),
+        "timeout":     int(os.getenv("LLM_TIMEOUT", "120")),
         "max_tokens":  int(os.getenv("LLM_MAX_TOKENS", "2048")),
+
     }
 
     if config.get("api_key"):

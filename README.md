@@ -412,7 +412,6 @@ python main.py
 | `POST` | `/api/test-smtp` | Test outbound SMTP email report delivery. |
 | `POST` | `/api/test-discord` | Test outbound Discord webhook report dispatch. |
 | `GET` | `/api/export-pdf` | Download ReportLab HTML-escaped PDF executive report. |
-| `GET` | `/api/export-pptx` | Download PowerPoint (`.pptx`) slide deck. |
 | `GET` | `/api/export-zip` | Download complete ZIP workspace archive. |
 
 ---

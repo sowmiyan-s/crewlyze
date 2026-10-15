@@ -527,7 +527,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     # Top Header Pill / Brand Tag
     story.append(Spacer(1, 50))
     story.append(Paragraph(
-        "CREWLYZE EXECUTIVE ANALYSIS",
+        "CREWLYZE EXECUTIVE GROWTH INTELLIGENCE",
         ParagraphStyle("CoverBadge", fontName="Helvetica-Bold", fontSize=9,
                        leading=12, textColor=C_CRIMSON_DARK, alignment=1)
     ))
@@ -545,7 +545,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
 
     # Subtitle / Generation timestamp (dynamic)
     story.append(Paragraph(
-        f"Autonomous Agentic Intelligence &amp; Data Audit Report<br/>"
+        f"Autonomous Agentic Business Intelligence &amp; Growth Strategy Report<br/>"
         f"<font color='#64748b' size=9.5>Generated on {timestamp}</font>",
         ParagraphStyle("CoverDate", fontName="Helvetica", fontSize=11,
                        leading=18, textColor=C_INK, alignment=1)
@@ -580,13 +580,13 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     # ═══════════════════════════════════════════════════════════════════════════
 
     story.append(KeepTogether([
-        _section_header("01", "Executive Summary & Dataset Overview", body_style),
+        _section_header("01", "Executive Summary & Commercial KPI Overview", body_style),
         Spacer(1, 12)
     ]))
 
     story.append(Paragraph(
-        "This report presents high-value strategic recommendations, data quality audit trails, "
-        "correlation mappings, and chart-backed insights generated autonomously from the uploaded dataset.",
+        "This report delivers high-impact growth levers, revenue drivers, commercial opportunity mappings, "
+        "and chart-backed executive intelligence generated autonomously from the active business dataset.",
         body_style
     ))
     story.append(Spacer(1, 10))
@@ -627,12 +627,12 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
 
     if strategic_text:
         story.append(KeepTogether([
-            _section_header("02", "Strategic Business Insights", body_style),
+            _section_header("02", "Strategic Business Intelligence & Growth Levers", body_style),
             Spacer(1, 12)
         ]))
         story.append(Paragraph(
-            "Each insight card below contains three panels: the raw data <b>Observation</b>, "
-            "its derived <b>Business Implication</b>, and a concrete <b>Actionable Strategy</b>.",
+            "Each strategic growth card below evaluates commercial performance across three dimensions: "
+            "the data <b>Observation</b>, the commercial <b>Business Implication</b>, and a decision-ready <b>Actionable Strategy</b>.",
             body_style
         ))
         story.append(Spacer(1, 10))
@@ -747,21 +747,21 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
 
     sec_num = "04" if (strategic_text or warnings_text) else "03"
     story.append(KeepTogether([
-        _section_header(sec_num, "Data Summary & Methodology", body_style),
+        _section_header(sec_num, "Opportunity Drivers & Methodology", body_style),
         Spacer(1, 12)
     ]))
 
     if objectives_text:
-        story.append(Paragraph("Project Objectives &amp; Scope", h2_style))
+        story.append(Paragraph("Strategic Growth Objectives &amp; Scope", h2_style))
         story.append(Paragraph(
             _md_to_html(objectives_text).replace("\n", "<br/>"), body_style
         ))
         story.append(Spacer(1, 10))
 
     if cleaning_text:
-        story.append(Paragraph("Data Cleaning Audit Trail", h2_style))
+        story.append(Paragraph("Dataset Integrity &amp; Ingestion Profile", h2_style))
         story.append(Paragraph(
-            "The following transformations were applied to the raw dataset during preprocessing:", body_style
+            "Commercial dataset verification and baseline integrity audit:", body_style
         ))
         for raw in cleaning_text.split("\n"):
             line = raw.strip().lstrip("-*• ").strip()
@@ -770,7 +770,7 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(Spacer(1, 10))
 
     if relations_text:
-        story.append(Paragraph("Key Correlation &amp; Relationship Map", h2_style))
+        story.append(Paragraph("Key Growth Drivers &amp; Commercial Relationship Map", h2_style))
 
         hdr_style_tbl = ParagraphStyle("RelHdr", fontName="Helvetica-Bold", fontSize=8.5,
                                        textColor=C_WHITE, leading=11)

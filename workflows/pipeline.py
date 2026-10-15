@@ -119,7 +119,7 @@ def make_pipeline(
 
     selected_tasks = [task.strip().lower() for task in (selected_tasks or []) if task.strip()]
     if not selected_tasks:
-        selected_tasks = ["cleaning", "relations", "insights", "visualization"]
+        selected_tasks = ["relations", "insights", "visualization"]
 
     profile_block = (
         f"\n\n--- DATASET PROFILE ---\n{profile}\n---"
@@ -156,14 +156,14 @@ def make_pipeline(
 
     clean_task = Task(
         agent=cleaner_agent,
-        description=f"The dataset working copy is at '{csv_path}'. {goal_context} {coercion_block}{rules_block}\nExplain data cleaning actions and validations in concise executive bullet points.",
-        expected_output="Bulleted list of cleaning steps explaining the business purpose.",
+        description=f"The dataset working copy is at '{csv_path}'. {goal_context} {coercion_block}{rules_block}\nVerify raw business dataset dimensions and baseline integrity for growth intelligence in concise executive bullet points.",
+        expected_output="Bulleted overview of data ingestion, baseline health, and integrity for growth analysis.",
         callback=cb,
     )
 
     relation_task = Task(
         agent=relation_agent,
-        description=f"Identify key column relationships aligned with goal '{project_goal}'. Format strictly as: - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info]{profile_block}{relation_deep_prompt}",
+        description=f"Identify key commercial relationships and growth drivers aligned with goal '{project_goal}'. Format strictly as: - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info]{profile_block}{relation_deep_prompt}",
         expected_output="List of relationships formatted strictly as - X: [Col1] | Y: [Col2] | Type: [Plot] | Details: [Info].",
         callback=cb,
     )
@@ -172,35 +172,35 @@ def make_pipeline(
 
     insight_task = Task(
         agent=insights_agent,
-        description=f"Generate structured executive report focusing on strategic business context. Align with goal: '{project_goal}'.{insight_deep_prompt}{relations_context}",
+        description=f"Generate structured executive Business Intelligence report focusing on strategic growth levers, revenue drivers, and margin optimization. Align with goal: '{project_goal}'.{insight_deep_prompt}{relations_context}",
         expected_output="Structured markdown report containing Objectives, Statistics, Strategic Insights, and Warnings.",
         callback=cb,
     )
 
     visualize_task = Task(
         agent=visualizer_agent,
-        description=f"Review the generated visualizations and verified relationships saved to '{output_dir}'.{visualize_deep_prompt}{relations_context}",
+        description=f"Review the generated visualizations and verified relationships saved to '{output_dir}'. Provide strategic takeaways for business leadership.{visualize_deep_prompt}{relations_context}",
         expected_output="Bulleted summary of custom visualization charts and executive takeaways.",
         callback=cb,
     )
 
     predictive_task = Task(
         agent=predictive_agent,
-        description=f"Review candidate target features and explain top 3 predictive feature importance drivers in plain business terms.",
+        description=f"Review candidate target features and explain top 3 predictive feature importance drivers influencing key business targets (Revenue, Conversion, Retention) in plain commercial terms.",
         expected_output="Executive summary of top 3 predictive drivers influencing the primary target metric.",
         callback=cb,
     )
 
     anomaly_task = Task(
         agent=anomaly_agent,
-        description=f"Audit dataset distributions for statistical outliers (IQR/Z-score) and provide operational risk safeguards.",
+        description=f"Audit dataset distributions for operational outliers, margin leakage, and revenue risks, and provide executive mitigation safeguards.",
         expected_output="Statistical outlier and risk report with executive mitigation recommendations.",
         callback=cb,
     )
 
     trend_task = Task(
         agent=trend_agent,
-        description=f"Review temporal metrics (growth rate, YoY, CAGR) and project strategic trajectory trends.",
+        description=f"Review temporal metrics (growth rate, YoY, MoM, CAGR, revenue velocity) and project strategic business trajectory trends.",
         expected_output="Time-series trajectory and forward growth projections.",
         callback=cb,
     )

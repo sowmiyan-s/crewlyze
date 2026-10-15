@@ -273,8 +273,7 @@ const dependencies = [
   { name: 'Pillow', spec: 'Pillow', critical: false },
   { name: 'reportlab', spec: 'reportlab', critical: false },
   { name: 'openpyxl', spec: 'openpyxl>=3.1.0', critical: false },
-  { name: 'xlrd', spec: 'xlrd>=2.0.1', critical: false },
-  { name: 'python-pptx', spec: 'python-pptx>=0.6.21', critical: false }
+  { name: 'xlrd', spec: 'xlrd>=2.0.1', critical: false }
 ];
 
 // First attempt fast bulk install with requirements.txt if present
