@@ -167,15 +167,34 @@ def generate_executive_visualizations(
         c_col = cat_cols[0]
         n_col = num_cols[0]
         agg_df = df.groupby(c_col)[n_col].sum().reset_index().sort_values(n_col, ascending=False).head(10)
+        x_vals_bar = [str(x) for x in agg_df[c_col]]
+        y_vals_bar = [round(float(y), 2) for y in agg_df[n_col]]
         charts.append({
             "id": f"chart_bar_{c_col}_{n_col}",
             "title": f"{n_col.replace('_', ' ').title()} by {c_col.replace('_', ' ').title()}",
             "chart_type": "bar",
-            "x_values": [str(x) for x in agg_df[c_col]],
-            "y_values": [round(float(y), 2) for y in agg_df[n_col]],
+            "x_values": x_vals_bar,
+            "y_values": y_vals_bar,
             "x_label": c_col,
             "y_label": n_col,
             "insight": f"Segment '{agg_df.iloc[0][c_col]}' represents the dominant peak volume for '{n_col}'.",
+            "fig_json": {
+                "data": [{
+                    "type": "bar",
+                    "x": x_vals_bar,
+                    "y": y_vals_bar,
+                    "marker": {"color": "#8b5cf6"},
+                    "hovertemplate": f"<b>%{{x}}</b><br>{n_col}: %{{y:,.2f}}<extra></extra>",
+                }],
+                "layout": {
+                    "title": {"text": f"{n_col.replace('_', ' ').title()} by {c_col.replace('_', ' ').title()}", "font": {"color": "#a78bfa", "size": 14}},
+                    "xaxis": {"title": c_col, "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "yaxis": {"title": n_col, "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "paper_bgcolor": "rgba(9,9,11,0.0)",
+                    "plot_bgcolor": "rgba(15,23,42,0.4)",
+                    "margin": {"l": 50, "r": 20, "t": 50, "b": 50},
+                },
+            },
         })
 
     # Chart 2: Scatter plot of primary vs secondary numeric metrics
@@ -186,15 +205,35 @@ def generate_executive_visualizations(
         if len(sample_df) > 500:
             sample_df = sample_df.sample(500, random_state=42)
 
+        x_vals_scat = [round(float(x), 2) for x in sample_df[x_col]]
+        y_vals_scat = [round(float(y), 2) for y in sample_df[y_col]]
         charts.append({
             "id": f"chart_scatter_{x_col}_{y_col}",
             "title": f"{y_col.replace('_', ' ').title()} vs {x_col.replace('_', ' ').title()} Correlation",
             "chart_type": "scatter",
-            "x_values": [round(float(x), 2) for x in sample_df[x_col]],
-            "y_values": [round(float(y), 2) for y in sample_df[y_col]],
+            "x_values": x_vals_scat,
+            "y_values": y_vals_scat,
             "x_label": x_col,
             "y_label": y_col,
             "insight": f"Multivariate distribution confirms cross-metric alignment between '{x_col}' and '{y_col}'.",
+            "fig_json": {
+                "data": [{
+                    "type": "scatter",
+                    "mode": "markers",
+                    "x": x_vals_scat,
+                    "y": y_vals_scat,
+                    "marker": {"color": "#0ea5e9", "size": 7, "opacity": 0.75},
+                    "hovertemplate": f"{x_col}: %{{x:,.2f}}<br>{y_col}: %{{y:,.2f}}<extra></extra>",
+                }],
+                "layout": {
+                    "title": {"text": f"{y_col.replace('_', ' ').title()} vs {x_col.replace('_', ' ').title()}", "font": {"color": "#a78bfa", "size": 14}},
+                    "xaxis": {"title": x_col, "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "yaxis": {"title": y_col, "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "paper_bgcolor": "rgba(9,9,11,0.0)",
+                    "plot_bgcolor": "rgba(15,23,42,0.4)",
+                    "margin": {"l": 50, "r": 20, "t": 50, "b": 50},
+                },
+            },
         })
 
     # Chart 3: Distribution Histogram of primary metric
@@ -203,15 +242,33 @@ def generate_executive_visualizations(
         clean_s = df[p_col].dropna()
         hist, bin_edges = np.histogram(clean_s, bins=12)
         bin_labels = [f"{round(bin_edges[i], 1)}-{round(bin_edges[i+1], 1)}" for i in range(len(hist))]
+        hist_counts = [int(h) for h in hist]
         charts.append({
             "id": f"chart_hist_{p_col}",
             "title": f"Distribution Profile: {p_col.replace('_', ' ').title()}",
             "chart_type": "histogram",
             "x_values": bin_labels,
-            "y_values": [int(h) for h in hist],
+            "y_values": hist_counts,
             "x_label": f"{p_col} Bins",
             "y_label": "Frequency Count",
             "insight": f"Highest concentration occurs in the [{bin_labels[int(np.argmax(hist))]} range ({int(np.max(hist)):,} records).",
+            "fig_json": {
+                "data": [{
+                    "type": "bar",
+                    "x": bin_labels,
+                    "y": hist_counts,
+                    "marker": {"color": "#ec4899"},
+                    "hovertemplate": "Range: %{x}<br>Count: %{y:,}<extra></extra>",
+                }],
+                "layout": {
+                    "title": {"text": f"Distribution Profile: {p_col.replace('_', ' ').title()}", "font": {"color": "#a78bfa", "size": 14}},
+                    "xaxis": {"title": f"{p_col} Bins", "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "yaxis": {"title": "Frequency Count", "gridcolor": "rgba(255,255,255,0.07)", "color": "#94a3b8"},
+                    "paper_bgcolor": "rgba(9,9,11,0.0)",
+                    "plot_bgcolor": "rgba(15,23,42,0.4)",
+                    "margin": {"l": 50, "r": 20, "t": 50, "b": 50},
+                },
+            },
         })
 
     # Optional static PNG generation if output_dir provided
@@ -317,22 +374,53 @@ def inspect_data_quality(df: pd.DataFrame) -> Dict[str, Any]:
 
 def compose_data_story(df: pd.DataFrame, findings: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Synthesizes verified analytical findings into a clear, boardroom-ready narrative.
+    Synthesizes verified analytical findings from across all agentic domains into
+    an evidence-backed executive narrative.
     """
     f_list = findings or []
     headline = "Strategic Data Intelligence & Executive Brief"
 
-    points_summary = f_list[:5] if f_list else [
-        f"Analyzed {len(df):,} verified business observations across {len(df.columns)} operational dimensions.",
-        "Identified primary growth levers and performance concentration cohorts.",
-        "Established statistical baseline with continuous validation guardrails.",
-    ]
+    if not f_list:
+        points_summary = [
+            f"Analyzed {len(df):,} verified business observations across {len(df.columns)} operational dimensions.",
+            "Identified primary growth levers and performance concentration cohorts.",
+            "Established statistical baseline with continuous validation guardrails.",
+        ]
+        story_paragraphs = [
+            f"This executive review examines {len(df):,} records spanning {len(df.columns)} variables to provide an evidence-backed roadmap for leadership.",
+            "Key findings demonstrate significant performance concentration in top cohorts, highlighting where operational scaling delivers maximum ROI.",
+            "Statistical validation confirms mathematical integrity across continuous metrics, providing high confidence for strategic decision-making.",
+        ]
+    else:
+        # Categorize findings by strategic theme
+        growth_items = [f for f in f_list if any(k in f.lower() for k in ["sales", "top", "leader", "share", "pareto", "margin", "growth", "revenue", "tier"])]
+        risk_items = [f for f in f_list if any(k in f.lower() for k in ["risk", "outlier", "anomaly", "skew", "spike", "spend", "loss", "warning", "null"])]
+        general_items = [f for f in f_list if f not in growth_items and f not in risk_items]
 
-    story_paragraphs = [
-        f"This executive review examines {len(df):,} records spanning {len(df.columns)} variables to provide an evidence-backed roadmap for leadership.",
-        "Key findings demonstrate significant performance concentration in top cohorts, highlighting where operational scaling delivers maximum ROI.",
-        "Statistical validation confirms mathematical integrity across continuous metrics, providing high confidence for strategic decision-making.",
-    ]
+        p1 = f"Across {len(df):,} operational records and {len(df.columns)} tracked attributes, Crewlyze executed cross-domain intelligence audits to uncover structural commercial drivers and performance bottlenecks."
+        
+        p2_parts = []
+        if growth_items:
+            p2_parts.append(f"Commercial decomposition reveals core growth levers: {growth_items[0]}")
+            if len(growth_items) > 1:
+                p2_parts.append(f"Furthermore, {growth_items[1].lower()}")
+        else:
+            p2_parts.append("Empirical metrics establish balanced distribution across observed operational cohorts.")
+        p2 = " ".join(p2_parts)
+
+        p3_parts = []
+        if risk_items:
+            p3_parts.append(f"On operational safeguards and margin protection: {risk_items[0]}")
+            if len(risk_items) > 1:
+                p3_parts.append(f"Risk audits additionally flagged that {risk_items[1].lower()}")
+        else:
+            p3_parts.append("Risk modeling indicates zero critical statistical anomalies or distribution breaches exceeding safety thresholds.")
+        p3 = " ".join(p3_parts)
+
+        p4 = "These empirical findings provide an immediate tactical roadmap for leadership—enabling resources to be concentrated on high-yield opportunity segments while reinforcing safeguards against downside variance."
+
+        story_paragraphs = [p1, p2, p3, p4]
+        points_summary = (growth_items[:3] + risk_items[:2] + general_items[:2])[:6] or f_list[:5]
 
     return {
         "headline": headline,

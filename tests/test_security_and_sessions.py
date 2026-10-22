@@ -56,3 +56,38 @@ def test_api_system_info():
     if response.status_code == 200:
         data = response.json()
         assert "version" in data or "status" in data
+
+
+def test_orphan_session_recovery(tmp_path):
+    import json
+    import asyncio
+    from main import lifespan
+    from api.dependencies import SESSIONS_DIR
+
+    test_session = SESSIONS_DIR / "orphan_test_session_recovery"
+    test_session.mkdir(parents=True, exist_ok=True)
+    meta_path = test_session / "metadata.json"
+    done_path = test_session / "done.txt"
+
+    if done_path.exists():
+        done_path.unlink()
+
+    with open(meta_path, "w", encoding="utf-8") as f:
+        json.dump({"id": "orphan_test_session_recovery", "status": "running"}, f)
+
+    async def run_lifespan():
+        async with lifespan(app):
+            pass
+
+    asyncio.run(run_lifespan())
+
+    with open(meta_path, "r", encoding="utf-8") as f:
+        updated_meta = json.load(f)
+
+    assert updated_meta["status"] == "interrupted"
+    assert done_path.exists()
+
+    # Clean up
+    import shutil
+    shutil.rmtree(test_session, ignore_errors=True)
+

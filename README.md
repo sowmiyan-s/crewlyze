@@ -147,57 +147,53 @@ Explore live previews captured directly from an active Crewlyze workspace sessio
 
 ## ✨ Core Capabilities & Deep Feature Breakdown
 
-### 🤖 Autonomous 7-Agent Swarm Orchestration
-Crewlyze delegates dataset processing across a strictly **linear** multi-agent workflow. Each stage consumes the output of the previous one — nothing runs in parallel and nothing is computed before its dependencies exist. Specialized agents (Anomaly / Trend / Predictive) run **last** and only when explicitly selected or in deep-analysis mode, so their LLM calls are never wasted on a report the user did not request.
+### 🤖 25 Agentic Data Intelligence System
+Crewlyze features a state-of-the-art **25 Agentic Intelligence System** organized into 5 specialized business intelligence domains. Rather than relying on fragile LLM arithmetic, each agent adheres to a strict 6-step lifecycle contract (*Inspect -> Plan -> Execute -> Validate -> Explain -> Deliver*) backed by pure Python deterministic analytical engines (pandas, SciPy, scikit-learn):
 
 ```
-[Raw CSV / Excel / SQLite]
-           │
-           ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  🧹 1. Data Quality & Profiling Agent (cleaner.py)          │
-  │     - Evaluates null density (>60% threshold removal)       │
-  │     - Imputes missing numerical/categorical values           │
-  │     - Sanitizes string formatting & standardizes headers    │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Cleaned Data
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  📊 2. Relationship & Correlation Analyst (relation.py)    │
-  │     - Computes Pearson & Spearman correlation matrices      │
-  │     - Identifies non-linear patterns & ANOVA variance drivers │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Correlation Maps  ──┐ (fed into viz + insights)
-                                 ▼                     │
-  ┌─────────────────────────────────────────────────────────────┐
-  │  🎨 3. Interactive Visualizer (visualizer.py)              │
-  │     - Renders charts from the relationships mapped above     │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Charts  ──────────┤ (fed into insights)
-                                 ▼                  │
-  ┌─────────────────────────────────────────────────────────────┐
-  │  💼 4. Senior Strategic Business Consultant (insights.py)   │
-  │     - Synthesizes cleaning + relations + charts into SWOT   │
-  │     - Highlights operational bottleneck risks & opportunities│
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Strategic Context
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  🚨 5. Anomaly & Risk Auditor Agent (anomaly.py)   [optional]│
-  │  📈 6. Time-Series & Trend Analyst Agent (trend.py)  [optional]│
-  │  📉 7. Predictive ML Specialist Agent (predictive.py) [optional]│
-  │     - Run ONLY if selected or in deep-analysis mode          │
-  │     - Each falls back to a pure-Python statistical engine    │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Specialized Analysis
-                                 ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │  📊 8. Interactive Plotly Builder (generate_plotly_charts)  │
-  │     - Parses relations into responsive, hoverable charts     │
-  └──────────────────────────────┬──────────────────────────────┘
-                                 │ Complete Dashboard
-                                 ▼
-                    [Executive PDF Report & Web UI]
+                       [Raw CSV / Excel / SQLite]
+                                   │
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │  🏗️ STAGE 1: FOUNDATION & INGESTION AGENTS           │
+        │  ▸ Dataset Explorer Agent    ▸ Data Cleaner Agent    │
+        │  ▸ Data Quality Inspector Agent                      │
+        └──────────────────────────┬───────────────────────────┘
+                                   │ Cleaned Ingested Blackboard
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │  📊 STAGE 2: EMPIRICAL ANALYTICS & DATA MINING       │
+        │  ▸ Statistical Analysis      ▸ Sales Pareto (80/20)  │
+        │  ▸ Profitability Margins     ▸ Expense Optimization  │
+        │  ▸ Customer Intelligence     ▸ Pattern Clustering    │
+        │  ▸ Relationship Analysis     ▸ Strategic Segmenting  │
+        │  ▸ Anomaly Detection (IF)    ▸ Association Mining    │
+        │  ▸ Temporal Trend Analysis   ▸ Comparative Cohorts   │
+        └──────────────────────────┬───────────────────────────┘
+                                   │ Quantitative Vectors
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │  🔮 STAGE 3: PREDICTIVE AUTO-ML & SCENARIOS          │
+        │  ▸ Sales Trajectory Forecast ▸ Budget Burn Forecaster│
+        │  ▸ Inventory Demand Buffers  ▸ Risk Driver Regressors│
+        │  ▸ What-If Scenario Simulation                       │
+        └──────────────────────────┬───────────────────────────┘
+                                   │ Predictive Bounds
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │  🎨 STAGE 4: DECOUPLED VISUAL INTELLIGENCE           │
+        │  ▸ Visualization Agent (Interactive Plotly + PNGs)   │
+        └──────────────────────────┬───────────────────────────┘
+                                   │ Visual Artifacts
+                                   ▼
+        ┌──────────────────────────────────────────────────────┐
+        │  🏆 STAGE 5: STRATEGIC SYNTHESIS & STORYTELLING      │
+        │  ▸ Insight Discovery Agent   ▸ Decision Support      │
+        │  ▸ Executive Narrative Data Storytelling Agent       │
+        └──────────────────────────┬───────────────────────────┘
+                                   │
+                                   ▼
+             [Interactive 5-Domain Workspace & C-Suite PDF Report]
 ```
 
 ---

@@ -38,7 +38,8 @@ def forecast_sales(df: pd.DataFrame, periods_ahead: int = 4) -> Dict[str, Any]:
             target_col = c
             break
 
-    series = pd.to_numeric(df[target_col], errors="coerce").dropna().values
+    s_clean = pd.to_numeric(df[target_col], errors="coerce").dropna()
+    series = s_clean[np.isfinite(s_clean)].values
     if len(series) < 8:
         return {"has_forecast": False, "reason": "Insufficient observations (< 8 points) for statistical forecasting."}
 
@@ -206,9 +207,18 @@ def predict_risk_model(df: pd.DataFrame, project_goal: str = "") -> Dict[str, An
             X_df[f"{c}_month"] = df_clean[c].dt.month
             X_df[f"{c}_day"] = df_clean[c].dt.day
         elif pd.api.types.is_numeric_dtype(df_clean[c]):
-            X_df[c] = pd.to_numeric(df_clean[c], errors="coerce").fillna(0)
+            s_num = pd.to_numeric(df_clean[c], errors="coerce").fillna(0)
+            X_df[c] = s_num.replace([np.inf, -np.inf], 0)
         else:
-            X_df[c] = df_clean[c].astype(str)
+            n_unique = df_clean[c].nunique()
+            # If high-cardinality identifier (> 50 distinct and > 60% of total rows), skip to prevent OOM
+            if n_unique > 50 and (n_unique / max(1, len(df_clean))) > 0.6:
+                continue
+            elif n_unique > 20:
+                top20 = set(df_clean[c].value_counts().head(20).index)
+                X_df[c] = df_clean[c].apply(lambda v: str(v) if v in top20 else "Other")
+            else:
+                X_df[c] = df_clean[c].astype(str)
 
     X = pd.get_dummies(X_df, drop_first=True, dtype=float)
     y = df_clean[target_col]

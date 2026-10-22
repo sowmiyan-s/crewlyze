@@ -109,3 +109,94 @@ def test_master_coordinator_end_to_end(sample_business_df):
         assert isinstance(summary["png_charts"], list)
 
 
+def test_export_pdf_with_agentic_summary(sample_business_df):
+    """Ensure export_pdf cleanly serializes 25-agent results into a valid PDF binary."""
+    from ui.export import export_pdf
+    with tempfile.TemporaryDirectory() as tmpdir:
+        coordinator = MasterCoordinator(
+            session_id="test_pdf_session",
+            project_goal="Maximize growth",
+            output_dir=tmpdir,
+        )
+        summary = coordinator.run_pipeline(
+            df=sample_business_df,
+            preset="quick_brief"
+        )
+        pdf_bytes = export_pdf(summary, filename="test_report.pdf")
+        assert len(pdf_bytes) > 1000
+        assert pdf_bytes.startswith(b"%PDF")
+
+
+@pytest.mark.parametrize("category", [
+    "data_analysis",
+    "business_analysis",
+    "data_mining",
+    "predictive_analysis",
+    "eda",
+])
+def test_isolated_usecase_categories(sample_business_df, category):
+    """Ensure each of the 5 analysis use-case steps runs isolated, produces realistic results, and generates a PDF report."""
+    from ui.export import export_pdf
+    with tempfile.TemporaryDirectory() as tmpdir:
+        coordinator = MasterCoordinator(
+            session_id=f"test_cat_{category}",
+            project_goal=f"Test {category} isolated use case",
+            output_dir=tmpdir,
+        )
+        result = coordinator.run_pipeline(
+            df=sample_business_df,
+            selected_categories=[category],
+        )
+
+        assert result["total_execution_time"] > 0
+        cat_agents = result["categories"].get(category, [])
+        assert len(cat_agents) == 5, f"Expected 5 agents in {category}, got {len(cat_agents)}"
+
+        completed = [a for a in cat_agents if a.get("status") == "completed"]
+        assert len(completed) >= 4, f"Expected at least 4 completed agents in {category}, got {len(completed)}"
+
+        for agent in completed:
+            assert isinstance(agent.get("metrics"), dict)
+            assert isinstance(agent.get("findings"), list)
+            assert len(agent.get("findings")) > 0
+
+        # Verify individual category produces valid PDF report
+        pdf_bytes = export_pdf(result, filename=f"report_{category}.pdf")
+        assert len(pdf_bytes) > 1000
+        assert pdf_bytes.startswith(b"%PDF")
+
+
+def test_selective_card_agent_execution(sample_business_df):
+    """Ensure that selecting a specific subset of agents within a card executes only those agents safely."""
+    from ui.export import export_pdf
+    with tempfile.TemporaryDirectory() as tmpdir:
+        coordinator = MasterCoordinator(
+            session_id="test_selective_subset",
+            project_goal="Selective test",
+            output_dir=tmpdir,
+        )
+        # Select 2 agents from Business Analysis
+        selected_subset = ["sales_analysis", "profitability_analysis"]
+        result = coordinator.run_pipeline(
+            df=sample_business_df,
+            selected_agent_ids=selected_subset,
+        )
+
+        assert result["total_execution_time"] > 0
+        biz_agents = result["categories"].get("business_analysis", [])
+        executed_ids = [a["agent_id"] for a in biz_agents if a.get("status") == "completed"]
+        assert "sales_analysis" in executed_ids
+        assert "profitability_analysis" in executed_ids
+        # Other agents in business analysis should not have been executed
+        assert "expense_optimization" not in executed_ids
+        assert "decision_support" not in executed_ids
+
+        # Ensure PDF export handles selective execution safely
+        pdf_bytes = export_pdf(result, filename="report_selective.pdf")
+        assert len(pdf_bytes) > 1000
+        assert pdf_bytes.startswith(b"%PDF")
+
+
+
+
+

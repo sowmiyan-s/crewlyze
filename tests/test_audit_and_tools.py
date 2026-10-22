@@ -75,3 +75,34 @@ def test_visualizer_fallback_generates_real_charts():
     )
     pngs = [f for f in os.listdir(out_dir) if f.endswith(".png")]
     assert len(pngs) >= 1
+
+
+def test_high_cardinality_protection():
+    """Verify predict_risk_model does not memory-explode on high-cardinality ID columns."""
+    from tools.predictive_tools import predict_risk_model
+    import uuid
+
+    df = pd.DataFrame({
+        "tx_id": [uuid.uuid4().hex for _ in range(100)],
+        "revenue": [float(i * 10) for i in range(100)],
+        "target": [i % 2 for i in range(100)],
+    })
+    res = predict_risk_model(df)
+    assert res.get("has_risk_prediction") is True
+    assert "target" in res.get("target_variable", "")
+
+
+def test_coordinator_cancellation():
+    """Verify MasterCoordinator respects cancellation and stops executing subsequent stages."""
+    from workflows.coordinator import MasterCoordinator
+
+    df = pd.DataFrame({"sales": [10, 20, 30], "cost": [5, 10, 15]})
+    coordinator = MasterCoordinator(session_id="test_cancel_flow")
+    coordinator.cancel()
+    assert coordinator.is_cancelled() is True
+
+    result = coordinator.run_pipeline(df, selected_categories=["data_analysis"])
+    # All stages should have halted early
+    cat_agents = result["categories"].get("data_analysis", [])
+    assert len(cat_agents) == 0 or all(a.get("status") != "completed" for a in cat_agents)
+

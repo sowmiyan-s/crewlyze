@@ -219,23 +219,12 @@ def _run_in_subprocess(script: str, timeout: int = 35, is_healed_attempt: bool =
         
         # If execution failed and we haven't already tried to self-heal:
         if not success and not is_healed_attempt and allow_healing:
-            # 1. Package dependency healing (ModuleNotFoundError)
+            # 1. Package dependency check (ModuleNotFoundError)
             match_module = re.search(r"ModuleNotFoundError:\s*No module named\s*['\"]([^'\"]+)['\"]", output)
             if match_module:
                 module_name = match_module.group(1)
-                print(f"\n[Auto-Healing System] Missing module '{module_name}'. Attempting pip install...\n")
+                print(f"\n[Environment Diagnostic] Missing optional dependency '{module_name}'. Automated host pip installation is disabled for security. Please install via requirements if needed.\n")
                 sys.stdout.flush()
-                try:
-                    subprocess.run([sys.executable, "-m", "pip", "install", module_name], capture_output=True)
-                    # Retry execution after package install
-                    success_pkg, output_pkg = _run_in_subprocess(script, timeout=timeout, is_healed_attempt=True)
-                    if success_pkg:
-                        print(f"[Auto-Healing System] Installed '{module_name}' and executed successfully!")
-                        sys.stdout.flush()
-                        return True, f"[Auto-Healing system installed missing package '{module_name}']\n\nOutput:\n{output_pkg}"
-                except Exception as pkg_err:
-                    print(f"[Auto-Healing System] Failed to install package: {pkg_err}")
-                    sys.stdout.flush()
 
             # 2. Logic/Code healing (LLM repair)
             print(f"\n[Auto-Healing System] Executing python script failed with error. Attempting self-healing...\nError details:\n{output}\n")

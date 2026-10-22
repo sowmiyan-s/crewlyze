@@ -431,10 +431,14 @@ def _build_stats_tables(df: pd.DataFrame, body_style) -> list:
             s    = df[col]
             miss = round(s.isnull().sum() / max(len(df), 1) * 100, 1)
             top3 = s.value_counts().head(3)
-            top_str = ", ".join(f"{_escape(str(v))}({c})" for v, c in top3.items()) if not top3.empty else "—"
+            raw_items = [f"{str(v)[:25]}({c})" for v, c in top3.items()] if not top3.empty else ["—"]
+            top_raw = ", ".join(raw_items)
+            if len(top_raw) > 85:
+                top_raw = top_raw[:82] + "..."
+            top_str = _escape(top_raw)
             cat_rows.append([
                 Paragraph(_escape(str(col)), cell_style),
-                Paragraph(top_str[:100],     cell_style),
+                Paragraph(top_str,           cell_style),
                 Paragraph(str(s.nunique()),  cell_style),
                 Paragraph(f"{miss}%",        cell_style),
             ])
@@ -493,16 +497,19 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
     raw_insights    = _clean_ai_artifacts(result.get("insights", "")).strip()
     cleaning_text   = _clean_ai_artifacts(result.get("cleaning_steps", "")).strip()
     relations_text  = _clean_ai_artifacts(result.get("relations", "")).strip()
-    predictive_text = _clean_ai_artifacts(result.get("predictive", "")).strip()
-    anomaly_text    = _clean_ai_artifacts(result.get("anomaly", "")).strip()
-    trend_text      = _clean_ai_artifacts(result.get("trend", "")).strip()
-    report_title    = _clean_ai_artifacts(result.get("report_title") or result.get("name") or filename or "Executive Analysis").strip()
-    report_goal     = _clean_ai_artifacts(result.get("goal", "")).strip()
-    timestamp       = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
-    df              = result.get("dataframe")
-    output_dir      = result.get("output_dir", Path("outputs"))
-    png_files       = list(Path(output_dir).glob("*.png"))
-    placed_charts   = set()
+    predictive_text     = _clean_ai_artifacts(result.get("predictive", "")).strip()
+    anomaly_text        = _clean_ai_artifacts(result.get("anomaly", "")).strip()
+    trend_text          = _clean_ai_artifacts(result.get("trend", "")).strip()
+    executive_narrative = _clean_ai_artifacts(result.get("executive_narrative", "")).strip()
+    categories_data     = result.get("categories", {})
+    executive_findings  = result.get("executive_findings", [])
+    report_title        = _clean_ai_artifacts(result.get("report_title") or result.get("name") or filename or "Executive Analysis").strip()
+    report_goal         = _clean_ai_artifacts(result.get("goal", "")).strip()
+    timestamp           = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
+    df                  = result.get("dataframe")
+    output_dir          = result.get("output_dir", Path("outputs"))
+    png_files           = list(Path(output_dir).glob("*.png"))
+    placed_charts       = set()
 
     # ── Parse insight subsections ─────────────────────────────────────────────
     objectives_text = stats_text = strategic_text = warnings_text = ""
@@ -619,7 +626,22 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
             ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
         ]))
         story.append(kv_tbl)
-        story.append(Spacer(1, 18))
+        story.append(Spacer(1, 14))
+
+    # Executive Strategic Narrative (from 25-Agent System)
+    if executive_narrative:
+        narrative_p = Paragraph(
+            f"<b>Strategic Intelligence Narrative:</b><br/>{_md_to_html(executive_narrative)}",
+            ParagraphStyle("ExecNarrative", fontName="Helvetica", fontSize=9.5, leading=15, textColor=C_INK)
+        )
+        narrative_box = Table([[narrative_p]], colWidths=[504])
+        narrative_box.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f8fafc")),
+            ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#cbd5e1")),
+            ("LINELEFT", (0, 0), (0, -1), 4, colors.HexColor("#8b5cf6")),
+            ("PADDING", (0, 0), (-1, -1), 10),
+        ]))
+        story.append(KeepTogether([narrative_box, Spacer(1, 16)]))
 
     # ═══════════════════════════════════════════════════════════════════════════
     # PAGE 3+ — STRATEGIC BUSINESS INSIGHTS
@@ -926,8 +948,51 @@ def export_pdf(result: dict, filename: str = "") -> bytes:
         story.append(Spacer(1, 14))
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 5+ — APPENDIX (Per-column stats + remaining charts)
+    # MULTI-AGENT DOMAIN BREAKDOWN (25 AGENTS INTELLIGENCE SYSTEM)
     # ═══════════════════════════════════════════════════════════════════════════
+    has_cat_data = any(len(agents) > 0 for agents in categories_data.values() if isinstance(agents, list))
+    if has_cat_data:
+        curr_sec_idx += 1
+        sec_str = str(curr_sec_idx).zfill(2)
+        story.append(KeepTogether([
+            _section_header(sec_str, "Multi-Agent Domain Intelligence Breakdown", body_style),
+            Spacer(1, 10)
+        ]))
+        story.append(Paragraph(
+            "Empirical findings and verified performance metrics from active intelligence agents:", body_style
+        ))
+        story.append(Spacer(1, 8))
+
+        cat_titles = {
+            "data_analysis": "1. Data Analysis Domain",
+            "business_analysis": "2. Business Analysis Domain",
+            "data_mining": "3. Data Mining Domain",
+            "predictive_analysis": "4. Predictive Analysis Domain",
+            "eda": "5. Exploratory Data Analysis & Visuals",
+        }
+
+        for cat_id, cat_title in cat_titles.items():
+            cat_agents = categories_data.get(cat_id, [])
+            active_agents = [a for a in cat_agents if a.get("status") == "completed"]
+            if not active_agents:
+                continue
+
+            story.append(Paragraph(f"<b>{cat_title}</b>", h2_style))
+            for agent in active_agents:
+                a_name = agent.get("name", agent.get("agent_id", "Agent"))
+                a_findings = agent.get("findings", [])
+                a_metrics = agent.get("metrics", {})
+
+                metrics_summary = ", ".join(
+                    f"{k.replace('_', ' ').title()}: {v:,.2f}" if isinstance(v, (int, float)) else f"{k.replace('_', ' ').title()}: {v}"
+                    for k, v in a_metrics.items()
+                )
+                metric_label = f" <font color='#64748b' size=8>({_escape(metrics_summary)})</font>" if metrics_summary else ""
+                story.append(Paragraph(f"<b>{_escape(a_name)}</b>{metric_label}", bullet_style))
+                for f in a_findings[:3]:
+                    story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;▸  {_md_to_html(f)}", small_style))
+            story.append(Spacer(1, 8))
+        story.append(Spacer(1, 10))
 
     app_num = str(curr_sec_idx + 1).zfill(2)
     story.append(KeepTogether([

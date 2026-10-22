@@ -186,10 +186,15 @@ class BaseIntelligenceAgent:
             )
 
     def call_llm(self, prompt: str, system_prompt: str = "") -> str:
-        """Helper to invoke configured LLM safely if provided."""
+        """Helper to invoke configured LLM safely if provided with transient rate-limit retry."""
         if self.llm_caller:
-            try:
-                return self.llm_caller(prompt, system_prompt)
-            except Exception as e:
-                return f"[LLM unavailable: {e}]"
+            for attempt in range(2):
+                try:
+                    return self.llm_caller(prompt, system_prompt)
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if attempt == 0 and any(kw in err_str for kw in ("429", "rate limit", "too many requests", "overloaded", "quota")):
+                        time.sleep(2)
+                        continue
+                    return f"[LLM unavailable: {e}]"
         return ""

@@ -1278,10 +1278,33 @@ def run_crew(
             else:
                 agent_ids.add(t_lower)
 
+    llm_caller = None
+    try:
+        from config.llm_config import get_llm_params
+        from config.context import current_llm_provider, current_llm_api_key
+        prov = (current_llm_provider.get() or os.getenv("LLM_PROVIDER") or "").lower()
+        key = current_llm_api_key.get() or os.getenv("OPENAI_API_KEY") or os.getenv("NVIDIA_API_KEY") or os.getenv("GROQ_API_KEY") or ""
+        if prov == "ollama" or key:
+            from crewai import LLM
+            llm_params = get_llm_params()
+            if llm_params:
+                _llm_inst = LLM(**llm_params)
+                def _caller(prompt: str, system_prompt: str = "") -> str:
+                    messages = []
+                    if system_prompt:
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": prompt})
+                    res = _llm_inst.call(messages)
+                    return res if isinstance(res, str) else str(res)
+                llm_caller = _caller
+    except Exception as llm_init_err:
+        print(f"[Coordinator] LLM caller initialization skipped (using deterministic engine): {llm_init_err}")
+
     coordinator = MasterCoordinator(
         session_id=session_id,
         project_goal=project_goal,
         output_dir=str(session_output_dir),
+        llm_caller=llm_caller,
     )
 
     coordinator_result = coordinator.run_pipeline(

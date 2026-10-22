@@ -222,18 +222,15 @@ def get_agents_for_selection(
     """
     target_ids = set()
 
-    if preset and preset in ANALYSIS_PRESETS:
-        target_ids.update(ANALYSIS_PRESETS[preset])
-
-    if selected_categories:
+    if selected_agent_ids:
+        target_ids.update(selected_agent_ids)
+    elif selected_categories:
         for cat in selected_categories:
             if cat in CATEGORIES_MANIFEST:
                 target_ids.update(CATEGORIES_MANIFEST[cat]["agent_ids"])
-
-    if selected_agent_ids:
-        target_ids.update(selected_agent_ids)
-
-    if not target_ids:
+    elif preset and preset in ANALYSIS_PRESETS:
+        target_ids.update(ANALYSIS_PRESETS[preset])
+    else:
         target_ids.update(ANALYSIS_PRESETS["growth_bi"])
 
     # Maintain consistent category order

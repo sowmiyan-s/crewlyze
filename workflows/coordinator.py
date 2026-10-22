@@ -41,6 +41,26 @@ class MasterCoordinator:
         self.output_dir = output_dir or ""
         self.llm_caller = llm_caller
         self.bus = ContextBus(session_id=session_id)
+        self._cancelled = False
+
+    def is_cancelled(self) -> bool:
+        """Checks if a cancellation request has been submitted for this session."""
+        if self._cancelled:
+            return True
+        if self.session_id:
+            try:
+                from api.dependencies import SESSIONS_DIR
+                done_path = SESSIONS_DIR / self.session_id / "done.txt"
+                if done_path.exists():
+                    self._cancelled = True
+                    return True
+            except Exception:
+                pass
+        return False
+
+    def cancel(self):
+        """Manually trigger cancellation."""
+        self._cancelled = True
 
     def run_pipeline(
         self,
@@ -107,38 +127,86 @@ class MasterCoordinator:
             else:
                 analytics.append(a)
 
-        execution_order = foundations + analytics + predictive + visuals + synthesis
         active_df = df
         completed_count = 0
 
-        # Execute agents sequentially with immediate error containment
-        for idx, agent in enumerate(execution_order, 1):
-            print(f"[{idx}/{total_agents}] Executing {agent.name} ({agent.category}) ...")
-            self.bus.emit("agent_started", {"agent_id": agent.agent_id, "name": agent.name, "category": agent.category})
-
+        def _execute_agent(agent_item, current_df):
+            if self.is_cancelled():
+                return AgentDelivery(
+                    agent_id=agent_item.agent_id,
+                    name=agent_item.name,
+                    category=agent_item.category,
+                    status="ineligible",
+                    narrative="Execution halted due to cancellation."
+                )
+            self.bus.emit("agent_started", {"agent_id": agent_item.agent_id, "name": agent_item.name, "category": agent_item.category})
             context = {"context_bus": self.bus, "session_id": self.session_id}
-            delivery = agent.run(active_df, project_goal=self.project_goal, context=context)
+            deliv = agent_item.run(current_df, project_goal=self.project_goal, context=context)
+            self.bus.publish(deliv)
+            status_icon = "[OK]" if deliv.status == "completed" else ("[SKIPPED]" if deliv.status == "ineligible" else "[FAILED]")
+            print(f"  {status_icon} {agent_item.name} ({deliv.category}) {deliv.status} in {deliv.execution_time:.2f}s.")
+            return deliv
 
-            # Check if cleaner provided cleaned dataframe
+        # Stage 1/5: Foundations (Sequential so data_cleaner passes cleaned_df forward)
+        for agent in foundations:
+            if self.is_cancelled():
+                print("[Coordinator] Halting execution at Stage 1 due to cancellation.")
+                break
+            print(f"[Coordinator: Stage 1/5] Foundations: {agent.name} ...")
+            deliv = _execute_agent(agent, active_df)
             if agent.agent_id == "data_cleaner":
-                cleaned_candidate = self.bus.get_shared("cleaned_df")
-                if cleaned_candidate is not None:
-                    active_df = cleaned_candidate
-
-            self.bus.publish(delivery)
-
-            if delivery.status == "completed":
+                cleaned_cand = self.bus.get_shared("cleaned_df")
+                if cleaned_cand is not None:
+                    active_df = cleaned_cand
+            if deliv.status == "completed":
                 completed_count += 1
-                status_icon = "[OK]"
-            elif delivery.status == "ineligible":
-                status_icon = "[SKIPPED]"
-            else:
-                status_icon = "[FAILED]"
 
-            print(f"  {status_icon} {agent.name} {delivery.status} in {delivery.execution_time:.2f}s.\n")
+        # Stage 2/5: Empirical Analytics (Concurrent execution on sanitized active_df)
+        if analytics and not self.is_cancelled():
+            print(f"[Coordinator: Stage 2/5] Concurrently executing {len(analytics)} empirical analytics agents ...")
+            workers = min(6, len(analytics))
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(_execute_agent, a, active_df): a for a in analytics}
+                for fut in as_completed(futures):
+                    deliv = fut.result()
+                    if deliv.status == "completed":
+                        completed_count += 1
+
+        # Stage 3/5: Predictive Auto-ML & Simulations (Concurrent execution)
+        if predictive and not self.is_cancelled():
+            print(f"[Coordinator: Stage 3/5] Concurrently executing {len(predictive)} predictive agents ...")
+            workers = min(4, len(predictive))
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                futures = {pool.submit(_execute_agent, a, active_df): a for a in predictive}
+                for fut in as_completed(futures):
+                    deliv = fut.result()
+                    if deliv.status == "completed":
+                        completed_count += 1
+
+        # Stage 4/5: Decoupled Visual Intelligence
+        if not self.is_cancelled():
+            for agent in visuals:
+                if self.is_cancelled():
+                    break
+                print(f"[Coordinator: Stage 4/5] Visuals: {agent.name} ...")
+                deliv = _execute_agent(agent, active_df)
+                if deliv.status == "completed":
+                    completed_count += 1
+
+        # Stage 5/5: Strategic Synthesis & Storytelling (Consuming the full Blackboard context)
+        if not self.is_cancelled():
+            for agent in synthesis:
+                if self.is_cancelled():
+                    break
+                print(f"[Coordinator: Stage 5/5] Strategic Synthesis: {agent.name} ...")
+                deliv = _execute_agent(agent, active_df)
+                if deliv.status == "completed":
+                    completed_count += 1
 
         total_time = time.time() - start_total
-        print(f"[Coordinator] Pipeline completed: {completed_count}/{total_agents} agents finished in {total_time:.2f}s.\n")
+        print(f"\n[Coordinator] Staged pipeline completed: {completed_count}/{total_agents} agents finished in {total_time:.2f}s.\n")
 
         # 3. Format unified results package
         results_package = self._format_results_package(active_df, total_time)
