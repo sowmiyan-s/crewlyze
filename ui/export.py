@@ -25,6 +25,7 @@ import urllib.parse
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 from PIL import Image as PILImage
@@ -461,11 +462,653 @@ def _build_stats_tables(df: pd.DataFrame, body_style) -> list:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# 25 Capabilities Manifest Registry for Distinct PDF Reporting
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPORT_MANIFESTS: Dict[str, Dict[str, Any]] = {
+    # 1. Data Analysis Agents
+    "dataset_explorer": {
+        "report_type": "dataset_overview_report",
+        "title": "Dataset Overview Report",
+        "subtitle": "Dimensions, Column Dictionary, Inferred Types & Data Coverage",
+        "domain_badge": "DATA PROFILER & EXPLORATION",
+        "sections": ["executive_summary", "scorecard", "inventory", "distribution", "caveats"],
+        "disclaimer": "Descriptive profiling reflects raw ingestion state. Categorical distributions reflect observed sample frequencies.",
+        "chart_keywords": ["distribution", "type", "profile", "overview", "count"],
+    },
+    "data_cleaner": {
+        "report_type": "data_audit_report",
+        "title": "Data Audit & Hygiene Report",
+        "subtitle": "Missing Values, Duplicate Detection, Schema Conformance & Cleaning Plan",
+        "domain_badge": "DATA QUALITY & HYGIENE AUDIT",
+        "sections": ["executive_summary", "scorecard", "findings", "cleaning_plan", "caveats"],
+        "disclaimer": "Cleaning operations are deterministic. The original raw dataset remains unmodified.",
+        "chart_keywords": ["clean", "missing", "duplicate", "null", "hygiene"],
+    },
+    "statistical_analysis": {
+        "report_type": "statistical_summary_report",
+        "title": "Statistical Summary & Distribution Report",
+        "subtitle": "Descriptive Moments, Quartiles, Continuous Dispersion & Variance",
+        "domain_badge": "STATISTICAL ANALYSIS",
+        "sections": ["executive_summary", "scorecard", "findings", "distributions", "caveats"],
+        "disclaimer": "Statistical moments computed strictly for valid numeric dimensions.",
+        "chart_keywords": ["stat", "dist", "hist", "box", "dispersion", "variance"],
+    },
+    "trend_analysis": {
+        "report_type": "trend_growth_report",
+        "title": "Trend & Growth Trajectory Report",
+        "subtitle": "Temporal Momentum, Period-over-Period Delta & Turning Points",
+        "domain_badge": "TEMPORAL TREND INTELLIGENCE",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Historical trends evaluate past momentum and do not guarantee future continuation.",
+        "chart_keywords": ["trend", "time", "series", "velocity", "momentum", "trajectory"],
+    },
+    "comparative_analysis": {
+        "report_type": "comparative_analysis_report",
+        "title": "Comparative Benchmarking Report",
+        "subtitle": "Cohort Variance, Group Performance Differentials & Spread Metrics",
+        "domain_badge": "COMPARATIVE ANALYSIS",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Comparisons should consider group sample sizes and baseline cohort conditions.",
+        "chart_keywords": ["comparative", "benchmark", "cohort", "group", "spread"],
+    },
+    "insight_discovery": {
+        "report_type": "autonomous_discovery_report",
+        "title": "Autonomous Discovery & Root Cause Report",
+        "subtitle": "Empirical Pattern Extraction, High-Leverage Levers & Cross-Dimensional Findings",
+        "domain_badge": "INSIGHT DISCOVERY",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Discovered patterns represent observational associations that require business validation.",
+        "chart_keywords": ["insight", "discovery", "lever", "root", "cause"],
+    },
+
+    # 2. Business Analysis Agents
+    "sales_analysis": {
+        "report_type": "sales_pareto_report",
+        "title": "Commercial Sales & Pareto Decomposition Report",
+        "subtitle": "Revenue Concentration, 80/20 Pareto Distribution, Ticket Sizes & Velocity",
+        "domain_badge": "SALES INTELLIGENCE",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "actionable_strategy", "caveats"],
+        "disclaimer": "Sales metrics evaluate recorded commercial transactions without presupposing external market adjustments.",
+        "chart_keywords": ["sales", "revenue", "pareto", "ticket", "commercial"],
+    },
+    "profitability_analysis": {
+        "report_type": "profitability_report",
+        "title": "Profitability & Margin Contribution Report",
+        "subtitle": "Gross Margin Decomposition, Unit Economics & Margin Leakage Levers",
+        "domain_badge": "PROFITABILITY & UNIT ECONOMICS",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Unit profitability calculations rely upon accurate cost and revenue attribution.",
+        "chart_keywords": ["profit", "margin", "cost", "unit", "economics"],
+    },
+    "expense_optimization": {
+        "report_type": "expense_optimization_report",
+        "title": "Expense Optimization & Resource Efficiency Report",
+        "subtitle": "Spend Categorization, Operational Cost Leaks & Efficiency Levers",
+        "domain_badge": "EXPENSE & EFFICIENCY AUDIT",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Efficiency levers must balance operational velocity against cost containment targets.",
+        "chart_keywords": ["expense", "spend", "leak", "efficiency", "resource"],
+    },
+    "customer_intelligence": {
+        "report_type": "customer_intelligence_report",
+        "title": "Customer Intelligence & Retention Report",
+        "subtitle": "Account Concentration, Churn Risk Propensity & High-LTV Cohorts",
+        "domain_badge": "CUSTOMER INTELLIGENCE",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Retention signals reflect historical transaction patterns and customer interaction logs.",
+        "chart_keywords": ["customer", "retention", "churn", "ltv", "rfm"],
+    },
+    "decision_support": {
+        "report_type": "decision_support_report",
+        "title": "Executive Decision Support & Action Plan Report",
+        "subtitle": "Multi-Criteria Tradeoff Matrix, Prioritized Initiatives & Strategic Roadmap",
+        "domain_badge": "DECISION SUPPORT & STRATEGY",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Decision frameworks serve as advisory decision-support aids for executive leadership.",
+        "chart_keywords": ["decision", "matrix", "priority", "roadmap", "tradeoff"],
+    },
+
+    # 3. Data Mining Agents
+    "pattern_discovery": {
+        "report_type": "pattern_discovery_report",
+        "title": "Unsupervised Pattern & Latent Clustering Report",
+        "subtitle": "High-Dimensional Motif Discovery, Feature Groupings & Behavioral Signatures",
+        "domain_badge": "DATA MINING & PATTERNS",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Unsupervised clustering identifies mathematical proximity and natural groupings.",
+        "chart_keywords": ["pattern", "cluster", "motif", "latent", "mining"],
+    },
+    "relationship_analysis": {
+        "report_type": "relationship_discovery_report",
+        "title": "Relationship Discovery & Correlation Matrix Report",
+        "subtitle": "Multivariate Dependencies, Pearson Interactions & Co-Dependency Strength",
+        "domain_badge": "RELATIONSHIP DISCOVERY",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Correlation measures mathematical association, not causal directionality.",
+        "chart_keywords": ["correlation", "relation", "matrix", "heatmap", "scatter"],
+    },
+    "segmentation": {
+        "report_type": "segment_profile_report",
+        "title": "Cohort & Segment Profile Report",
+        "subtitle": "Multi-Dimensional Clustering, Centroid Characterization & Profile Breakdown",
+        "domain_badge": "SEGMENTATION & CLUSTERING",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "actionable_strategy", "caveats"],
+        "disclaimer": "Segments represent exploratory cohort clusters to guide differentiated targeting.",
+        "chart_keywords": ["segment", "cluster", "cohort", "profile", "centroid"],
+    },
+    "anomaly_detection": {
+        "report_type": "unusual_records_report",
+        "title": "Unusual Records & Anomaly Audit Report",
+        "subtitle": "Multivariate Outlier Isolation, IQR Dispersion & Review Queue",
+        "domain_badge": "ANOMALY & OUTLIER AUDIT",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Statistical anomalies highlight atypical records and do not necessarily imply fraud or error.",
+        "chart_keywords": ["anomaly", "outlier", "unusual", "isolation", "zscore"],
+    },
+    "association_mining": {
+        "report_type": "association_mining_report",
+        "title": "Market Basket & Association Mining Report",
+        "subtitle": "Support, Confidence, Lift Metrics & Itemset Co-Occurrence Affinities",
+        "domain_badge": "ASSOCIATION MINING",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "actionable_strategy", "caveats"],
+        "disclaimer": "Association rules require adequate transaction frequency to ensure statistical validity.",
+        "chart_keywords": ["association", "basket", "lift", "itemset", "affinity"],
+    },
+
+    # 4. Predictive Analysis Agents
+    "sales_forecasting": {
+        "report_type": "forecast_report",
+        "title": "Sales Trajectory & Forecast Report",
+        "subtitle": "Predictive Run-Rate Horizons, Historical Backtesting & Confidence Intervals",
+        "domain_badge": "PREDICTIVE SALES FORECAST",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Forecasts are probabilistic projections with statistical confidence bands; market shocks may alter trends.",
+        "chart_keywords": ["forecast", "predict", "trajectory", "horizon", "sales"],
+    },
+    "budget_forecasting": {
+        "report_type": "budget_forecast_report",
+        "title": "Budget Run-Rate & Variance Forecast Report",
+        "subtitle": "Fiscal Trajectory, Burn-Rate Projections & Capital Headroom Modeling",
+        "domain_badge": "BUDGET & FISCAL FORECAST",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "actionable_strategy", "caveats"],
+        "disclaimer": "Budget forecasts extrapolate historical burn rates under current operational policy assumptions.",
+        "chart_keywords": ["budget", "burn", "fiscal", "headroom", "variance"],
+    },
+    "demand_forecasting": {
+        "report_type": "demand_forecast_report",
+        "title": "Demand & Inventory Buffer Forecast Report",
+        "subtitle": "Order Volume Trajectory, Safety Stock Buffers & Replenishment Horizons",
+        "domain_badge": "DEMAND & INVENTORY PLANNING",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "actionable_strategy", "caveats"],
+        "disclaimer": "Demand planning assumes steady replenishment lead times and unconstrained supplier availability.",
+        "chart_keywords": ["demand", "inventory", "stock", "buffer", "replenishment"],
+    },
+    "risk_prediction": {
+        "report_type": "risk_register_report",
+        "title": "Risk Prediction & Exposure Register Report",
+        "subtitle": "Multi-Factor Vulnerability Scoring, Downside VaR & Mitigation Controls",
+        "domain_badge": "RISK PREDICTION & EXPOSURE",
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Risk scores serve as analytical warning aids and must be accompanied by expert human review.",
+        "chart_keywords": ["risk", "exposure", "var", "vulnerability", "mitigation"],
+    },
+    "whatif_simulation": {
+        "report_type": "scenario_planning_report",
+        "title": "Scenario Planning & What-If Simulation Report",
+        "subtitle": "Sensitivity Frontiers, Parameter Shocks & Baseline Differential Modeling",
+        "domain_badge": "WHAT-IF SCENARIO SIMULATION",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Simulations compute outcomes under specified parameter assumptions rather than deterministic forecasts.",
+        "chart_keywords": ["simulation", "whatif", "scenario", "sensitivity", "shock"],
+    },
+
+    # 5. Exploratory Data Analysis Agents
+    "natural_query": {
+        "report_type": "natural_query_report",
+        "title": "Natural-Language Query & Ad-Hoc Investigation Report",
+        "subtitle": "Question-Driven Data Extraction, Verified Answers & Schema Insights",
+        "domain_badge": "AD-HOC QUERY INVESTIGATION",
+        "sections": ["executive_summary", "scorecard", "findings", "caveats"],
+        "disclaimer": "Responses are generated from deterministic queries executed directly against dataset columns.",
+        "chart_keywords": ["query", "adhoc", "question", "sql", "answer"],
+    },
+    "visualization": {
+        "report_type": "visual_analytics_report",
+        "title": "Visual Analytics & Chart Gallery Report",
+        "subtitle": "High-Resolution Statistical Graphics, Multi-Metric Plots & Visual Mappings",
+        "domain_badge": "VISUAL ANALYTICS GALLERY",
+        "sections": ["executive_summary", "scorecard", "visuals", "findings", "caveats"],
+        "disclaimer": "Visual scales and axis bounds are derived directly from verified data limits.",
+        "chart_keywords": ["plot", "chart", "scatter", "bar", "heatmap", "gallery"],
+    },
+    "quality_inspector": {
+        "report_type": "quality_scorecard_report",
+        "title": "Data Quality Scorecard & Schema Integrity Report",
+        "subtitle": "Completeness, Uniqueness, Validity, Consistency & Schema Health Metrics",
+        "domain_badge": "DATA QUALITY SCORECARD",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Quality indices evaluate structural compliance and completeness of ingested records.",
+        "chart_keywords": ["quality", "scorecard", "health", "completeness", "schema"],
+    },
+    "storytelling": {
+        "report_type": "executive_story_report",
+        "title": "Executive Data Story & Narrative Synthesis Report",
+        "subtitle": "End-to-End Commercial Storyboard, Turning Points & Strategic Synthesis",
+        "domain_badge": "EXECUTIVE DATA STORY",
+        "sections": ["executive_summary", "scorecard", "findings", "actionable_strategy", "caveats"],
+        "disclaimer": "Executive storyboard synthesizes empirical findings across active intelligence agents.",
+        "chart_keywords": ["story", "narrative", "arc", "turning", "executive"],
+    },
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Flowable Builders for Distinct PDF Reports
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _build_distinct_cover(manifest: dict, agent_data: dict, dataset_meta: dict, df: Optional[pd.DataFrame] = None) -> list:
+    """Build a cinematic, capability-specific cover page."""
+    flowables = []
+    agent_name = agent_data.get("name") or agent_data.get("agent_id") or "Specialist Agent"
+    exec_time = agent_data.get("execution_time", 0.0)
+    timestamp = datetime.now().strftime("%B %d, %Y  ·  %I:%M %p")
+
+    flowables.append(Spacer(1, 45))
+
+    # Domain Badge Pill
+    badge_text = manifest.get("domain_badge", "CREWLYZE INTELLIGENCE REPORT")
+    flowables.append(Paragraph(
+        f"<b>CREWLYZE &nbsp;·&nbsp; {badge_text}</b>",
+        ParagraphStyle("DistCoverBadge", fontName="Helvetica-Bold", fontSize=9,
+                       leading=12, textColor=C_CRIMSON_DARK, alignment=1)
+    ))
+    flowables.append(Spacer(1, 20))
+
+    # Distinct Report Title
+    title_text = manifest.get("title", agent_name)
+    flowables.append(Paragraph(
+        f"<b>{_escape(title_text.upper())}</b>",
+        ParagraphStyle("DistCoverTitle", fontName="Helvetica-Bold", fontSize=22,
+                       leading=28, textColor=C_CRIMSON_DARK, spaceAfter=14, alignment=1)
+    ))
+    flowables.append(HRFlowable(width="60%", thickness=1.5, color=C_CRIMSON, spaceBefore=4, spaceAfter=16, hAlign='CENTER'))
+
+    # Subtitle
+    subtitle_text = manifest.get("subtitle", "")
+    flowables.append(Paragraph(
+        f"{_escape(subtitle_text)}<br/>"
+        f"<font color='#64748b' size=9>Generated on {timestamp}</font>",
+        ParagraphStyle("DistCoverSub", fontName="Helvetica", fontSize=10.5,
+                       leading=16, textColor=C_INK, alignment=1)
+    ))
+    flowables.append(Spacer(1, 45))
+
+    # Telemetry and Execution Metadata Card
+    ds_name = dataset_meta.get("filename") or dataset_meta.get("name") or "dataset.csv"
+    rows_str = str(df.shape[0]) if (df is not None and isinstance(df, pd.DataFrame)) else str(dataset_meta.get("rows_count", "--"))
+    cols_str = str(df.shape[1]) if (df is not None and isinstance(df, pd.DataFrame)) else str(dataset_meta.get("cols_count", "--"))
+
+    meta_table_data = [
+        [
+            Paragraph("<b>DATASET</b>", ParagraphStyle("MKey1", fontName="Helvetica-Bold", fontSize=8, textColor=C_MUTED, leading=10)),
+            Paragraph(f"<b>{_escape(ds_name)}</b>", ParagraphStyle("MVal1", fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=12)),
+            Paragraph("<b>EXECUTION STATUS</b>", ParagraphStyle("MKey2", fontName="Helvetica-Bold", fontSize=8, textColor=C_MUTED, leading=10)),
+            Paragraph(f"<b>{str(agent_data.get('status', 'completed')).upper()}</b>", ParagraphStyle("MVal2", fontName="Helvetica-Bold", fontSize=8.5, textColor=C_EMERALD if agent_data.get('status') == 'completed' else C_AMBER, leading=12)),
+        ],
+        [
+            Paragraph("<b>RECORDS / COLS</b>", ParagraphStyle("MKey3", fontName="Helvetica-Bold", fontSize=8, textColor=C_MUTED, leading=10)),
+            Paragraph(f"{rows_str} rows × {cols_str} cols", ParagraphStyle("MVal3", fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=12)),
+            Paragraph("<b>RUN TIME</b>", ParagraphStyle("MKey4", fontName="Helvetica-Bold", fontSize=8, textColor=C_MUTED, leading=10)),
+            Paragraph(f"{float(exec_time):.2f} seconds", ParagraphStyle("MVal4", fontName="Helvetica", fontSize=8.5, textColor=C_INK, leading=12)),
+        ]
+    ]
+    meta_tbl = Table(meta_table_data, colWidths=[110, 142, 110, 142])
+    meta_tbl.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), C_CRIMSON_PALE),
+        ("BOX", (0, 0), (-1, -1), 1, C_CRIMSON),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, C_BORDER),
+        ("PADDING", (0, 0), (-1, -1), 8),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    flowables.append(meta_tbl)
+    flowables.append(Spacer(1, 30))
+    flowables.append(PageBreak())
+    return flowables
+
+
+def _build_kpi_cards_table(metrics: dict) -> Optional[Table]:
+    """Render up to 6 quantitative metrics into an alternating KPI cards grid."""
+    if not metrics or not isinstance(metrics, dict):
+        return None
+    items = list(metrics.items())[:6]
+    if not items:
+        return None
+
+    cols = 3 if len(items) >= 3 else len(items)
+    col_w = int(504 / cols)
+    col_widths = [col_w] * cols
+
+    rows = []
+    curr_cells = []
+
+    hdr_s = ParagraphStyle("KpiH", fontName="Helvetica-Bold", fontSize=7.5, textColor=C_MUTED, alignment=1, leading=10)
+    val_s = ParagraphStyle("KpiV", fontName="Helvetica-Bold", fontSize=12, textColor=C_CRIMSON_DARK, alignment=1, leading=15)
+
+    for k, v in items:
+        k_clean = str(k).replace("_", " ").upper()
+        if isinstance(v, float):
+            v_clean = f"{v:,.2f}".rstrip("0").rstrip(".")
+        elif isinstance(v, int):
+            v_clean = f"{v:,}"
+        else:
+            v_clean = str(v)[:26]
+
+        cell = [
+            Paragraph(k_clean, hdr_s),
+            Spacer(1, 3),
+            Paragraph(f"<b>{_escape(v_clean)}</b>", val_s)
+        ]
+        curr_cells.append(cell)
+        if len(curr_cells) == cols:
+            rows.append(curr_cells)
+            curr_cells = []
+
+    if curr_cells:
+        while len(curr_cells) < cols:
+            curr_cells.append([Paragraph("", hdr_s)])
+        rows.append(curr_cells)
+
+    t = Table(rows, colWidths=col_widths)
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), C_ROW_ALT),
+        ("BOX", (0, 0), (-1, -1), 0.75, C_BORDER),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, C_LIGHT_GRID),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+    ]))
+    return t
+
+
+def _build_findings_list(findings: list, body_style, bullet_style) -> list:
+    """Format agent findings with clear panels or structured bullet points."""
+    flowables = []
+    if not findings:
+        return flowables
+
+    card_hdr = ParagraphStyle("CardHdr", fontName="Helvetica-Bold", fontSize=8, textColor=C_SAPPHIRE, leading=11)
+    card_bdy = ParagraphStyle("CardBdy", fontName="Helvetica", fontSize=8, textColor=C_INK, leading=12)
+
+    for idx, f in enumerate(findings, start=1):
+        if not f:
+            continue
+        f_clean = _clean_ai_artifacts(str(f))
+
+        if "**Observation**" in f_clean or "Observation:" in f_clean:
+            parsed = _parse_insight_fields(f_clean)
+            c_data = [
+                [Paragraph("<b>OBSERVATION</b>", card_hdr), Paragraph("<b>STRATEGIC IMPLICATION</b>", ParagraphStyle("CImpT", fontName="Helvetica-Bold", fontSize=8, textColor=C_EMERALD, leading=11))],
+                [Paragraph(_md_to_html(parsed["observation"]), card_bdy), Paragraph(_md_to_html(parsed["implication"] or parsed["strategy"] or "—"), card_bdy)]
+            ]
+            t = Table(c_data, colWidths=[246, 258])
+            t.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (0, 0), C_SAPPHIRE_PALE),
+                ("BACKGROUND", (1, 0), (1, 0), C_EMERALD_PALE),
+                ("BACKGROUND", (0, 1), (-1, 1), C_WHITE),
+                ("BOX", (0, 0), (-1, -1), 0.75, C_BORDER),
+                ("INNERGRID", (0, 0), (-1, -1), 0.5, C_LIGHT_GRID),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("PADDING", (0, 0), (-1, -1), 6),
+            ]))
+            flowables.append(KeepTogether([t, Spacer(1, 6)]))
+        else:
+            flowables.append(Paragraph(f"▸  {_md_to_html(f_clean)}", bullet_style))
+            flowables.append(Spacer(1, 3))
+
+    flowables.append(Spacer(1, 6))
+    return flowables
+
+
+def _build_agent_visuals(visuals: list, png_files: list, agent_id: str, manifest: dict, placed_charts: set) -> list:
+    """Embed matched charts and visuals for the specific capability."""
+    flowables = []
+    keywords = manifest.get("chart_keywords", [agent_id])
+
+    for v in (visuals or []):
+        if isinstance(v, dict):
+            chart_path = v.get("path") or v.get("chart_path") or v.get("url")
+            if chart_path and Path(chart_path).exists() and Path(chart_path) not in placed_charts:
+                img_tbl, fig_cap = _img_flowable(Path(chart_path))
+                if img_tbl:
+                    flowables.append(KeepTogether([img_tbl, fig_cap, Spacer(1, 8)]))
+                    placed_charts.add(Path(chart_path))
+
+    for png in (png_files or []):
+        if png in placed_charts:
+            continue
+        p_name = png.stem.lower()
+        if any(kw in p_name for kw in keywords):
+            img_tbl, fig_cap = _img_flowable(png)
+            if img_tbl:
+                flowables.append(KeepTogether([img_tbl, fig_cap, Spacer(1, 8)]))
+                placed_charts.add(png)
+                if len(flowables) >= 3:
+                    break
+    return flowables
+
+
+def _build_limitations_and_recommendations(limitations: list, recommendations: list, disclaimer: str) -> list:
+    """Render analytical limitations in an alert box and recommendations in a strategy box."""
+    flowables = []
+    all_limits = []
+    if disclaimer:
+        all_limits.append(disclaimer)
+    if limitations:
+        all_limits.extend([str(l) for l in limitations if l])
+
+    if all_limits:
+        warn_content = [
+            Paragraph("<b>Analytical Guardrails &amp; Methodological Caveats</b>",
+                      ParagraphStyle("LimH", fontName="Helvetica-Bold", fontSize=8.5, textColor=colors.HexColor("#7f1d1d"), leading=11, spaceAfter=3)),
+        ]
+        for lim in all_limits:
+            warn_content.append(Paragraph(f"▸  {_md_to_html(lim)}",
+                                         ParagraphStyle("LimB", fontName="Helvetica", fontSize=8, textColor=colors.HexColor("#7f1d1d"), leading=11.5)))
+        lim_tbl = Table([[warn_content]], colWidths=[504])
+        lim_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), C_CRIMSON_PALE),
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#fecaca")),
+            ("LINELEFT", (0, 0), (0, -1), 4, C_CRIMSON),
+            ("PADDING", (0, 0), (-1, -1), 8),
+        ]))
+        flowables.append(KeepTogether([lim_tbl, Spacer(1, 10)]))
+
+    if recommendations:
+        rec_content = [
+            Paragraph("<b>Recommended Next Steps &amp; Action Plan</b>",
+                      ParagraphStyle("RecH", fontName="Helvetica-Bold", fontSize=8.5, textColor=C_EMERALD, leading=11, spaceAfter=3)),
+        ]
+        for rec in recommendations:
+            rec_content.append(Paragraph(f"✓  {_md_to_html(str(rec))}",
+                                         ParagraphStyle("RecB", fontName="Helvetica", fontSize=8, textColor=C_INK, leading=11.5)))
+        rec_tbl = Table([[rec_content]], colWidths=[504])
+        rec_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), C_EMERALD_PALE),
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#a7f3d0")),
+            ("LINELEFT", (0, 0), (0, -1), 4, C_EMERALD),
+            ("PADDING", (0, 0), (-1, -1), 8),
+        ]))
+        flowables.append(KeepTogether([rec_tbl, Spacer(1, 10)]))
+
+    return flowables
+
+
+def export_distinct_agent_pdf(
+    agent_data: dict,
+    dataset_meta: dict,
+    output_dir: Union[Path, str] = "outputs",
+    df: Optional[pd.DataFrame] = None
+) -> bytes:
+    """Build and return a dedicated, capability-specific ReportLab PDF report."""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=54, leftMargin=54,
+        topMargin=82, bottomMargin=82,
+    )
+
+    out_dir = Path(output_dir) if isinstance(output_dir, (str, Path)) else Path("outputs")
+    png_files = list(out_dir.glob("*.png")) if out_dir.exists() else []
+    placed_charts = set()
+
+    agent_id = agent_data.get("agent_id", "data_analysis")
+    manifest = REPORT_MANIFESTS.get(agent_id, {
+        "report_type": f"{agent_id}_report",
+        "title": agent_data.get("name", "Specialist Analysis Report"),
+        "subtitle": "Autonomous Agentic Intelligence Analysis",
+        "domain_badge": str(agent_data.get("category", "CREWLYZE INTELLIGENCE")).upper(),
+        "sections": ["executive_summary", "scorecard", "findings", "visuals", "caveats"],
+        "disclaimer": "Analysis performed autonomously based on verified dataset dimensions.",
+        "chart_keywords": [agent_id],
+    })
+
+    body_style = ParagraphStyle("DistBody", fontName="Helvetica", fontSize=9,
+                                leading=14, textColor=C_INK, spaceAfter=5)
+    bullet_style = ParagraphStyle("DistBullet", fontName="Helvetica", fontSize=8.5,
+                                  leading=13, textColor=C_INK,
+                                  leftIndent=12, firstLineIndent=-8, spaceAfter=4)
+
+    story = []
+
+    # 1. Distinct Cover Page
+    story.extend(_build_distinct_cover(manifest, agent_data, dataset_meta, df=df))
+
+    # 2. Executive Summary & Narrative
+    story.append(KeepTogether([
+        _section_header("01", "Executive Summary & Scope", body_style),
+        Spacer(1, 10)
+    ]))
+
+    narrative = agent_data.get("narrative") or ""
+    if not narrative:
+        narrative = f"This report delivers tailored empirical findings and verified metrics from the <b>{_escape(agent_data.get('name', agent_id))}</b> capability, analyzing commercial dependencies and operational performance."
+    story.append(Paragraph(_md_to_html(narrative), body_style))
+    story.append(Spacer(1, 12))
+
+    # 3. Quantitative KPI Scorecard
+    metrics = agent_data.get("metrics", {})
+    kpi_tbl = _build_kpi_cards_table(metrics)
+    if kpi_tbl:
+        story.append(KeepTogether([
+            _section_header("02", "Quantitative KPI Scorecard", body_style),
+            Spacer(1, 10),
+            kpi_tbl,
+            Spacer(1, 14)
+        ]))
+
+    # 4. Verified Findings & Evidence
+    findings = agent_data.get("findings", [])
+    if findings:
+        sec_num = "03" if kpi_tbl else "02"
+        story.append(KeepTogether([
+            _section_header(sec_num, "Empirical Findings & Evidence", body_style),
+            Spacer(1, 10)
+        ]))
+        story.extend(_build_findings_list(findings, body_style, bullet_style))
+        story.append(Spacer(1, 10))
+
+    # 5. Visualizations & Chart Embed
+    visuals = _build_agent_visuals(agent_data.get("visuals", []), png_files, agent_id, manifest, placed_charts)
+    if visuals:
+        story.append(KeepTogether([
+            _section_header("04", "Analytical Visualizations", body_style),
+            Spacer(1, 10)
+        ]))
+        story.extend(visuals)
+        story.append(Spacer(1, 10))
+
+    # 6. Data Tables / Appendices (for profiler / stats)
+    if df is not None and isinstance(df, pd.DataFrame) and agent_id in ("dataset_explorer", "statistical_analysis", "data_cleaner"):
+        story.append(KeepTogether([
+            _section_header("05", "Column Metrics Breakdown", body_style),
+            Spacer(1, 8)
+        ]))
+        stats_tables = _build_stats_tables(df, body_style)
+        if stats_tables:
+            story.extend(stats_tables[:2])
+        story.append(Spacer(1, 10))
+
+    # 7. Limitations, Caveats & Actionable Next Steps
+    limitations = agent_data.get("limitations", [])
+    recommendations = agent_data.get("recommendations", [])
+    disclaimer = manifest.get("disclaimer", "")
+    lim_recs = _build_limitations_and_recommendations(limitations, recommendations, disclaimer)
+    if lim_recs:
+        story.append(KeepTogether([
+            _section_header("06", "Strategic Implications & Guardrails", body_style),
+            Spacer(1, 10)
+        ]))
+        story.extend(lim_recs)
+
+    doc.build(story, canvasmaker=NumberedCanvas)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main Executive PDF generator
 # ─────────────────────────────────────────────────────────────────────────────
 
-def export_pdf(result: dict, filename: str = "") -> bytes:
-    """Build and return a premium world-class executive PDF report."""
+def export_pdf(result: dict, filename: str = "", analysis_id: Optional[str] = None) -> bytes:
+    """Build and return a premium world-class executive PDF report.
+    Dispatches to export_distinct_agent_pdf when analysis_id is provided.
+    """
+    df = result.get("dataframe")
+    output_dir = result.get("output_dir", Path("outputs"))
+
+    # Check if a specific distinct report was requested
+    if analysis_id and str(analysis_id).lower() not in ("consolidated", "all", "none"):
+        aid = str(analysis_id).strip().lower()
+        target_agent = None
+
+        if result.get("agent_id") == aid:
+            target_agent = result
+        else:
+            categories_data = result.get("categories", {})
+            for cat_id, agent_list in categories_data.items():
+                if isinstance(agent_list, list):
+                    for a in agent_list:
+                        if isinstance(a, dict) and a.get("agent_id") == aid:
+                            target_agent = a
+                            break
+                elif isinstance(agent_list, dict) and agent_list.get("agent_id") == aid:
+                    target_agent = agent_list
+                    break
+                if target_agent:
+                    break
+
+            if not target_agent and aid in categories_data:
+                cat_agents = categories_data[aid]
+                if isinstance(cat_agents, list) and cat_agents:
+                    completed_agents = [a for a in cat_agents if isinstance(a, dict) and a.get("status") == "completed"]
+                    target_agent = completed_agents[0] if completed_agents else cat_agents[0]
+
+        if target_agent:
+            dataset_meta = {
+                "name": result.get("report_title") or filename or "dataset.csv",
+                "filename": filename or result.get("report_title") or "dataset.csv",
+                "goal": result.get("goal", ""),
+                "rows_count": df.shape[0] if (df is not None and isinstance(df, pd.DataFrame)) else result.get("rows_count"),
+                "cols_count": df.shape[1] if (df is not None and isinstance(df, pd.DataFrame)) else result.get("cols_count"),
+            }
+            return export_distinct_agent_pdf(target_agent, dataset_meta, output_dir=output_dir, df=df)
+
     buffer = BytesIO()
     doc = SimpleDocTemplate(
         buffer,

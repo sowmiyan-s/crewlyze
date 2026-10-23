@@ -68,7 +68,18 @@ export const state = {
 export const $ = id => document.getElementById(id);
 export const $$ = sel => document.querySelectorAll(sel);
 
+export function escHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 // Attach globally for inline HTML attributes / legacy interop
 if (typeof window !== 'undefined') {
   window.crewlyzeState = state;
+  window.escHtml = escHtml;
 }

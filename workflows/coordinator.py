@@ -272,6 +272,14 @@ class MasterCoordinator:
             "problem_areas": [f for f in executive_findings if any(k in f.lower() for k in ["skew", "outlier", "risk", "spike", "drop", "erod", "loss"])][:5],
         }
 
+        # Collect all generated artifacts
+        all_artifacts = []
+        for deliv in all_deliveries.values():
+            if deliv.artifacts:
+                for art in deliv.artifacts:
+                    if isinstance(art, dict) and art not in all_artifacts:
+                        all_artifacts.append(art)
+
         return {
             "session_id": self.session_id,
             "total_execution_time": round(total_time, 2),
@@ -288,6 +296,7 @@ class MasterCoordinator:
             "cleaning_steps": cleaning_steps,
             "plotly_charts": plotly_charts,
             "png_charts": png_charts,
+            "artifacts": all_artifacts,
             "output_dir": self.output_dir,
             "code": "# 25 Agentic Data Intelligence System execution\n# Pure Python deterministic engines (pandas, scipy, scikit-learn)",
         }

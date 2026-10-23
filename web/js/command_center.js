@@ -1,266 +1,504 @@
 /**
- * Crewlyze - 25-Agent 5-Step Command Center (ES6 Module)
- * Orchestrates use case cards, embedded dataset telemetry, agent selection chips, presets, and isolated step runs.
+ * Crewlyze - 5-Crew Command Center & Analysis Modal Controller (ES6 Module)
+ * Orchestrates the 5 clean analysis cards, detailed brief modal, CSV telemetry,
+ * selective agent activation across all 5 crews, and execution pipeline.
  */
 
 import { state } from './state.js';
+import { downloadPdf } from './export_ui.js';
 
-export const PRESET_MAP = {
-  growth_bi: ['data_cleaner', 'dataset_explorer', 'sales_analysis', 'profitability_analysis', 'customer_intelligence', 'relationship_analysis', 'visualization', 'decision_support', 'storytelling'],
-  quick_brief: ['dataset_explorer', 'quality_inspector', 'statistical_analysis', 'visualization', 'insight_discovery', 'storytelling'],
-  deep_mining: ['data_cleaner', 'statistical_analysis', 'pattern_discovery', 'relationship_analysis', 'segmentation', 'anomaly_detection', 'association_mining', 'risk_prediction', 'visualization'],
-  predictive_suite: ['dataset_explorer', 'trend_analysis', 'sales_forecasting', 'budget_forecasting', 'demand_forecasting', 'risk_prediction', 'whatif_simulation', 'visualization'],
-  full_audit: 'all'
+export const CREW_METADATA = {
+  data_analysis: {
+    id: 'data_analysis',
+    stepNumber: 1,
+    title: 'Data Analysis',
+    icon: 'bar-chart-2',
+    badge: 'Hygiene & Baseline Stats',
+    color: 'var(--amber)',
+    desc: 'Sanitizes anomalies, calculates statistical distributions, measures velocity trends, and sets baseline benchmarks.',
+    brief: '<strong>Data Analysis Domain:</strong> Performs automated schema cleansing, sanitizes null and duplicate records, evaluates continuous feature distributions (IQR, skewness, variance), tracks velocity momentum over time, and synthesizes baseline empirical insights.',
+    highlights: ['🧹 Automated Hygiene & Imputation', '📊 IQR Variance & Skewness', '📈 Velocity & Growth Momentum'],
+    agents: [
+      { id: 'data_cleaner', name: 'Data Cleaner', icon: '🧹', desc: 'Null imputation, deduplication & data type normalization' },
+      { id: 'statistical_analysis', name: 'Statistical Analysis', icon: '📊', desc: 'IQR variance, quartiles, skewness & continuous dispersion' },
+      { id: 'trend_analysis', name: 'Trend Analysis', icon: '📈', desc: 'Directional momentum, moving averages & growth velocity' },
+      { id: 'comparative_analysis', name: 'Comparative Analysis', icon: '⚖️', desc: 'Cross-cohort benchmarks, categorical spreads & peer deltas' },
+      { id: 'insight_discovery', name: 'Insight Discovery', icon: '💡', desc: 'High-leverage empirical findings & baseline discoveries' }
+    ]
+  },
+  business_analysis: {
+    id: 'business_analysis',
+    stepNumber: 2,
+    title: 'Business Analysis',
+    icon: 'briefcase',
+    badge: 'Commercial Levers & Margins',
+    color: 'var(--emerald)',
+    desc: 'Identifies revenue concentration, unit profitability, cost reduction targets, customer RFM, and decision models.',
+    brief: '<strong>Business Analysis Domain:</strong> Evaluates your dataset from a strategic commercial perspective. Decomposes revenue via Pareto 80/20 analysis, inspects unit product margins, pinpoints operational expense creep, clusters customer retention loyalty tiers, and formulates an executive decision matrix.',
+    highlights: ['💰 Pareto 80/20 Sales Decomp', '💵 Unit Profitability Margins', '👥 RFM Customer Loyalty Tiers'],
+    agents: [
+      { id: 'sales_analysis', name: 'Sales Analysis', icon: '💰', desc: 'Pareto 80/20 volume concentration, top performers & revenue splits' },
+      { id: 'profitability_analysis', name: 'Profitability Analysis', icon: '💵', desc: 'Gross margin distribution, unit economics & profit drivers' },
+      { id: 'expense_optimization', name: 'Expense Optimization', icon: '✂️', desc: 'Operational cost leaks, budget overruns & efficiency levers' },
+      { id: 'customer_intelligence', name: 'Customer Intelligence', icon: '👥', desc: 'RFM segmentation, churn propensity & high-LTV identification' },
+      { id: 'decision_support', name: 'Decision Support', icon: '🎯', desc: 'Prioritized McKinsey-style executive action matrix' }
+    ]
+  },
+  data_mining: {
+    id: 'data_mining',
+    stepNumber: 3,
+    title: 'Data Mining',
+    icon: 'layers',
+    badge: 'Structural Patterns & Clusters',
+    color: 'var(--cyan)',
+    desc: 'Discovers structural feature relationships, multivariate anomaly vectors, KMeans clusters, and affinity rules.',
+    brief: '<strong>Data Mining Domain:</strong> Uses unsupervised machine learning to surface latent structures. Uncovers cross-feature correlation drivers via Pearson matrices, segments natural cohorts with KMeans clustering, isolates high-dimensional anomaly vectors, and mines transactional affinity rules.',
+    highlights: ['🧩 Unsupervised Clustering', '🔗 Cross-Feature Correlations', '🛡️ Outlier & Anomaly Isolation'],
+    agents: [
+      { id: 'pattern_discovery', name: 'Pattern Discovery', icon: '🧩', desc: 'Unsupervised latent grouping & high-dimensional clustering' },
+      { id: 'relationship_analysis', name: 'Relationship Analysis', icon: '🔗', desc: 'Multivariate correlation matrix & cross-feature drivers' },
+      { id: 'segmentation', name: 'Segmentation', icon: '🏷️', desc: 'KMeans cohort clustering & multi-variable segment profiling' },
+      { id: 'anomaly_detection', name: 'Anomaly Detection', icon: '🛡️', desc: 'Multivariate outlier isolation & statistical anomaly scoring' },
+      { id: 'association_mining', name: 'Association Mining', icon: '🤝', desc: 'Market basket affinity rules & co-occurrence frequencies' }
+    ]
+  },
+  predictive_analysis: {
+    id: 'predictive_analysis',
+    stepNumber: 4,
+    title: 'Predictive Analysis',
+    icon: 'cpu',
+    badge: 'Auto-ML & Forecasts',
+    color: '#c084fc',
+    desc: 'Generates forward-looking revenue trajectories, optimal budget allocations, capacity demand, and risk scenarios.',
+    brief: '<strong>Predictive Analysis Domain:</strong> Deploys predictive modeling to forecast upcoming trends and stress-test scenarios. Generates multi-period sales trajectories with confidence bands, recommends optimal budget run-rates, forecasts inventory demand buffers, and models downside Value-at-Risk (VaR).',
+    highlights: ['📉 Multi-Period Sales Forecast', '🏦 Optimal Budget Allocation', '🎲 What-If Stress Testing'],
+    agents: [
+      { id: 'sales_forecasting', name: 'Sales Forecasting', icon: '📉', desc: 'Forward trajectory projections with statistical confidence bands' },
+      { id: 'budget_forecasting', name: 'Budget Forecasting', icon: '🏦', desc: 'Capital run-rates & forward budget allocation modeling' },
+      { id: 'demand_forecasting', name: 'Demand Forecasting', icon: '📦', desc: 'Operational capacity buffers & inventory demand modeling' },
+      { id: 'risk_prediction', name: 'Risk Prediction', icon: '⚠️', desc: 'Downside Value-at-Risk (VaR) & volatility sensitivity scoring' },
+      { id: 'whatif_simulation', name: 'What-If Simulation', icon: '🎲', desc: 'Scenario stress-testing & macroeconomic sensitivity simulation' }
+    ]
+  },
+  eda: {
+    id: 'eda',
+    stepNumber: 5,
+    title: 'Visuals & EDA',
+    icon: 'trending-up',
+    badge: 'Interactive Graphics & Story',
+    color: '#38bdf8',
+    desc: 'Constructs interactive Plotly visual charts, answers natural-language queries, audits schemas, and composes stories.',
+    brief: '<strong>Exploratory Data Analysis (EDA) Domain:</strong> Profiles the full dataset schema and cardinality, renders interactive Plotly charts (bar, scatter, line, heatmaps), answers natural-language business questions using SQL, audits data integrity scores, and crafts a cohesive executive intelligence storyboard.',
+    highlights: ['🎨 Interactive Plotly Visuals', '💬 Conversational SQL Queries', '📖 Strategic Intelligence Narrative'],
+    agents: [
+      { id: 'dataset_explorer', name: 'Dataset Explorer', icon: '🔭', desc: 'Complete schema exploration, cardinality & data profiling' },
+      { id: 'natural_query', name: 'Natural-Language Query', icon: '💬', desc: 'Translates plain-English business queries into executable SQL' },
+      { id: 'visualization', name: 'Visualization Agent', icon: '🎨', desc: 'Synthesizes interactive Plotly graphics & executive visuals' },
+      { id: 'quality_inspector', name: 'Quality Inspector', icon: '🩺', desc: 'Systemic health scoring, schema anomalies & integrity checks' },
+      { id: 'storytelling', name: 'Storytelling Agent', icon: '📖', desc: 'Cohesive executive intelligence narrative & storyboard' }
+    ]
+  }
 };
 
-const CATEGORIES = ['data_analysis', 'business_analysis', 'data_mining', 'predictive_analysis', 'eda'];
+export const CATEGORIES = ['data_analysis', 'business_analysis', 'data_mining', 'predictive_analysis', 'eda'];
+
+// Set of all currently selected agents across all 5 crews
+export const selectedAgentsSet = new Set([
+  'data_cleaner', 'statistical_analysis', 'insight_discovery',
+  'sales_analysis', 'profitability_analysis', 'customer_intelligence', 'decision_support',
+  'relationship_analysis',
+  'dataset_explorer', 'visualization', 'storytelling'
+]);
+
+let currentModalCrew = 'data_analysis';
+let currentModalTab = 'data_analysis';
+let onRunPipelineCallback = null;
 
 /**
- * Updates the global agent count badges and each individual card's selected agent counter badge and toggle button text.
+ * Returns all currently selected agent IDs.
  */
-export function updateActiveAgentsBadge() {
-  const uniqueChecked = new Set();
-  document.querySelectorAll('input[name="agents"]:checked').forEach(cb => uniqueChecked.add(cb.value));
-  const count = uniqueChecked.size;
-  const totalPossible = 25;
+export function getSelectedAgents() {
+  return Array.from(selectedAgentsSet);
+}
 
-  const badge = document.getElementById('selectedAgentsCount');
-  if (badge) {
-    badge.textContent = `Selected (${count}/${totalPossible})`;
-  }
-
-  const topBadge = document.getElementById('activeAgentsBadgeTop');
-  if (topBadge) {
-    topBadge.textContent = `${count} of ${totalPossible} Agents Active`;
-  }
-
-  // Update each of the 5 individual use case cards
+/**
+ * Returns all categories where at least one agent is selected.
+ */
+export function getSelectedCategories() {
+  const cats = new Set();
   CATEGORIES.forEach(cat => {
-    const card = document.querySelector(`.usecase-card[data-step="${cat}"]`);
-    if (card) {
-      const agentCbs = card.querySelectorAll('input[name="agents"]');
-      const activeCount = Array.from(agentCbs).filter(cb => cb.checked).length;
-      
-      // Update card counter badge (e.g. "3/5 Selected")
-      const countEl = card.querySelector(`.card-agent-badge[data-badge-for="${cat}"]`) || card.querySelector('.card-agent-badge');
-      if (countEl) {
-        countEl.textContent = `${activeCount}/${agentCbs.length} Selected`;
-      }
-
-      // Update card toggle button text
-      const toggleBtn = card.querySelector(`.btn-card-toggle[data-cat="${cat}"]`) || card.querySelector('.btn-card-toggle');
-      if (toggleBtn) {
-        toggleBtn.textContent = (activeCount === agentCbs.length && agentCbs.length > 0) ? 'Deselect All' : 'Select All';
-      }
+    const agents = CREW_METADATA[cat]?.agents || [];
+    if (agents.some(a => selectedAgentsSet.has(a.id))) {
+      cats.add(cat);
     }
+  });
+  return Array.from(cats);
+}
+
+/**
+ * Opens the Crew Analysis Detail & Agent Selection Modal
+ * displaying brief info about the analysis, basic CSV telemetry,
+ * and selective agents across the 5 crews.
+ */
+export function openCrewModal(category = 'data_analysis') {
+  currentModalCrew = category;
+  currentModalTab = category;
+
+  const meta = CREW_METADATA[category] || CREW_METADATA.data_analysis;
+  const modal = document.getElementById('crewDetailModal');
+  if (!modal) return;
+
+  // 1. Update Title, Domain Badge, and Icon
+  const titleEl = document.getElementById('crewModalTitle');
+  const badgeEl = document.getElementById('crewModalBadge');
+  const iconWrap = document.getElementById('crewModalIconWrap');
+  if (titleEl) titleEl.textContent = `${meta.stepNumber}. ${meta.title} Crew`;
+  if (badgeEl) {
+    badgeEl.textContent = meta.badge;
+    badgeEl.style.color = meta.color;
+  }
+  if (iconWrap) {
+    iconWrap.innerHTML = `<i data-lucide="${meta.icon}" style="width: 22px; height: 22px; color: ${meta.color};"></i>`;
+  }
+
+  // 2. Update Brief Info about the Analysis
+  const briefEl = document.getElementById('crewModalBriefText');
+  if (briefEl) {
+    briefEl.innerHTML = `
+      <p style="margin: 0 0 10px 0;">${meta.brief}</p>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+        ${meta.highlights.map(h => `<span class="highlight-chip" style="background: rgba(255,255,255,0.04);">${h}</span>`).join('')}
+      </div>
+    `;
+  }
+
+  // 3. Update Basic CSV Telemetry
+  updateCrewModalTelemetry(state.activeProject);
+
+  // 4. Update Modal Crew Switcher Tabs
+  updateCrewModalTabs();
+
+  // 5. Render Agents for the Active Tab
+  renderCrewModalAgents(currentModalTab);
+
+  // 6. Update Badges & Launch Button
+  updateModalBadges();
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+/**
+ * Closes the Crew Analysis Detail Modal.
+ */
+export function closeCrewModal() {
+  const modal = document.getElementById('crewDetailModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+}
+
+/**
+ * Updates basic CSV info inside the detail modal.
+ */
+export function updateCrewModalTelemetry(projectMeta) {
+  const proj = projectMeta || state.activeProject || {};
+  const filename = proj.filename || proj.name || 'dataset.csv';
+  const rows = proj.rows_count ? proj.rows_count.toLocaleString() : '--';
+  const cols = proj.cols_count ? proj.cols_count : (state.columns ? state.columns.length : '--');
+  const num = proj.numeric_count || 0;
+  const cat = proj.cat_count || Math.max(0, (proj.cols_count || 0) - num);
+  const featStr = (proj.cols_count > 0) ? `${num} Numeric, ${cat} Categorical` : '--';
+
+  const fnEl = document.getElementById('crewModalFileName');
+  const rEl = document.getElementById('crewModalRows');
+  const cEl = document.getElementById('crewModalCols');
+  const fEl = document.getElementById('crewModalFeatures');
+  const sEl = document.getElementById('crewModalStatus');
+
+  if (fnEl) fnEl.textContent = filename;
+  if (rEl) rEl.textContent = `${rows} rows`;
+  if (cEl) cEl.textContent = `${cols} columns`;
+  if (fEl) fEl.textContent = featStr;
+  if (sEl) sEl.innerHTML = '<span style="color: #10b981;">● Ready</span>';
+}
+
+/**
+ * Updates the 5 crew switcher tabs inside the modal.
+ */
+function updateCrewModalTabs() {
+  const tabsContainer = document.getElementById('crewModalTabs');
+  if (!tabsContainer) return;
+
+  const tabButtons = tabsContainer.querySelectorAll('.crew-modal-tab');
+  tabButtons.forEach(btn => {
+    const crewId = btn.getAttribute('data-crew');
+    btn.classList.toggle('active', crewId === currentModalTab);
   });
 }
 
 /**
- * Dynamically updates the embedded Database Telemetry info strip on each of the 5 cards
- * based on the active dataset's shape, filename, and detected columns.
+ * Renders the selective agent items for the specified crew tab.
+ */
+export function renderCrewModalAgents(category) {
+  currentModalTab = category;
+  updateCrewModalTabs();
+
+  const container = document.getElementById('crewModalAgentsList');
+  if (!container) return;
+
+  const meta = CREW_METADATA[category];
+  if (!meta || !meta.agents) return;
+
+  container.innerHTML = meta.agents.map(agent => {
+    const isChecked = selectedAgentsSet.has(agent.id);
+    return `
+      <label class="crew-agent-item ${isChecked ? 'checked' : ''}" data-agent-id="${agent.id}">
+        <input type="checkbox" name="crew_modal_agents" value="${agent.id}" ${isChecked ? 'checked' : ''} />
+        <span style="font-size: 1.2rem; line-height: 1;">${agent.icon}</span>
+        <div class="crew-agent-info" style="flex: 1;">
+          <div class="crew-agent-name">${agent.name}</div>
+          <div class="crew-agent-desc">${agent.desc}</div>
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  updateModalBadges();
+}
+
+/**
+ * Updates the selected agents count badge and start analysis button text.
+ */
+function updateModalBadges() {
+  const totalSelected = selectedAgentsSet.size;
+  const meta = CREW_METADATA[currentModalTab];
+  const tabAgents = meta?.agents || [];
+  const tabSelectedCount = tabAgents.filter(a => selectedAgentsSet.has(a.id)).length;
+
+  const badgeEl = document.getElementById('crewModalSelectedAgentsBadge');
+  if (badgeEl) {
+    badgeEl.textContent = `${tabSelectedCount}/${tabAgents.length} Active in Tab (${totalSelected} Total)`;
+  }
+
+  const btnText = document.getElementById('startCrewAnalysisBtnText');
+  if (btnText) {
+    btnText.textContent = `Start Analysis (${totalSelected} Agents Selected)`;
+  }
+
+  // Update top active badge if present
+  const topBadge = document.getElementById('activeAgentsBadgeTop');
+  if (topBadge) {
+    topBadge.textContent = `${totalSelected} of 25 Agents Active`;
+  }
+}
+
+/**
+ * Toggles all agents in the current active modal tab.
+ */
+export function toggleSelectAllInCrew(selectAll = true) {
+  const meta = CREW_METADATA[currentModalTab];
+  if (!meta || !meta.agents) return;
+
+  meta.agents.forEach(agent => {
+    if (selectAll) {
+      selectedAgentsSet.add(agent.id);
+    } else {
+      selectedAgentsSet.delete(agent.id);
+    }
+  });
+
+  renderCrewModalAgents(currentModalTab);
+}
+
+/**
+ * Updates telemetry on the main cards and workspace hub.
  */
 export function updateCardsDatasetInfo(metadata) {
   const meta = metadata || state.activeProject || {};
-  const filename = meta.filename || meta.name || 'Active Dataset';
-  const rows = meta.rows_count || 0;
-  const cols = meta.cols_count || (state.columns ? state.columns.length : 0);
-  const numeric = meta.numeric_count || 0;
-  const cat = meta.cat_count || Math.max(0, cols - numeric);
-  const hasData = Boolean(rows > 0 || cols > 0 || meta.id || state.uploadedSession);
+  const filename = meta.filename || meta.name || 'dataset.csv';
+  const rows = meta.rows_count ? meta.rows_count.toLocaleString() : '--';
+  const cols = meta.cols_count ? meta.cols_count : (state.columns ? state.columns.length : '--');
 
-  CATEGORIES.forEach(c => {
-    const card = document.querySelector(`.usecase-card[data-step="${c}"]`);
-    if (!card) return;
+  // Hub banner
+  const hubFn = document.getElementById('hubDatasetFilename');
+  const hubDims = document.getElementById('hubDatasetDims');
+  if (hubFn) hubFn.textContent = filename;
+  if (hubDims) hubDims.textContent = `${rows} rows × ${cols} cols`;
 
-    const fileEl = card.querySelector('.db-val-file');
-    const dimsEl = card.querySelector('.db-val-dims');
-    const focusEl = card.querySelector('.db-val-focus');
-    const statusEl = card.querySelector('.db-meta-status');
+  // Agentic summary pill
+  const pillText = document.getElementById('agenticDatasetSummaryText');
+  if (pillText) {
+    pillText.textContent = `Dataset: ${filename} (${rows} rows × ${cols} columns)`;
+  }
 
-    if (fileEl) fileEl.textContent = hasData ? filename : 'No dataset loaded';
-    if (statusEl) {
-      statusEl.textContent = hasData ? '● Ready' : '○ Idle';
-      statusEl.className = hasData ? 'db-meta-status ready' : 'db-meta-status';
-    }
-
-    if (c === 'data_analysis') {
-      if (dimsEl) dimsEl.textContent = hasData ? `${rows.toLocaleString()} rows × ${cols} columns` : '-- rows × -- cols';
-      if (focusEl) focusEl.textContent = hasData ? `${numeric} numeric, ${cat} categorical • Hygiene ready` : 'Null audit, IQR outliers & sanitization';
-    } else if (c === 'business_analysis') {
-      if (dimsEl) dimsEl.textContent = hasData ? `${rows.toLocaleString()} transactions mapped` : '-- transactions';
-      if (focusEl) focusEl.textContent = hasData ? 'Pareto 80/20, unit margins & RFM tiers' : 'Commercial levers & unit economics';
-    } else if (c === 'data_mining') {
-      if (dimsEl) dimsEl.textContent = hasData ? `${numeric} continuous feature dimensions` : '-- feature dimensions';
-      if (focusEl) focusEl.textContent = hasData ? 'Pearson matrix, outlier vectors & KMeans' : 'Feature correlation matrix & clusters';
-    } else if (c === 'predictive_analysis') {
-      if (dimsEl) dimsEl.textContent = hasData ? '4-Period forward trajectory & bounds' : '4-period projection horizon';
-      if (focusEl) focusEl.textContent = hasData ? 'Linear regression, downside VaR & stress tests' : 'Trend extrapolation & downside risk';
-    } else if (c === 'eda') {
-      if (dimsEl) dimsEl.textContent = hasData ? `${cols} chartable visual dimensions` : '-- visualizable columns';
-      if (focusEl) focusEl.textContent = hasData ? 'Plotly interactive charts & Storyboard' : 'Interactive graphics & executive narrative';
-    }
-  });
+  // Modal telemetry
+  updateCrewModalTelemetry(meta);
 }
 
 /**
- * Applies a global analysis preset across all 5 cards.
- */
-export function applyAnalysisPreset(preset) {
-  const targetList = PRESET_MAP[preset] || PRESET_MAP.growth_bi;
-  const checkboxes = document.querySelectorAll('input[name="agents"]');
-
-  checkboxes.forEach(cb => {
-    const isTarget = (targetList === 'all' || targetList.includes(cb.value));
-    cb.checked = isTarget;
-    cb.closest('.agent-chip')?.classList.toggle('checked', isTarget);
-  });
-
-  updateActiveAgentsBadge();
-}
-
-/**
- * Returns all currently selected agent IDs across the system.
- */
-export function getSelectedAgents() {
-  const selected = new Set();
-  document.querySelectorAll('input[name="agents"]:checked').forEach(cb => selected.add(cb.value));
-  return Array.from(selected);
-}
-
-/**
- * Returns all categories where at least one agent is checked.
- */
-export function getSelectedCategories() {
-  const selected = new Set();
-  CATEGORIES.forEach(cat => {
-    const card = document.querySelector(`.usecase-card[data-step="${cat}"]`);
-    if (card) {
-      const anyChecked = Array.from(card.querySelectorAll('input[name="agents"]')).some(cb => cb.checked);
-      if (anyChecked) selected.add(cat);
-    }
-  });
-  return Array.from(selected);
-}
-
-/**
- * Initializes the Command Center event listeners for presets, card-level agent toggling,
- * and isolated step-run triggers.
+ * Initializes all event listeners for the 5-Crew Command Center and detail modal.
  */
 export function initCommandCenter(openConfigModalFn, onRunPipelineFn) {
-  // 1. Full Swarm Run Buttons Listener
+  onRunPipelineCallback = onRunPipelineFn;
+
+  // 1. Click on any of the 5 usecase cards -> opens Crew Detail Modal
   document.addEventListener('click', e => {
-    if (e.target.closest('#btnRunAgenticPipeline') || e.target.closest('#startAnalysisBtn') || e.target.closest('#runAnalysisBtn')) {
-      if (typeof onRunPipelineFn === 'function') {
-        const allAgents = getSelectedAgents();
-        if (!allAgents.length) {
-          if (typeof window.toast === 'function') {
-            window.toast('Please select at least 1 agent to run analysis.', 'warning');
-          } else {
-            alert('Please select at least 1 agent to run analysis.');
-          }
-          return;
-        }
-        onRunPipelineFn({ agents: allAgents });
+    const card = e.target.closest('.usecase-card');
+    if (card) {
+      const cat = card.getAttribute('data-step');
+      if (cat && CREW_METADATA[cat]) {
+        openCrewModal(cat);
       }
     }
   });
 
-  // 2. Preset Chips Listener
+  // 2. Modal Close / Cancel Buttons
   document.addEventListener('click', e => {
-    const btn = e.target.closest('.preset-chip');
-    if (!btn) return;
-    const preset = btn.getAttribute('data-preset');
-    document.querySelectorAll('.preset-chip').forEach(b => {
-      b.classList.toggle('active', b.getAttribute('data-preset') === preset);
-    });
-    applyAnalysisPreset(preset);
+    if (e.target.closest('#closeCrewModal') || e.target.closest('#cancelCrewModalBtn')) {
+      closeCrewModal();
+    } else if (e.target === document.getElementById('crewDetailModal')) {
+      closeCrewModal();
+    }
   });
 
-  // 3. Card-Level "Select All / Deselect All" Toggle Listener
+  // 3. Crew Modal Tabs Switcher
   document.addEventListener('click', e => {
-    const toggleBtn = e.target.closest('.btn-card-toggle');
-    if (!toggleBtn) return;
-    const cat = toggleBtn.getAttribute('data-cat');
-    if (!cat) return;
-
-    const card = document.querySelector(`.usecase-card[data-step="${cat}"]`);
-    if (!card) return;
-
-    const agentCbs = card.querySelectorAll('input[name="agents"]');
-    const allChecked = Array.from(agentCbs).every(cb => cb.checked);
-    const newCheckedState = !allChecked;
-
-    agentCbs.forEach(cb => {
-      cb.checked = newCheckedState;
-      cb.closest('.agent-chip')?.classList.toggle('checked', newCheckedState);
-    });
-
-    // Remove active preset highlight since user customized
-    document.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
-
-    updateActiveAgentsBadge();
-  });
-
-  // 4. Individual Card "⚡ Run Step [X] Analysis" Button Listener
-  document.addEventListener('click', e => {
-    const stepBtn = e.target.closest('.btn-step-run');
-    if (!stepBtn) return;
-    const cat = stepBtn.getAttribute('data-cat');
-    if (!cat) return;
-
-    const card = document.querySelector(`.usecase-card[data-step="${cat}"]`);
-    if (!card) return;
-
-    const checkedAgents = Array.from(card.querySelectorAll('input[name="agents"]:checked')).map(cb => cb.value);
-    
-    if (!checkedAgents.length) {
-      const stepName = cat.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      if (typeof window.toast === 'function') {
-        window.toast(`Please select at least 1 agent in Step ${stepName} to run.`, 'warning');
-      } else {
-        alert(`Please select at least 1 agent in Step ${stepName} to run.`);
+    const tabBtn = e.target.closest('.crew-modal-tab');
+    if (tabBtn) {
+      const crewId = tabBtn.getAttribute('data-crew');
+      if (crewId && CREW_METADATA[crewId]) {
+        renderCrewModalAgents(crewId);
       }
-      return;
-    }
-
-    const sessionId = state.activeProject?.id || state.uploadedSession;
-    if (!sessionId) {
-      if (typeof window.toast === 'function') {
-        window.toast('Please upload or select a dataset first.', 'error');
-      }
-      if (typeof openConfigModalFn === 'function') openConfigModalFn();
-      return;
-    }
-
-    // Launch pipeline specifically for this use-case step and its checked agents
-    if (typeof onRunPipelineFn === 'function') {
-      onRunPipelineFn({ category: cat, agents: checkedAgents });
     }
   });
 
-  // 5. Individual Agent Chip Checkbox Listener
+  // 4. Modal "Select All in Crew" / "Deselect All" Buttons
+  document.addEventListener('click', e => {
+    if (e.target.closest('#crewModalSelectAllBtn')) {
+      toggleSelectAllInCrew(true);
+    } else if (e.target.closest('#crewModalDeselectAllBtn')) {
+      toggleSelectAllInCrew(false);
+    }
+  });
+
+  // 4b. Modal "Export Dedicated PDF" Button
+  document.addEventListener('click', e => {
+    if (e.target.closest('#exportCrewPdfBtn')) {
+      const meta = CREW_METADATA[currentModalTab];
+      const tabAgents = meta?.agents || [];
+      const selectedInTab = tabAgents.filter(a => selectedAgentsSet.has(a.id));
+      const targetAid = selectedInTab.length > 0 ? selectedInTab[0].id : (tabAgents[0]?.id || currentModalTab);
+      downloadPdf(null, `${meta?.title || 'Crew'} Dedicated Report`, targetAid);
+    }
+  });
+
+  // 5. Agent item checkbox change inside modal
   document.addEventListener('change', e => {
-    const agentCb = e.target.closest('input[name="agents"]');
-    if (!agentCb) return;
-
-    agentCb.closest('.agent-chip')?.classList.toggle('checked', agentCb.checked);
-
-    // Sync any other checkboxes with the same agent ID (e.g. if present in multiple modals)
-    document.querySelectorAll(`input[name="agents"][value="${agentCb.value}"]`).forEach(cb => {
-      if (cb !== agentCb) {
-        cb.checked = agentCb.checked;
-        cb.closest('.agent-chip')?.classList.toggle('checked', agentCb.checked);
+    if (e.target.name === 'crew_modal_agents') {
+      const agentId = e.target.value;
+      if (e.target.checked) {
+        selectedAgentsSet.add(agentId);
+      } else {
+        selectedAgentsSet.delete(agentId);
       }
-    });
-
-    // Remove active preset highlight since user customized
-    document.querySelectorAll('.preset-chip').forEach(b => b.classList.remove('active'));
-
-    updateActiveAgentsBadge();
+      e.target.closest('.crew-agent-item')?.classList.toggle('checked', e.target.checked);
+      updateModalBadges();
+    }
   });
 
-  // Initial badge update
-  updateActiveAgentsBadge();
+  // 6. Analysis Depth Chips inside modal
+  document.addEventListener('click', e => {
+    const depthChip = e.target.closest('.depth-chip');
+    if (depthChip) {
+      document.querySelectorAll('.depth-chip').forEach(c => c.classList.remove('active'));
+      depthChip.classList.add('active');
+      const radio = depthChip.querySelector('input[type="radio"]');
+      if (radio) radio.checked = true;
+    }
+  });
+
+  // 7. Start Analysis Button inside Modal
+  document.addEventListener('click', e => {
+    if (e.target.closest('#startCrewAnalysisBtn')) {
+      const selected = getSelectedAgents();
+      if (!selected.length) {
+        if (typeof window.toast === 'function') {
+          window.toast('Please select at least 1 agent to start the analysis.', 'warning');
+        } else {
+          alert('Please select at least 1 agent to start the analysis.');
+        }
+        return;
+      }
+
+      closeCrewModal();
+
+      const depthRadio = document.querySelector('input[name="crewDepth"]:checked');
+      const isDeep = depthRadio ? depthRadio.value === 'true' : false;
+      const objectiveText = document.getElementById('crewModalObjective')?.value || '';
+
+      if (typeof onRunPipelineCallback === 'function') {
+        onRunPipelineCallback({
+          category: currentModalCrew,
+          agents: selected,
+          deep: isDeep,
+          goal: objectiveText
+        });
+      }
+    }
+  });
+
+  // 8. "Run All 25 Agents" Swarm Button in header
+  document.addEventListener('click', e => {
+    if (e.target.closest('#btnRunAgenticPipeline')) {
+      // Select all 25 agents
+      CATEGORIES.forEach(c => {
+        CREW_METADATA[c]?.agents?.forEach(a => selectedAgentsSet.add(a.id));
+      });
+      if (typeof onRunPipelineCallback === 'function') {
+        onRunPipelineCallback({
+          agents: getSelectedAgents()
+        });
+      }
+    }
+  });
+
+  // Initial update
   updateCardsDatasetInfo();
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+export function updateActiveAgentsBadge() {
+  const count = selectedAgentsSet.size;
+  const badge = document.getElementById('activeAgentsBadge');
+  if (badge) badge.textContent = `${count} of 25 Active Agents`;
+}
+
+export function applyAnalysisPreset(preset) {
+  const PRESET_MAP = {
+    growth_bi: ['data_cleaner', 'statistical_analysis', 'insight_discovery', 'sales_analysis', 'profitability_analysis', 'customer_intelligence', 'decision_support', 'relationship_analysis', 'dataset_explorer', 'visualization', 'storytelling'],
+    quick_brief: ['data_cleaner', 'statistical_analysis', 'insight_discovery', 'sales_analysis', 'decision_support', 'dataset_explorer', 'visualization', 'storytelling'],
+    deep_mining: ['data_cleaner', 'statistical_analysis', 'pattern_discovery', 'relationship_analysis', 'segmentation', 'anomaly_detection', 'association_mining', 'dataset_explorer', 'visualization'],
+    predictive_suite: ['dataset_explorer', 'trend_analysis', 'sales_forecasting', 'budget_forecasting', 'demand_forecasting', 'risk_prediction', 'whatif_simulation', 'visualization'],
+    full_audit: 'all'
+  };
+
+  const targetList = PRESET_MAP[preset] || PRESET_MAP.growth_bi;
+  selectedAgentsSet.clear();
+  CATEGORIES.forEach(c => {
+    CREW_METADATA[c]?.agents?.forEach(a => {
+      if (targetList === 'all' || targetList.includes(a.id)) {
+        selectedAgentsSet.add(a.id);
+      }
+    });
+  });
+
+  updateActiveAgentsBadge();
 }

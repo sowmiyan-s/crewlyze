@@ -15,6 +15,7 @@ Provides 5 specialized exploration and visualization agents:
 from typing import Any, Dict, List, Optional
 import pandas as pd
 from agents.base_agent import BaseIntelligenceAgent, InspectionResult
+from tools.artifact_manager import ArtifactManager
 from tools.eda_tools import (
     explore_dataset_schema,
     execute_natural_query,
@@ -38,6 +39,18 @@ class DatasetExplorerAgent(BaseIntelligenceAgent):
     def execute(self, plan: Dict[str, Any], df: pd.DataFrame, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         res = explore_dataset_schema(df)
         dims = res.get("dimensions", {})
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and res.get("columns_dictionary"):
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "column_dictionary.csv",
+                res["columns_dictionary"],
+                "Dataset Schema & Column Dictionary",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "rows_count": dims.get("rows", 0),
@@ -46,6 +59,7 @@ class DatasetExplorerAgent(BaseIntelligenceAgent):
             },
             "findings": res.get("findings", []),
             "tables": [{"title": "Dataset Schema & Column Dictionary", "rows": res.get("columns_dictionary", [])}],
+            "artifacts": artifacts,
             "provenance": {"method": "explore_dataset_schema"},
         }
 

@@ -15,6 +15,7 @@ Provides 5 specialized analytical agents:
 from typing import Any, Dict, List, Optional
 import pandas as pd
 from agents.base_agent import BaseIntelligenceAgent, InspectionResult
+from tools.artifact_manager import ArtifactManager
 from tools.stats_tools import (
     clean_dataset_safely,
     calculate_descriptive_stats,
@@ -40,6 +41,18 @@ class DataCleanerAgent(BaseIntelligenceAgent):
         if context and "context_bus" in context:
             context["context_bus"].set_shared("cleaned_df", cleaned_df)
 
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and report.get("changelog"):
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "hygiene_changelog.csv",
+                [{"action": c} for c in report["changelog"]],
+                "Data Hygiene Changelog",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "initial_rows": report["initial_shape"][0],
@@ -49,6 +62,7 @@ class DataCleanerAgent(BaseIntelligenceAgent):
             },
             "findings": report["changelog"] or ["Dataset conforms to hygiene standards; no destructive edits required."],
             "tables": [{"title": "Data Hygiene Changelog", "rows": [{"action": c} for c in report["changelog"]]}],
+            "artifacts": artifacts,
             "provenance": {"method": "clean_dataset_safely", "deduplication": "exact_match"},
         }
 
@@ -78,10 +92,24 @@ class StatisticalAnalysisAgent(BaseIntelligenceAgent):
                 f"{first_col}_skew": s["skewness"],
             }
 
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and res.get("statistics"):
+            stat_rows = [{"column": k, **v} for k, v in res["statistics"].items()]
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "descriptive_statistics.csv",
+                stat_rows,
+                "Descriptive Statistics Table",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": metrics,
             "findings": res["observations"] or ["All continuous features follow balanced distribution profiles."],
             "tables": [{"title": "Descriptive Statistics Matrix", "rows": [{"column": k, **v} for k, v in res["statistics"].items()]}],
+            "artifacts": artifacts,
             "provenance": {"method": "calculate_descriptive_stats", "engine": "scipy.stats"},
         }
 
@@ -136,6 +164,19 @@ class ComparativeAnalysisAgent(BaseIntelligenceAgent):
         if not res.get("has_comparative_data"):
             return {"metrics": {}, "findings": [res.get("reason", "Comparative data unavailable.")]}
 
+        benchmarks = res.get("benchmarks", [])
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and benchmarks:
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "comparative_benchmarks.csv",
+                benchmarks,
+                f"Cohort Benchmarks ({res.get('group_column')} vs {res.get('metric_column')})",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "top_segment": res["top_segment"],
@@ -143,7 +184,8 @@ class ComparativeAnalysisAgent(BaseIntelligenceAgent):
                 "gap_multiple": res["gap_multiple"],
             },
             "findings": res.get("findings", []),
-            "tables": [{"title": f"Cohort Benchmarks ({res['group_column']} vs {res['metric_column']})", "rows": res.get("benchmarks", [])}],
+            "tables": [{"title": f"Cohort Benchmarks ({res['group_column']} vs {res['metric_column']})", "rows": benchmarks}],
+            "artifacts": artifacts,
             "provenance": {"method": "calculate_comparative_benchmarks"},
         }
 
@@ -161,11 +203,25 @@ class InsightDiscoveryAgent(BaseIntelligenceAgent):
 
     def execute(self, plan: Dict[str, Any], df: pd.DataFrame, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         res = synthesize_empirical_insights(df, plan.get("goal", ""))
-        findings = [f"[{i['title']}]: {i['evidence']}" for i in res.get("insights", [])]
+        insights = res.get("insights", [])
+        findings = [f"[{i['title']}]: {i['evidence']}" for i in insights]
+
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and insights:
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "discovered_insights.csv",
+                insights,
+                "Ranked Empirical Commercial Insights",
+            )
+            if art:
+                artifacts.append(art)
 
         return {
             "metrics": {"discovered_insights_count": res.get("discovered_insights_count", 0)},
             "findings": findings or ["Dataset displays homogeneous behavior with no extreme variance anomalies."],
-            "tables": [{"title": "Ranked Empirical Insights", "rows": res.get("insights", [])}],
+            "tables": [{"title": "Ranked Empirical Insights", "rows": insights}],
+            "artifacts": artifacts,
             "provenance": {"method": "synthesize_empirical_insights"},
         }

@@ -73,27 +73,57 @@ export function renderProjectsList(projects) {
   const listEl = $('projectsList');
   const countEl = $('dashboardProjectsCount');
   if (countEl) countEl.textContent = `${projects.length} Projects`;
-  if (!listEl) return;
 
-  if (!projects.length) {
-    listEl.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:0.8rem;">No projects yet.</div>';
-    return;
+  if (listEl) {
+    if (!projects.length) {
+      listEl.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:0.8rem;">No projects yet.</div>';
+    } else {
+      listEl.innerHTML = projects.map(p => `
+        <div class="project-item ${state.activeProject?.id === p.id ? 'active' : ''}" data-id="${p.id}">
+          <div class="project-item-title">${p.name || 'Untitled Project'}</div>
+          <div class="project-item-meta">${p.filename || 'dataset.csv'} • ${p.status || 'idle'}</div>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('.project-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-id');
+          const proj = state.projects.find(x => x.id === id);
+          if (proj) selectProject(proj);
+        });
+      });
+    }
   }
 
-  listEl.innerHTML = projects.map(p => `
-    <div class="project-item ${state.activeProject?.id === p.id ? 'active' : ''}" data-id="${p.id}">
-      <div class="project-item-title">${p.name || 'Untitled Project'}</div>
-      <div class="project-item-meta">${p.filename || 'dataset.csv'} • ${p.status || 'idle'}</div>
-    </div>
-  `).join('');
+  // Also render into dashboard projects grid on landing screen
+  const dashGrid = $('dashboardProjectsGrid');
+  if (dashGrid) {
+    if (!projects.length) {
+      dashGrid.innerHTML = '<div style="grid-column: 1/-1; padding: 24px; text-align: center; color: var(--text-secondary); background: rgba(255,255,255,0.01); border-radius: var(--r-md); border: 1px dashed var(--border-low);">No recent projects found. Upload a CSV to get started.</div>';
+    } else {
+      dashGrid.innerHTML = projects.map(p => `
+        <div class="project-card card" data-id="${p.id}" style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid); border-radius: var(--r-md); cursor: pointer; transition: all 0.25s; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="font-weight: 700; color: #fff; font-size: 0.95rem;">${p.name || 'Untitled Project'}</div>
+            <span style="font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: ${p.status === 'completed' ? 'rgba(16,185,129,0.15)' : 'rgba(255,37,42,0.1)'}; color: ${p.status === 'completed' ? '#10b981' : 'var(--crimson-light)'}; border: 1px solid ${p.status === 'completed' ? 'rgba(16,185,129,0.3)' : 'rgba(255,37,42,0.2)'}; font-weight: 600;">${p.status || 'idle'}</span>
+          </div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">${p.filename || 'dataset.csv'} ${p.rows_count ? `• ${p.rows_count.toLocaleString()} rows` : ''}</div>
+          <div style="margin-top: auto; padding-top: 8px; font-size: 0.72rem; color: var(--text-muted); display: flex; justify-content: space-between;">
+            <span>${p.created_at ? new Date(p.created_at > 1e11 ? p.created_at : p.created_at * 1000).toLocaleDateString() : ''}</span>
+            <span style="color: var(--crimson, #ff252a); font-weight: 600;">Select →</span>
+          </div>
+        </div>
+      `).join('');
 
-  listEl.querySelectorAll('.project-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.getAttribute('data-id');
-      const proj = state.projects.find(x => x.id === id);
-      if (proj) selectProject(proj);
-    });
-  });
+      dashGrid.querySelectorAll('.project-card').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-id');
+          const proj = state.projects.find(x => x.id === id);
+          if (proj) selectProject(proj);
+        });
+      });
+    }
+  }
 }
 
 export async function selectProject(project) {
@@ -121,17 +151,21 @@ export async function selectProject(project) {
   } else {
     try {
       const prev = await api.fetchPreview(project.id);
-      showScreen('landing');
       renderPreview(prev.preview || []);
-      updateCardsDatasetInfo({
+      const updatedMeta = {
         ...project,
         rows_count: prev.rows_count || project.rows_count,
         cols_count: prev.cols_count || project.cols_count,
         numeric_count: prev.numeric_count || project.numeric_count,
         cat_count: prev.cat_count || project.cat_count
-      });
+      };
+      state.activeProject = updatedMeta;
+      updateCardsDatasetInfo(updatedMeta);
+      showScreen('results');
+      switchWorkspaceMode('hub');
     } catch (err) {
-      showScreen('landing');
+      showScreen('results');
+      switchWorkspaceMode('hub');
     }
   }
 }
@@ -255,7 +289,7 @@ export async function launchAnalysisPipeline(options = {}) {
   const model = $('llmModel')?.value || 'nvidia_nim/meta/llama-3.1-70b-instruct';
   const apiKey = $('apiKey')?.value || '';
   const reportTitle = $('configReportTitle')?.value || state.activeProject?.report_title || `${state.activeProject?.name || 'Dataset'} Executive Report`;
-  const goal = $('configGoal')?.value || state.activeProject?.goal || '';
+  const goal = options?.goal || $('configGoal')?.value || state.activeProject?.goal || '';
 
   const fd = new FormData();
   fd.append('session_id', sessionId);
@@ -266,6 +300,10 @@ export async function launchAnalysisPipeline(options = {}) {
   fd.append('goal', goal);
   if (selectedAgents.length) {
     fd.append('tasks', selectedAgents.join(','));
+    fd.append('selected_tasks', selectedAgents.join(','));
+  }
+  if (options?.deep !== undefined) {
+    fd.append('deep_analysis', options.deep ? 'true' : 'false');
   }
 
   try {
@@ -354,21 +392,51 @@ export async function stopCurrentAnalysis() {
 // ────────────────────────────────────────────────────────────────────────────
 
 export function initUploadWizard() {
-  const uploadZone = $('uploadZone');
   const fileInput = $('fileInput');
+  const startWizardCard = $('startWizardCard');
+  const uploadZone = $('uploadZone');
+  const importProjectCard = $('importProjectCard');
+  const importModal = $('importProjectModal');
+  const closeImportModal = $('closeImportModal');
+  const importZipZone = $('importZipZone');
+  const importZipFileInput = $('importZipFileInput');
 
+  // Trigger CSV/Excel/SQLite file picker when clicking "Create New Project"
+  if (startWizardCard && fileInput) {
+    startWizardCard.addEventListener('click', () => fileInput.click());
+
+    startWizardCard.addEventListener('dragover', e => {
+      e.preventDefault();
+      startWizardCard.style.borderColor = 'var(--crimson, #ff252a)';
+      startWizardCard.style.background = 'rgba(255, 37, 42, 0.08)';
+    });
+
+    startWizardCard.addEventListener('dragleave', () => {
+      startWizardCard.style.borderColor = '';
+      startWizardCard.style.background = '';
+    });
+
+    startWizardCard.addEventListener('drop', e => {
+      e.preventDefault();
+      startWizardCard.style.borderColor = '';
+      startWizardCard.style.background = '';
+      const files = e.dataTransfer?.files;
+      if (files && files[0]) {
+        handleUploadFile(files[0]);
+      }
+    });
+  }
+
+  // Also support any legacy upload zone
   if (uploadZone && fileInput) {
     uploadZone.addEventListener('click', () => fileInput.click());
-
     uploadZone.addEventListener('dragover', e => {
       e.preventDefault();
       uploadZone.classList.add('dragover');
     });
-
     uploadZone.addEventListener('dragleave', () => {
       uploadZone.classList.remove('dragover');
     });
-
     uploadZone.addEventListener('drop', e => {
       e.preventDefault();
       uploadZone.classList.remove('dragover');
@@ -377,10 +445,38 @@ export function initUploadWizard() {
         handleUploadFile(files[0]);
       }
     });
+  }
 
+  if (fileInput) {
     fileInput.addEventListener('change', () => {
       if (fileInput.files && fileInput.files[0]) {
         handleUploadFile(fileInput.files[0]);
+      }
+    });
+  }
+
+  // Import project (.zip) handlers
+  if (importProjectCard && importModal) {
+    importProjectCard.addEventListener('click', () => {
+      importModal.classList.remove('hidden');
+      importModal.style.display = 'flex';
+    });
+  }
+
+  if (closeImportModal && importModal) {
+    closeImportModal.addEventListener('click', () => {
+      importModal.classList.add('hidden');
+      importModal.style.display = 'none';
+    });
+  }
+
+  if (importZipZone && importZipFileInput) {
+    importZipZone.addEventListener('click', () => importZipFileInput.click());
+    importZipFileInput.addEventListener('change', () => {
+      if (importZipFileInput.files && importZipFileInput.files[0]) {
+        handleUploadFile(importZipFileInput.files[0]);
+        importModal?.classList.add('hidden');
+        if (importModal) importModal.style.display = 'none';
       }
     });
   }
@@ -477,6 +573,108 @@ function openTableSelector(sessionId, tables) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// LLM Provider & Model Initialization
+// ────────────────────────────────────────────────────────────────────────────
+
+export async function initLlmSettings() {
+  const providerSelect = $('llmProvider');
+  const modelInput = $('llmModel');
+  const modelList = $('modelList');
+  const apiKeyInput = $('apiKey');
+  const apiKeyStatus = $('sidebarApiKeyStatus');
+
+  if (!providerSelect) return;
+
+  let serverConfig = {};
+  try {
+    const res = await fetch('/api/config');
+    if (res.ok) {
+      serverConfig = await res.json();
+    }
+  } catch (e) {
+    console.warn('Could not load server config:', e);
+  }
+
+  const PROVIDER_NAMES = {
+    nvidia: 'NVIDIA NIM',
+    groq: 'Groq',
+    openai: 'OpenAI',
+    anthropic: 'Anthropic',
+    gemini: 'Google Gemini',
+    mistral: 'Mistral AI',
+    minimax: 'MiniMax',
+    ollama: 'Ollama (Local)',
+    openrouter: 'OpenRouter',
+    deepseek: 'DeepSeek',
+    together: 'Together AI',
+    cohere: 'Cohere',
+    huggingface: 'Hugging Face',
+    custom: 'Custom LLM'
+  };
+
+  const providers = Object.keys(MODEL_OPTIONS);
+  providerSelect.innerHTML = providers.map(p => {
+    const label = PROVIDER_NAMES[p] || p.toUpperCase();
+    return `<option value="${p}">${label}</option>`;
+  }).join('');
+
+  const savedProvider = localStorage.getItem('llm_provider') || serverConfig.default_provider || 'nvidia';
+  providerSelect.value = providers.includes(savedProvider) ? savedProvider : 'nvidia';
+
+  function syncProviderAndModel() {
+    const currentProvider = providerSelect.value;
+    const models = MODEL_OPTIONS[currentProvider] || [];
+
+    if (modelList) {
+      modelList.innerHTML = models.map(m => `<option value="${m}">${m}</option>`).join('');
+    }
+
+    const savedModel = localStorage.getItem(`llm_model_${currentProvider}`) || localStorage.getItem('llm_model');
+    if (savedModel && models.includes(savedModel)) {
+      if (modelInput) modelInput.value = savedModel;
+    } else if (models.length) {
+      if (modelInput) modelInput.value = models[0];
+    }
+
+    let activeKey = '';
+    if (currentProvider === 'nvidia') {
+      activeKey = serverConfig.NVIDIA_API_KEY || serverConfig.NVIDIA_NIM_API_KEY || localStorage.getItem('key_nvidia') || '';
+    } else if (currentProvider === 'mistral') {
+      activeKey = serverConfig.MISTRAL_API_KEY || localStorage.getItem('key_mistral') || '';
+    } else {
+      const envKey = `${currentProvider.toUpperCase()}_API_KEY`;
+      activeKey = serverConfig[envKey] || localStorage.getItem(`key_${currentProvider}`) || '';
+    }
+
+    if (apiKeyInput) apiKeyInput.value = activeKey;
+
+    if (apiKeyStatus) {
+      if (currentProvider === 'ollama') {
+        apiKeyStatus.innerHTML = '<span style="color: #10b981; font-size: 0.75rem;">● Local Ollama</span>';
+      } else if (activeKey) {
+        apiKeyStatus.innerHTML = '<span style="color: #10b981; font-size: 0.75rem;">● API Key Configured</span>';
+      } else {
+        apiKeyStatus.innerHTML = '<span style="color: var(--crimson-light); font-size: 0.75rem;">○ No Key Set (Click Add Provider)</span>';
+      }
+    }
+  }
+
+  syncProviderAndModel();
+
+  providerSelect.addEventListener('change', () => {
+    localStorage.setItem('llm_provider', providerSelect.value);
+    syncProviderAndModel();
+  });
+
+  if (modelInput) {
+    modelInput.addEventListener('change', () => {
+      localStorage.setItem(`llm_model_${providerSelect.value}`, modelInput.value);
+      localStorage.setItem('llm_model', modelInput.value);
+    });
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Bootstrap
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -490,6 +688,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initPlotlyResizeWatcher();
   initUploadWizard();
   initCommandCenter(openConfigModal, launchAnalysisPipeline);
+  initLlmSettings();
   loadProjects();
   checkUpdates();
 
@@ -509,7 +708,11 @@ document.addEventListener('DOMContentLoaded', () => {
       switchWorkspaceMode('chat');
     } else if (e.target.closest('#btnEnterAgentic')) {
       switchWorkspaceMode('agentic');
-    } else if (e.target.closest('#sidebarSettingsBtn')) {
+    } else if (e.target.closest('#btnChatBackToHub') || e.target.closest('#btnAgenticBackToHub')) {
+      switchWorkspaceMode('hub');
+    } else if (e.target.closest('#sidebarLogo')) {
+      showScreen('landing');
+    } else if (e.target.closest('#sidebarSettingsBtn') || e.target.closest('#sidebarAddProviderBtn')) {
       openConfigModal();
     } else if (e.target.closest('#sidebarSaveLlmBtn') || e.target.closest('#saveSettingsBtn')) {
       const provider = $('llmProvider')?.value || 'nvidia';

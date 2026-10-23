@@ -15,6 +15,7 @@ Provides 5 specialized predictive modeling agents:
 from typing import Any, Dict, List, Optional
 import pandas as pd
 from agents.base_agent import BaseIntelligenceAgent, InspectionResult
+from tools.artifact_manager import ArtifactManager
 from tools.predictive_tools import (
     forecast_sales,
     forecast_budget,
@@ -42,6 +43,18 @@ class SalesForecastingAgent(BaseIntelligenceAgent):
             return {"metrics": {}, "findings": [res.get("reason", "Forecast unavailable.")]}
 
         preds = res.get("predictions", [])
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and preds:
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "forecast_horizon.csv",
+                preds,
+                "Sales Forecast Trajectory Horizons",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "trajectory": res.get("trajectory"),
@@ -50,6 +63,7 @@ class SalesForecastingAgent(BaseIntelligenceAgent):
             },
             "findings": res.get("findings", []),
             "tables": [{"title": "Forecast Horizon Predictions", "rows": preds}],
+            "artifacts": artifacts,
             "provenance": {"method": "forecast_sales", "model": res.get("algorithm")},
         }
 
@@ -71,12 +85,35 @@ class BudgetForecastingAgent(BaseIntelligenceAgent):
         if not res.get("has_budget_forecast"):
             return {"metrics": {}, "findings": [res.get("reason", "Budget forecast unavailable.")]}
 
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and res.get("projected_total_commitment"):
+            run_rate = res.get("current_period_run_rate", 0.0)
+            horizon = res.get("projected_horizon_periods", 6)
+            proj_rows = [
+                {
+                    "period_offset": p,
+                    "run_rate": round(run_rate, 2),
+                    "cumulative_commitment": round(run_rate * p, 2),
+                }
+                for p in range(1, horizon + 1)
+            ]
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "budget_burn_projection.csv",
+                proj_rows,
+                "Forward Budget Commitment & Burn Rate Projection",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "current_run_rate": res.get("current_period_run_rate", 0.0),
                 "projected_total_commitment": res.get("projected_total_commitment", 0.0),
             },
             "findings": res.get("findings", []),
+            "artifacts": artifacts,
             "provenance": {"method": "forecast_budget"},
         }
 
@@ -98,6 +135,25 @@ class DemandForecastingAgent(BaseIntelligenceAgent):
         if not res.get("has_demand_forecast"):
             return {"metrics": {}, "findings": [res.get("reason", "Demand forecast unavailable.")]}
 
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and res.get("recommended_safety_buffer"):
+            buffer_rows = [
+                {"metric": "Average Demand", "value": res.get("average_demand", 0.0)},
+                {"metric": "Demand Volatility (Std Dev)", "value": res.get("demand_volatility_std", 0.0)},
+                {"metric": "Coefficient of Variation", "value": res.get("coefficient_of_variation", 0.0)},
+                {"metric": "Recommended Safety Buffer", "value": res.get("recommended_safety_buffer", 0.0)},
+                {"metric": "Recommended Reorder Point", "value": res.get("recommended_reorder_point", 0.0)},
+            ]
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "demand_safety_buffers.csv",
+                buffer_rows,
+                "Demand Volatility & Safety Stock Buffers",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "average_demand": res.get("average_demand", 0.0),
@@ -105,6 +161,7 @@ class DemandForecastingAgent(BaseIntelligenceAgent):
                 "reorder_point": res.get("recommended_reorder_point", 0.0),
             },
             "findings": res.get("findings", []),
+            "artifacts": artifacts,
             "provenance": {"method": "forecast_demand"},
         }
 
@@ -126,6 +183,18 @@ class RiskPredictionAgent(BaseIntelligenceAgent):
             return {"metrics": {}, "findings": [res.get("reason", "Risk modeling unavailable.")]}
 
         drivers = res.get("top_drivers", [])
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and drivers:
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "risk_feature_importance.csv",
+                drivers,
+                "Risk & Predictive Feature Importance Rankings",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "target_variable": res.get("target_variable"),
@@ -135,6 +204,7 @@ class RiskPredictionAgent(BaseIntelligenceAgent):
             },
             "findings": res.get("findings", []),
             "tables": [{"title": "Feature Importance Rankings", "rows": drivers}],
+            "artifacts": artifacts,
             "provenance": {"method": "predict_risk_model", "model": res.get("winning_model")},
         }
 
@@ -157,6 +227,27 @@ class WhatIfSimulationAgent(BaseIntelligenceAgent):
             return {"metrics": {}, "findings": [res.get("reason", "Simulation unavailable.")]}
 
         scenario = res.get("projected_scenario", {})
+        artifacts = []
+        sid = context.get("session_id") if context else None
+        if sid and scenario:
+            base = res.get("baseline", {})
+            sim_rows = [
+                {"parameter": "Shift Percentage", "value": f"{res.get('simulated_shift_pct')}%"},
+                {"parameter": f"Baseline {res.get('primary_lever')}", "value": base.get(res.get('primary_lever'), 0.0)},
+                {"parameter": f"Baseline {res.get('outcome_metric')}", "value": base.get(res.get('outcome_metric'), 0.0)},
+                {"parameter": f"Projected {res.get('primary_lever')}", "value": scenario.get(res.get('primary_lever'), 0.0)},
+                {"parameter": f"Projected {res.get('outcome_metric')}", "value": scenario.get(res.get('outcome_metric'), 0.0)},
+                {"parameter": "Projected Outcome Delta", "value": scenario.get("outcome_delta", 0.0)},
+            ]
+            art = ArtifactManager.save_rows_csv(
+                sid,
+                "whatif_scenario_simulation.csv",
+                sim_rows,
+                "What-If Elasticity Scenario Simulation",
+            )
+            if art:
+                artifacts.append(art)
+
         return {
             "metrics": {
                 "simulated_shift_pct": res.get("simulated_shift_pct"),
@@ -164,5 +255,6 @@ class WhatIfSimulationAgent(BaseIntelligenceAgent):
                 "projected_outcome_delta": scenario.get("outcome_delta", 0.0),
             },
             "findings": res.get("findings", []),
+            "artifacts": artifacts,
             "provenance": {"method": "simulate_what_if"},
         }

@@ -12,7 +12,7 @@
   <script src="/libs/plotly-2.35.2.min.js"></script>
   <script src="/libs/marked.min.js"></script>
   <script src="/libs/lucide.min.js"></script>
-  <link rel="stylesheet" href="/style.css?v=1.2.4" />
+  <link rel="stylesheet" href="/style.css?v=1.3.1" />
   <link rel="icon" type="image/png" href="/assets/favicon.png" />
   <style>
     /* Settings Sidebar overrides to guarantee no caching collapse */
@@ -244,6 +244,7 @@
           <!-- Step 0: Create Project Button Card -->
           <div class="wizard-step active" id="wizardStep0"
             style="width: 100%; display: flex; flex-direction: row !important; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.parquet,.db,.sqlite" style="display: none;" />
             <div class="create-project-card" id="startWizardCard" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; border-radius: var(--r-lg); background: rgba(255, 37, 42, 0.02); border: 2px dashed rgba(255, 37, 42, 0.2); cursor: pointer; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); min-width: 240px; text-align: center;">
               <div style="background: rgba(255, 37, 42, 0.08); border-radius: 50%; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; box-shadow: 0 0 15px rgba(255, 37, 42, 0.1); border: 1px solid rgba(255, 37, 42, 0.15); transition: all 0.4s;">
                 <i data-lucide="upload-cloud" style="width: 24px; height: 24px; color: var(--violet-light);"></i>
@@ -307,6 +308,147 @@
         </div>
         <div class="modal-footer" style="padding: 12px 24px; border-top: 1px solid var(--border-low);">
           <button id="cancelCompareBtn" class="btn-secondary">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CREW ANALYSIS DETAIL & AGENT SELECTION MODAL ─── -->
+    <div id="crewDetailModal" class="modal-overlay hidden">
+      <div class="modal-box crew-detail-modal-box">
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div id="crewModalIconWrap" class="crew-modal-icon-wrap">
+              <i id="crewModalIcon" data-lucide="briefcase"></i>
+            </div>
+            <div>
+              <h2 id="crewModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;">2. Business Analysis Crew</h2>
+              <span id="crewModalBadge" class="card-domain-badge">Commercial Levers &amp; Margins</span>
+            </div>
+          </div>
+          <button id="closeCrewModal" class="btn-icon">✕</button>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="modal-body">
+          <!-- 1. Brief Info About Analysis -->
+          <div class="crew-modal-section">
+            <div class="crew-section-label">
+              <i data-lucide="info" style="width: 14px; height: 14px; color: var(--crimson, #ff252a);"></i>
+              <span>Analysis Overview &amp; Strategic Scope</span>
+            </div>
+            <div id="crewModalBriefText" class="crew-brief-box"></div>
+          </div>
+
+          <!-- 2. Dataset Description & Telemetry -->
+          <div class="crew-modal-section">
+            <div class="crew-section-label">
+              <i data-lucide="database" style="width: 14px; height: 14px; color: #10b981;"></i>
+              <span>Dataset Description &amp; Telemetry</span>
+            </div>
+            <div class="csv-telemetry-grid">
+              <div class="telemetry-card">
+                <span class="telemetry-label">Dataset File</span>
+                <span id="crewModalFileName" class="telemetry-value">--</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Total Rows</span>
+                <span id="crewModalRows" class="telemetry-value">--</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Total Columns</span>
+                <span id="crewModalCols" class="telemetry-value">--</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Feature Types</span>
+                <span id="crewModalFeatures" class="telemetry-value">--</span>
+              </div>
+              <div class="telemetry-card">
+                <span class="telemetry-label">Dataset Status</span>
+                <span id="crewModalStatus" class="telemetry-value" style="color: #10b981;">● Ready</span>
+              </div>
+            </div>
+
+            <!-- Dataset Columns & Attributes Description Box -->
+            <div id="crewModalColumnsWrap" style="margin-top: 10px; padding: 12px 14px; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--r-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.76rem; font-weight: 700; color: #e2e8f0; text-transform: uppercase; letter-spacing: 0.5px;">
+                  <i data-lucide="columns" style="width: 12px; height: 12px; color: #38bdf8; vertical-align: middle; margin-right: 4px;"></i>
+                  Dataset Features &amp; Columns
+                </span>
+                <span id="crewModalColCountBadge" style="font-size: 0.72rem; color: #38bdf8; font-weight: 600;">--</span>
+              </div>
+              <div id="crewModalColumnsList" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 85px; overflow-y: auto;">
+                <span style="color: #94a3b8; font-size: 0.75rem;">Loading dataset attributes...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Select Agents Among the 5 Crews -->
+          <div class="crew-modal-section">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+              <div class="crew-section-label" style="margin-bottom: 0;">
+                <i data-lucide="users" style="width: 14px; height: 14px; color: var(--crimson, #ff252a);"></i>
+                <span>Select Agents Among the 5 Crews</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="crewModalSelectedAgentsBadge" class="agents-count-badge">5 Selected</span>
+                <button type="button" id="crewModalSelectAllBtn" class="btn-secondary btn-xs">Select All in Tab</button>
+                <button type="button" id="crewModalDeselectAllBtn" class="btn-secondary btn-xs">Deselect All</button>
+              </div>
+            </div>
+            <p class="modal-hint" style="margin-top: 0; margin-bottom: 10px;">Select which AI agents to execute. You can click any crew tab to activate agents across all 5 analytical domains.</p>
+
+            <!-- 5 Crew Tabs inside Modal -->
+            <div class="crew-modal-tabs" id="crewModalTabs">
+              <button type="button" class="crew-modal-tab" data-crew="data_analysis">📊 Data Analysis (5)</button>
+              <button type="button" class="crew-modal-tab" data-crew="business_analysis">💼 Business Analysis (5)</button>
+              <button type="button" class="crew-modal-tab" data-crew="data_mining">⛏️ Data Mining (5)</button>
+              <button type="button" class="crew-modal-tab" data-crew="predictive_analysis">🔮 Predictive (5)</button>
+              <button type="button" class="crew-modal-tab" data-crew="eda">🔭 Visuals &amp; EDA (5)</button>
+            </div>
+
+            <!-- Dynamic Agents List for Active Crew Tab -->
+            <div id="crewModalAgentsList" class="crew-agents-container"></div>
+          </div>
+
+          <!-- 4. Optional Analysis Depth & Focus -->
+          <div class="crew-modal-section" style="border-top: 1px solid var(--border-low); padding-top: 14px;">
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 200px;">
+                <label class="field-label" style="margin-bottom: 6px;">Analysis Depth</label>
+                <div style="display: flex; gap: 8px;">
+                  <label class="depth-chip active" id="chipDepthStandard">
+                    <input type="radio" name="crewDepth" value="false" checked hidden />
+                    <span>⚡ Standard (Fast)</span>
+                  </label>
+                  <label class="depth-chip" id="chipDepthDeep">
+                    <input type="radio" name="crewDepth" value="true" hidden />
+                    <span>🔬 Deep (Full Detail)</span>
+                  </label>
+                </div>
+              </div>
+              <div style="flex: 2; min-width: 260px;">
+                <label class="field-label" style="margin-bottom: 6px;">Analysis Focus / Objective (Optional)</label>
+                <input type="text" id="crewModalObjective" class="field-input" placeholder="e.g. Find top 10% highest margin segments, reduce cost leaks..." style="width: 100%;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid var(--border-low); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="cancelCrewModalBtn" class="btn-secondary">Cancel</button>
+            <button type="button" id="exportCrewPdfBtn" class="btn-secondary" style="display: flex; align-items: center; gap: 6px; border-color: rgba(255,37,42,0.3); background: rgba(255,37,42,0.06); color: var(--crimson, #ff252a);">
+              <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+              <span id="exportCrewPdfBtnText">Export Dedicated PDF</span>
+            </button>
+          </div>
+          <button type="button" id="startCrewAnalysisBtn" class="btn-primary" style="padding: 10px 24px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 0 20px rgba(255, 37, 42, 0.35);">
+            <i data-lucide="play" style="width: 15px; height: 15px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
+            <span id="startCrewAnalysisBtnText">Start Analysis (5 Agents)</span>
+          </button>
         </div>
       </div>
     </div>
@@ -627,12 +769,21 @@
         <div
           style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; max-width: 800px; margin: 0 auto; gap: 32px;">
           <div>
-            <h2 style="font-size: 1.8rem; font-weight: 700; margin: 0 0 10px 0; color: #fff;">Choose Your Workspace Mode
-            </h2>
+            <h2 style="font-size: 1.8rem; font-weight: 700; margin: 0 0 10px 0; color: #fff;">Choose Your Workspace Mode</h2>
             <p
               style="color: var(--text-secondary); max-width: 540px; margin: 0 auto; font-size: 0.95rem; line-height: 1.5;">
               Select how you would like to interact with the project dataset. Switch modes at any time.
             </p>
+          </div>
+
+          <!-- Active Dataset Telemetry Pill -->
+          <div id="hubDatasetBanner" class="hub-dataset-banner" style="display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 24px; background: rgba(255, 37, 42, 0.05); border: 1px solid rgba(255, 37, 42, 0.2); border-radius: var(--r-full); font-size: 0.84rem; color: var(--text-primary); margin-top: -12px;">
+            <i data-lucide="file-spreadsheet" style="width: 16px; height: 16px; color: var(--crimson, #ff252a);"></i>
+            <span>Active Dataset: <strong id="hubDatasetFilename">dataset.csv</strong></span>
+            <span style="color: var(--border-mid);">•</span>
+            <span id="hubDatasetDims" style="color: var(--text-secondary);">-- rows × -- cols</span>
+            <span style="color: var(--border-mid);">•</span>
+            <span style="color: #10b981; font-weight: 600;">● Ready</span>
           </div>
 
           <div class="hub-cards-grid"
@@ -679,10 +830,13 @@
             style="padding: 18px; background: var(--bg-elevated); border: 1px solid var(--border-mid);">
             <div
               style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-              <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
-                  data-lucide="search" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Dataset
-                Explorer <span id="chatPreviewDims"
-                  style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="btnChatBackToHub" class="btn-secondary btn-sm" style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px; cursor: pointer;"><i data-lucide="arrow-left" style="width: 12px; height: 12px;"></i> Workspace Hub</button>
+                <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;"><i
+                    data-lucide="search" style="width: 18px; height: 18px; color: var(--violet-light);"></i> Dataset
+                  Explorer <span id="chatPreviewDims"
+                    style="font-size: 0.75rem; font-weight: normal; color: var(--text-secondary);"></span></h3>
+              </div>
               <div style="display: flex; gap: 8px;">
                 <button id="btnRenameColQuick" class="btn-secondary btn-sm"
                   style="font-size: 0.75rem; display: flex; align-items: center; gap: 4px;"><i data-lucide="edit"
@@ -801,106 +955,60 @@
       <div id="areaAgentic" class="section-area hidden">
         <!-- 5-Step Agentic Intelligence Command Center -->
         <div id="agenticPlaceholder" class="agentic-command-center" style="margin-bottom: 24px;">
-          <div class="command-center-header card" style="padding: 22px 26px; margin-bottom: 20px; background: rgba(24, 24, 27, 0.5); border: 1px solid var(--border-mid); border-radius: var(--r-lg); backdrop-filter: blur(14px);">
+          
+          <div class="command-center-header card">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-                  <img src="/assets/logo.png" alt="Crewlyze" style="width: 32px; height: 32px; object-fit: contain;" />
-                  <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: #fff;">25-Agent Multi-Stage Autonomous Swarm</h2>
+              <div style="display: flex; align-items: center; gap: 14px;">
+                <button id="btnAgenticBackToHub" class="btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px; padding: 7px 14px; font-weight: 600; cursor: pointer; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);">
+                  <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Workspace Hub
+                </button>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;">
+                    <img src="/assets/logo.png" alt="Crewlyze" style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 0 12px rgba(255,37,42,0.7));" />
+                    <h2 style="margin: 0; font-size: 1.45rem; font-weight: 800; color: #fff; letter-spacing: -0.3px;">Crew Analysis Suite</h2>
+                    <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; padding: 3px 12px; border-radius: 20px; background: rgba(255, 37, 42, 0.16); color: #ff5c60; border: 1px solid rgba(255, 37, 42, 0.4); box-shadow: 0 0 12px rgba(255, 37, 42, 0.2);">25 Autonomous Agents</span>
+                  </div>
+                  <p style="margin: 0; color: #cbd5e1; font-size: 0.88rem;">Select any analysis card below to inspect brief info, dataset telemetry, select agents across the 5 crews, and start analysis.</p>
                 </div>
-                <p style="margin: 0; color: var(--text-secondary); font-size: 0.86rem;">Select a dedicated analytical use-case step below with individual dataset info and selective agents, or run the complete multi-stage swarm.</p>
               </div>
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                <span id="activeAgentsBadgeTop" style="font-size: 0.78rem; padding: 6px 14px; border-radius: 20px; background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); font-weight: 600;">9 of 25 Agents Active</span>
-                <button id="btnRunAgenticPipeline" class="btn-primary btn-md" style="font-weight: 700; padding: 10px 22px;">
+                <div id="agenticDatasetSummaryPill" class="dataset-summary-pill">
+                  <i data-lucide="database" style="width: 14px; height: 14px; color: #10b981;"></i>
+                  <span id="agenticDatasetSummaryText" style="font-weight: 600;">Dataset: Ready</span>
+                </div>
+                <button id="btnRunAgenticPipeline" class="btn-primary btn-md">
                   <i data-lucide="play" style="width: 15px; height: 15px; fill: currentColor; vertical-align: middle; margin-right: 6px;"></i>
-                  Run Full Analysis Suite
+                  Run Full 25-Agent Swarm
                 </button>
               </div>
             </div>
-
-            <!-- Quick Presets -->
-            <div style="display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center;">
-              <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Presets:</span>
-              <button type="button" class="preset-chip active" data-preset="growth_bi">🚀 Growth BI</button>
-              <button type="button" class="preset-chip" data-preset="quick_brief">⚡ Quick Brief</button>
-              <button type="button" class="preset-chip" data-preset="deep_mining">🔍 Data Mining</button>
-              <button type="button" class="preset-chip" data-preset="predictive_suite">🔮 Predictive Suite</button>
-              <button type="button" class="preset-chip" data-preset="full_audit">🏆 Full 25-Agent Audit</button>
-            </div>
           </div>
 
-          <!-- The 5 Use-Case Step Cards Grid -->
+          <!-- The 5 Analysis Cards (Ultra-Premium Redesign) -->
           <div class="usecase-cards-grid">
             
             <!-- Card 1: Data Analysis -->
             <div class="usecase-card" data-step="data_analysis">
               <div class="card-header">
-                <div class="card-title-row">
-                  <span class="card-step-title">
-                    <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i> 1. Data Analysis
-                  </span>
+                <div class="card-top-row">
+                  <div class="card-icon-badge">
+                    <i data-lucide="bar-chart-2" style="width: 22px; height: 22px;"></i>
+                  </div>
                   <span class="card-domain-badge">Hygiene &amp; Stats</span>
                 </div>
-                <div class="card-controls-row">
-                  <span class="card-agent-badge" data-badge-for="data_analysis">3/5 Selected</span>
-                  <button type="button" class="btn-card-toggle" data-cat="data_analysis">Select All</button>
-                </div>
+                <h3 class="card-step-title">1. Data Analysis</h3>
               </div>
-
               <p class="card-desc">Sanitizes anomalies, calculates statistical distributions, measures velocity trends, and sets baseline benchmarks.</p>
-              
-              <!-- Database Info Strip for Step 1 -->
-              <div class="card-db-meta" data-db-for="data_analysis">
-                <div class="db-meta-header">
-                  <div class="db-meta-header-left">
-                    <i data-lucide="database" style="width: 13px; height: 13px; color: var(--amber);"></i>
-                    <span>Database Telemetry</span>
-                  </div>
-                  <span class="db-meta-status ready">● Ready</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Active DB:</span>
-                  <span class="db-meta-val db-val-file">Active Project Dataset</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Dimensions:</span>
-                  <span class="db-meta-val db-val-dims">-- rows × -- columns</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Hygiene Focus:</span>
-                  <span class="db-meta-val db-val-focus">Null audit, IQR outliers &amp; sanitization</span>
-                </div>
+              <div class="card-highlights">
+                <span class="highlight-chip">🧹 Automated Hygiene</span>
+                <span class="highlight-chip">📊 IQR Distributions</span>
+                <span class="highlight-chip">📈 Growth Velocity</span>
               </div>
-
-              <!-- 5 Selective Agents for Step 1 -->
-              <div class="card-agents-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="data_cleaner" checked />
-                  <span>🧹 <strong>Data Cleaner</strong> <small style="color: var(--text-secondary);">(Hygiene &amp; Deduplication)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="statistical_analysis" checked />
-                  <span>📊 <strong>Statistical Analysis</strong> <small style="color: var(--text-secondary);">(IQR, Skewness, Variance)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="trend_analysis" />
-                  <span>📈 <strong>Trend Analysis</strong> <small style="color: var(--text-secondary);">(Momentum &amp; Velocity)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="comparative_analysis" />
-                  <span>⚖️ <strong>Comparative Analysis</strong> <small style="color: var(--text-secondary);">(Cohorts &amp; Spreads)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="insight_discovery" checked />
-                  <span>💡 <strong>Insight Discovery</strong> <small style="color: var(--text-secondary);">(Empirical Synthesis)</small></span>
-                </label>
-              </div>
-
-              <!-- Run Step 1 Action Button -->
-              <div class="card-footer" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-low);">
-                <button type="button" class="btn-step-run" data-cat="data_analysis">
-                  <i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor;"></i> Run Step 1 Analysis
+              <div class="card-footer-action">
+                <span class="card-agent-count"><i data-lucide="users" style="width: 14px; height: 14px;"></i> 5 Specialized Agents</span>
+                <button type="button" class="btn-card-launch" data-cat="data_analysis">
+                  <span>Configure &amp; Launch</span>
+                  <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
             </div>
@@ -908,71 +1016,25 @@
             <!-- Card 2: Business Analysis -->
             <div class="usecase-card" data-step="business_analysis">
               <div class="card-header">
-                <div class="card-title-row">
-                  <span class="card-step-title">
-                    <i data-lucide="briefcase" style="width: 18px; height: 18px;"></i> 2. Business Analysis
-                  </span>
+                <div class="card-top-row">
+                  <div class="card-icon-badge">
+                    <i data-lucide="briefcase" style="width: 22px; height: 22px;"></i>
+                  </div>
                   <span class="card-domain-badge">Commercial Levers</span>
                 </div>
-                <div class="card-controls-row">
-                  <span class="card-agent-badge" data-badge-for="business_analysis">4/5 Selected</span>
-                  <button type="button" class="btn-card-toggle" data-cat="business_analysis">Select All</button>
-                </div>
+                <h3 class="card-step-title">2. Business Analysis</h3>
               </div>
-
               <p class="card-desc">Identifies revenue concentration, unit profitability, cost reduction targets, customer RFM, and decision models.</p>
-              
-              <!-- Database Info Strip for Step 2 -->
-              <div class="card-db-meta" data-db-for="business_analysis">
-                <div class="db-meta-header">
-                  <div class="db-meta-header-left">
-                    <i data-lucide="database" style="width: 13px; height: 13px; color: var(--emerald);"></i>
-                    <span>Database Telemetry</span>
-                  </div>
-                  <span class="db-meta-status ready">● Ready</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Active DB:</span>
-                  <span class="db-meta-val db-val-file">Active Project Dataset</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Depth:</span>
-                  <span class="db-meta-val db-val-dims">-- transactions mapped</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Commercial Scope:</span>
-                  <span class="db-meta-val db-val-focus">Pareto 80/20, unit margins &amp; RFM tiers</span>
-                </div>
+              <div class="card-highlights">
+                <span class="highlight-chip">💰 Pareto 80/20 Sales</span>
+                <span class="highlight-chip">💵 Unit Profitability</span>
+                <span class="highlight-chip">👥 RFM Customer Tiers</span>
               </div>
-
-              <!-- 5 Selective Agents for Step 2 -->
-              <div class="card-agents-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="sales_analysis" checked />
-                  <span>💰 <strong>Sales Analysis</strong> <small style="color: var(--text-secondary);">(Pareto 80/20 &amp; Volumes)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="profitability_analysis" checked />
-                  <span>💵 <strong>Profitability Analysis</strong> <small style="color: var(--text-secondary);">(Margins &amp; Unit Economics)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="expense_optimization" />
-                  <span>✂️ <strong>Expense Optimization</strong> <small style="color: var(--text-secondary);">(Cost Leak Audit)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="customer_intelligence" checked />
-                  <span>👥 <strong>Customer Intelligence</strong> <small style="color: var(--text-secondary);">(RFM Segments &amp; Loyalty)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="decision_support" checked />
-                  <span>🎯 <strong>Decision Support</strong> <small style="color: var(--text-secondary);">(Executive Prioritization)</small></span>
-                </label>
-              </div>
-
-              <!-- Run Step 2 Action Button -->
-              <div class="card-footer" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-low);">
-                <button type="button" class="btn-step-run" data-cat="business_analysis">
-                  <i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor;"></i> Run Step 2 Analysis
+              <div class="card-footer-action">
+                <span class="card-agent-count"><i data-lucide="users" style="width: 14px; height: 14px;"></i> 5 Specialized Agents</span>
+                <button type="button" class="btn-card-launch" data-cat="business_analysis">
+                  <span>Configure &amp; Launch</span>
+                  <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
             </div>
@@ -980,71 +1042,25 @@
             <!-- Card 3: Data Mining -->
             <div class="usecase-card" data-step="data_mining">
               <div class="card-header">
-                <div class="card-title-row">
-                  <span class="card-step-title">
-                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i> 3. Data Mining
-                  </span>
+                <div class="card-top-row">
+                  <div class="card-icon-badge">
+                    <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
+                  </div>
                   <span class="card-domain-badge">Latent Discovery</span>
                 </div>
-                <div class="card-controls-row">
-                  <span class="card-agent-badge" data-badge-for="data_mining">1/5 Selected</span>
-                  <button type="button" class="btn-card-toggle" data-cat="data_mining">Select All</button>
-                </div>
+                <h3 class="card-step-title">3. Data Mining</h3>
               </div>
-
               <p class="card-desc">Discovers structural feature relationships, multivariate anomaly vectors, KMeans clusters, and affinity rules.</p>
-              
-              <!-- Database Info Strip for Step 3 -->
-              <div class="card-db-meta" data-db-for="data_mining">
-                <div class="db-meta-header">
-                  <div class="db-meta-header-left">
-                    <i data-lucide="database" style="width: 13px; height: 13px; color: var(--cyan);"></i>
-                    <span>Database Telemetry</span>
-                  </div>
-                  <span class="db-meta-status ready">● Ready</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Active DB:</span>
-                  <span class="db-meta-val db-val-file">Active Project Dataset</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Feature Space:</span>
-                  <span class="db-meta-val db-val-dims">-- numeric continuous columns</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Mining Scope:</span>
-                  <span class="db-meta-val db-val-focus">Pearson matrix, outlier vectors &amp; KMeans</span>
-                </div>
+              <div class="card-highlights">
+                <span class="highlight-chip">🧩 Latent Clusters</span>
+                <span class="highlight-chip">🔗 Feature Drivers</span>
+                <span class="highlight-chip">🛡️ Anomaly Vectors</span>
               </div>
-
-              <!-- 5 Selective Agents for Step 3 -->
-              <div class="card-agents-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="pattern_discovery" />
-                  <span>🧩 <strong>Pattern Discovery</strong> <small style="color: var(--text-secondary);">(Structural Clusters)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="relationship_analysis" checked />
-                  <span>🔗 <strong>Relationship Analysis</strong> <small style="color: var(--text-secondary);">(Correlations &amp; Drivers)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="segmentation" />
-                  <span>🏷️ <strong>Segmentation</strong> <small style="color: var(--text-secondary);">(KMeans Cohorts)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="anomaly_detection" />
-                  <span>🛡️ <strong>Anomaly Detection</strong> <small style="color: var(--text-secondary);">(Outlier Vectors)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="association_mining" />
-                  <span>🤝 <strong>Association Mining</strong> <small style="color: var(--text-secondary);">(Affinity Rules)</small></span>
-                </label>
-              </div>
-
-              <!-- Run Step 3 Action Button -->
-              <div class="card-footer" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-low);">
-                <button type="button" class="btn-step-run" data-cat="data_mining">
-                  <i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor;"></i> Run Step 3 Analysis
+              <div class="card-footer-action">
+                <span class="card-agent-count"><i data-lucide="users" style="width: 14px; height: 14px;"></i> 5 Specialized Agents</span>
+                <button type="button" class="btn-card-launch" data-cat="data_mining">
+                  <span>Configure &amp; Launch</span>
+                  <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
             </div>
@@ -1052,71 +1068,25 @@
             <!-- Card 4: Predictive Analysis -->
             <div class="usecase-card" data-step="predictive_analysis">
               <div class="card-header">
-                <div class="card-title-row">
-                  <span class="card-step-title">
-                    <i data-lucide="cpu" style="width: 18px; height: 18px;"></i> 4. Predictive Analysis
-                  </span>
+                <div class="card-top-row">
+                  <div class="card-icon-badge">
+                    <i data-lucide="cpu" style="width: 22px; height: 22px;"></i>
+                  </div>
                   <span class="card-domain-badge">Auto-ML &amp; Forecasts</span>
                 </div>
-                <div class="card-controls-row">
-                  <span class="card-agent-badge" data-badge-for="predictive_analysis">0/5 Selected</span>
-                  <button type="button" class="btn-card-toggle" data-cat="predictive_analysis">Select All</button>
-                </div>
+                <h3 class="card-step-title">4. Predictive Analysis</h3>
               </div>
-
               <p class="card-desc">Generates forward-looking revenue trajectories, optimal budget allocations, capacity demand, and risk scenarios.</p>
-              
-              <!-- Database Info Strip for Step 4 -->
-              <div class="card-db-meta" data-db-for="predictive_analysis">
-                <div class="db-meta-header">
-                  <div class="db-meta-header-left">
-                    <i data-lucide="database" style="width: 13px; height: 13px; color: #c084fc;"></i>
-                    <span>Database Telemetry</span>
-                  </div>
-                  <span class="db-meta-status ready">● Ready</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Active DB:</span>
-                  <span class="db-meta-val db-val-file">Active Project Dataset</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Projections:</span>
-                  <span class="db-meta-val db-val-dims">4-Period Forward Horizon &amp; Bounds</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Model Focus:</span>
-                  <span class="db-meta-val db-val-focus">Linear trends, Downside VaR &amp; Stress Tests</span>
-                </div>
+              <div class="card-highlights">
+                <span class="highlight-chip">📉 Multi-Period Forecast</span>
+                <span class="highlight-chip">🏦 Budget Allocation</span>
+                <span class="highlight-chip">🎲 What-If Simulations</span>
               </div>
-
-              <!-- 5 Selective Agents for Step 4 -->
-              <div class="card-agents-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="sales_forecasting" />
-                  <span>📉 <strong>Sales Forecasting</strong> <small style="color: var(--text-secondary);">(12-Month Trajectory)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="budget_forecasting" />
-                  <span>🏦 <strong>Budget Forecasting</strong> <small style="color: var(--text-secondary);">(Resource Allocation)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="demand_forecasting" />
-                  <span>📦 <strong>Demand Forecasting</strong> <small style="color: var(--text-secondary);">(Inventory &amp; Operations)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="risk_prediction" />
-                  <span>⚠️ <strong>Risk Prediction</strong> <small style="color: var(--text-secondary);">(Downside Assessment)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="whatif_simulation" />
-                  <span>🎲 <strong>What-If Simulation</strong> <small style="color: var(--text-secondary);">(Scenario Stress-Testing)</small></span>
-                </label>
-              </div>
-
-              <!-- Run Step 4 Action Button -->
-              <div class="card-footer" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-low);">
-                <button type="button" class="btn-step-run" data-cat="predictive_analysis">
-                  <i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor;"></i> Run Step 4 Analysis
+              <div class="card-footer-action">
+                <span class="card-agent-count"><i data-lucide="users" style="width: 14px; height: 14px;"></i> 5 Specialized Agents</span>
+                <button type="button" class="btn-card-launch" data-cat="predictive_analysis">
+                  <span>Configure &amp; Launch</span>
+                  <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
             </div>
@@ -1124,71 +1094,25 @@
             <!-- Card 5: Exploratory Data Analysis & Visuals -->
             <div class="usecase-card" data-step="eda">
               <div class="card-header">
-                <div class="card-title-row">
-                  <span class="card-step-title">
-                    <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> 5. Visuals &amp; EDA
-                  </span>
+                <div class="card-top-row">
+                  <div class="card-icon-badge">
+                    <i data-lucide="trending-up" style="width: 22px; height: 22px;"></i>
+                  </div>
                   <span class="card-domain-badge">Interactive Graphics</span>
                 </div>
-                <div class="card-controls-row">
-                  <span class="card-agent-badge" data-badge-for="eda">3/5 Selected</span>
-                  <button type="button" class="btn-card-toggle" data-cat="eda">Select All</button>
-                </div>
+                <h3 class="card-step-title">5. Visuals &amp; EDA</h3>
               </div>
-
               <p class="card-desc">Constructs interactive Plotly visual charts, answers natural-language queries, audits schemas, and composes stories.</p>
-              
-              <!-- Database Info Strip for Step 5 -->
-              <div class="card-db-meta" data-db-for="eda">
-                <div class="db-meta-header">
-                  <div class="db-meta-header-left">
-                    <i data-lucide="database" style="width: 13px; height: 13px; color: #38bdf8;"></i>
-                    <span>Database Telemetry</span>
-                  </div>
-                  <span class="db-meta-status ready">● Ready</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Active DB:</span>
-                  <span class="db-meta-val db-val-file">Active Project Dataset</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Visual Matrix:</span>
-                  <span class="db-meta-val db-val-dims">-- chartable columns detected</span>
-                </div>
-                <div class="db-meta-row">
-                  <span class="db-meta-label">Synthesis Focus:</span>
-                  <span class="db-meta-val db-val-focus">Interactive Plotly charts &amp; Storyboard</span>
-                </div>
+              <div class="card-highlights">
+                <span class="highlight-chip">🎨 Plotly Visual Suite</span>
+                <span class="highlight-chip">💬 Natural-Language SQL</span>
+                <span class="highlight-chip">📖 Storyboard Narrative</span>
               </div>
-
-              <!-- 5 Selective Agents for Step 5 -->
-              <div class="card-agents-list" style="display: flex; flex-direction: column; gap: 6px;">
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="dataset_explorer" checked />
-                  <span>🔭 <strong>Dataset Explorer</strong> <small style="color: var(--text-secondary);">(Schema Profiling)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="natural_query" />
-                  <span>💬 <strong>Natural-Language Query</strong> <small style="color: var(--text-secondary);">(SQL Answers)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="visualization" checked />
-                  <span>🎨 <strong>Visualization Agent</strong> <small style="color: var(--text-secondary);">(Plotly Suite)</small></span>
-                </label>
-                <label class="agent-chip" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="quality_inspector" />
-                  <span>🩺 <strong>Quality Inspector</strong> <small style="color: var(--text-secondary);">(Health Auditing)</small></span>
-                </label>
-                <label class="agent-chip checked" style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: var(--r-sm); background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); font-size: 0.8rem; cursor: pointer;">
-                  <input type="checkbox" name="agents" value="storytelling" checked />
-                  <span>📖 <strong>Storytelling Agent</strong> <small style="color: var(--text-secondary);">(Executive Narrative)</small></span>
-                </label>
-              </div>
-
-              <!-- Run Step 5 Action Button -->
-              <div class="card-footer" style="margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border-low);">
-                <button type="button" class="btn-step-run" data-cat="eda">
-                  <i data-lucide="play" style="width: 14px; height: 14px; fill: currentColor;"></i> Run Step 5 Analysis
+              <div class="card-footer-action">
+                <span class="card-agent-count"><i data-lucide="users" style="width: 14px; height: 14px;"></i> 5 Specialized Agents</span>
+                <button type="button" class="btn-card-launch" data-cat="eda">
+                  <span>Configure &amp; Launch</span>
+                  <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
                 </button>
               </div>
             </div>
@@ -1291,7 +1215,9 @@
       <!-- Export/action bar -->
       <div class="export-bar" style="margin-top: 24px;">
         <button id="exportPdfBtn" class="btn-primary"><i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
-          Export PDF Report</button>
+          Export Consolidated PDF</button>
+        <button id="exportDistinctPdfBtn" class="btn-secondary" style="border-color: rgba(255,37,42,0.3); background: rgba(255,37,42,0.06); color: var(--crimson, #ff252a); font-weight: 600;"><i data-lucide="file-check" style="width: 14px; height: 14px;"></i>
+          Export Distinct Capability PDF</button>
         <button id="exportZipBtn" class="btn-secondary"
           style="background: rgba(124,58,237,0.06); border-color: var(--violet-light); color: var(--violet-light); font-weight: 600;"><i
             data-lucide="archive" style="width: 14px; height: 14px;"></i> Export Project (.zip)</button>
@@ -2445,7 +2371,7 @@
   <!-- Toast notifications -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/js/main.js?v=1.2.4_rev2"></script>
 </body>
 
 </html>

@@ -40,6 +40,10 @@ class AgentDelivery:
     narrative: str = ""
     visuals: List[Dict[str, Any]] = field(default_factory=list)
     tables: List[Dict[str, Any]] = field(default_factory=list)
+    artifacts: List[Dict[str, Any]] = field(default_factory=list)
+    limitations: List[str] = field(default_factory=list)
+    recommendations: List[str] = field(default_factory=list)
+    report_manifest: Dict[str, Any] = field(default_factory=dict)
     provenance: Dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
 
@@ -55,9 +59,14 @@ class AgentDelivery:
             "narrative": self.narrative,
             "visuals": self.visuals,
             "tables": self.tables,
+            "artifacts": self.artifacts,
+            "limitations": self.limitations,
+            "recommendations": self.recommendations,
+            "report_manifest": self.report_manifest,
             "provenance": self.provenance,
             "error": self.error,
         }
+
 
 
 class BaseIntelligenceAgent:
@@ -126,6 +135,10 @@ class BaseIntelligenceAgent:
             narrative=narrative,
             visuals=validated.get("visuals", []),
             tables=validated.get("tables", []),
+            artifacts=validated.get("artifacts", []),
+            limitations=validated.get("limitations", []),
+            recommendations=validated.get("recommendations", []),
+            report_manifest=validated.get("report_manifest", {}),
             provenance=validated.get("provenance", {"method": "deterministic_python"}),
         )
 

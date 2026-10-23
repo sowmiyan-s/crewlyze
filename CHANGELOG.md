@@ -5,6 +5,25 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-23
+
+### Added & Enhanced
+- **5-Domain Crew Command Center**:
+  - Restructured Crew Analysis section into 5 clean domain cards: Data Analysis, Business Analysis, Data Mining, Predictive Analysis, and Visuals & EDA.
+  - Interactive `#crewDetailModal` featuring dynamic domain brief, dataset telemetry, tabbed multi-agent selection across all 25 agents, and execution controls.
+  - Bidirectional navigation preserving dataset context between Crew Analysis Hub, Agentic Execution, and Crew Chat.
+- **Distinct PDF Reporting Engine (`ui/export.py`)**:
+  - Distinct capability-specific report generators driven by `REPORT_MANIFESTS` registry covering all 25 agents.
+  - Dedicated visual treatments, capability cover pages, tailored KPI scorecards, empirical findings, and paired analytical visualizations.
+  - Polymorphic `export_pdf(result, filename, analysis_id)` dispatching to `export_distinct_agent_pdf()` when an `analysis_id` query parameter is provided.
+  - Full backward compatibility for consolidated C-Suite executive PDF reports.
+- **Deterministic Data Artifact Store (`tools/artifact_manager.py`)**:
+  - Real, downloadable tabular deliverables (`.csv`, `.json`) produced directly by intelligence agents (e.g., `sales_pareto_breakdown.csv`, `descriptive_statistics.csv`, `flagged_anomalies.csv`, `budget_burn_projection.csv`, `strategic_decision_matrix.csv`).
+  - Secure `/api/artifacts/{key}` and `/api/projects/{project_id}/artifacts/{key}` download endpoints with path traversal validation (`is_safe_filename()` and `Path.is_relative_to()`).
+  - Real-time aggregation in `MasterCoordinator` and dynamic artifact download chips with file sizes inside the dashboard UI.
+- **Crimson & Obsidian CLI Terminal Styling**:
+  - Red gradient ASCII banner and Obsidian terminal theme formatting in `config/cli_formatter.py`.
+
 ## [1.2.3] - 2026-09-02
 
 ### Added & Enhanced

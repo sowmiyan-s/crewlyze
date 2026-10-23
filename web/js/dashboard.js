@@ -5,6 +5,7 @@
 
 import { state, $, $$, escHtml } from './state.js';
 import { resizeAllCharts } from './charts.js';
+import { downloadPdf } from './export_ui.js';
 
 export function switchTab(tabId) {
   $$('.tab-btn').forEach(btn => {
@@ -237,6 +238,22 @@ export function renderCategories(categories) {
         }).join('');
       }
 
+      const artifactsHtml = (agent.artifacts && agent.artifacts.length)
+        ? `<div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--border-low);">
+            ${agent.artifacts.map(a => `
+              <a href="${a.download_url}" download class="artifact-download-chip" style="font-size: 0.72rem; padding: 4px 10px; background: rgba(255,37,42,0.06); border: 1px solid rgba(255,37,42,0.25); color: var(--crimson, #ff252a); border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;">
+                📥 ${escHtml(a.title || a.artifact_key)} <span style="opacity: 0.7; font-size: 0.65rem;">(${a.size_bytes ? (a.size_bytes < 1024 ? a.size_bytes + ' B' : (a.size_bytes / 1024).toFixed(1) + ' KB') : 'CSV'})</span>
+              </a>
+            `).join('')}
+          </div>`
+        : '';
+
+      const pdfBtnHtml = (agent.status === 'completed')
+        ? `<button type="button" class="btn-agent-pdf-export btn-secondary btn-xs" data-agent-id="${agent.agent_id}" style="align-self: flex-start; margin-top: 4px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.72rem; padding: 4px 10px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-low); color: var(--text-primary); border-radius: 4px; cursor: pointer;">
+            📄 Export ${agent.name || 'Agent'} PDF
+          </button>`
+        : '';
+
       return `
         <div class="card agent-delivery-card" style="padding: 18px; background: rgba(255,255,255,0.02); border: 1px solid var(--border-low); border-radius: var(--r-md); display: flex; flex-direction: column; gap: 12px; transition: all 0.2s;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-low); padding-bottom: 10px;">
@@ -253,6 +270,8 @@ export function renderCategories(categories) {
           ${metricsChips ? `<div style="display: flex; flex-wrap: wrap; gap: 6px;">${metricsChips}</div>` : ''}
           ${findingsHtml ? `<ul style="margin: 0; padding-left: 18px;">${findingsHtml}</ul>` : ''}
           ${tablesHtml}
+          ${artifactsHtml}
+          ${pdfBtnHtml}
         </div>
       `;
     }).join('');
@@ -321,3 +340,14 @@ export function renderDashboard(data, sessionId) {
   // Switch to results and activate Storyboard tab by default
   switchTab('storyboard');
 }
+
+// Delegated listener for per-agent PDF exports
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-agent-pdf-export');
+  if (btn) {
+    const aid = btn.getAttribute('data-agent-id');
+    if (aid) {
+      downloadPdf(null, null, aid);
+    }
+  }
+});
