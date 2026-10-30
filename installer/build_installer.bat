@@ -9,12 +9,6 @@ echo.
 set "SCRIPT_DIR=%~dp0"
 set "ISS_FILE=%SCRIPT_DIR%crewlyze_installer.iss"
 
-where node >nul 2>&1
-if not errorlevel 1 (
-    echo [INFO] Ensuring installer and codebase versions are synchronized...
-    node "%SCRIPT_DIR%..\bin\sync-version.js"
-    echo.
-)
 
 if exist "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" goto :found_x86
 if exist "C:\Program Files\Inno Setup 6\ISCC.exe" goto :found_pf

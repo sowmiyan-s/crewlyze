@@ -5,12 +5,26 @@ All notable changes to the Crewlyze project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.3] - 2026-09-02
+## [1.2.3] - 2026-10-30
 
 ### Added & Enhanced
+- **High-Performance Direct Relationship Visualization**: Direct generation and sandboxed execution of relationship visualization code in `crew.py`, completely eliminating 5-minute LLM freezes.
+- **7-Agent Autonomous Pipeline**: Full synchronization and multi-agent coordination across all 7 specialized agents:
+  1. Data Cleaning & Hygiene Agent (`agents/cleaner.py`)
+  2. Relationship Analyst (`agents/relation.py`)
+  3. Strategic Business Insights Agent (`agents/insights.py`)
+  4. Predictive Auto-ML Feature Importance Agent (`agents/predictive.py`)
+  5. Statistical Anomaly & Risk Auditor (`agents/anomaly.py`)
+  6. Temporal Trend & Trajectory Forecast Agent (`agents/trend.py`)
+  7. Visual Intelligence & Plotting Agent (`agents/visualizer.py`)
+- **Interactive Web UI & Real-Time Telemetry**: Fluid 8-stage tracking, live log streaming, dataset diff preview, and responsive Plotly visual dashboard.
+- **AI Data Copilot with Slash `/` Column Autocomplete**: High-speed conversational dataset querying with instant custom Matplotlib/Seaborn chart generation (<0.2s).
+- **Executive PDF Reporting Engine**: Polished C-suite PDF report generator in `ui/export.py` with dynamic page counts (`NumberedCanvas`), HTML entity escaping, and embedded high-resolution figures.
+- **Windows Standalone Installer & Offline Architecture**: Native Inno Setup wizard (`Crewlyze_Setup_v1.2.3.exe`) with automated PATH registration, desktop shortcuts, and decoupled background release auto-bumper checks.
 - **Robust Webhook Integration & URL Validation**: Improved Discord and Slack automation dispatch logic with strict protocol validation and responsive UI button binding.
 - **Automated Python Environment Installation**: Overhauled `install-python.js` with expanded architecture detection, resilient binary downloads, fallback verification, and graceful cross-platform dependency handling.
 - **Config & Dependency Hardening**: Pinned reliable version bounds for core data packages (`numpy`, `pandas`, `requests`), hardened LLM configuration handlers, and improved environment variable loading.
+
 
 ## [1.2.2] - 2026-09-02
 

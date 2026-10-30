@@ -56,7 +56,6 @@ Source: "crewlyze.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "setup_env.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "updater.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "crewlyze_update.bat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "check_release.ps1"; Flags: dontcopy
 
 ; Directories and assets
 Source: "..\agents\*"; DestDir: "{app}\agents"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*__pycache__*,*.pyc,*.pyo"
@@ -97,38 +96,8 @@ const
   UserEnvironmentKey = 'Environment';
 
 function InitializeSetup(): Boolean;
-var
-  ResultCode: Integer;
-  TempFile: string;
-  LatestVer: AnsiString;
-  Msg: string;
-  CheckScript: string;
 begin
   Result := True;
-  try
-    ExtractTemporaryFile('check_release.ps1');
-    CheckScript := ExpandConstant('{tmp}\check_release.ps1');
-    if Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -File "' + CheckScript + '" -CurrentVersion "{#MyAppVersion}"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
-    begin
-      if ResultCode = 2 then
-      begin
-        TempFile := ExpandConstant('{tmp}\..\crewlyze_latest.txt');
-        if LoadStringFromFile(TempFile, LatestVer) then
-        begin
-          Msg := 'A newer version of Crewlyze (v' + Trim(string(LatestVer)) + ') is available online!' + #13#10#13#10 +
-                 'Current installer version: v{#MyAppVersion}' + #13#10#13#10 +
-                 'Would you like to open the GitHub Releases page to download the latest installer?';
-          if MsgBox(Msg, mbConfirmation, MB_YESNO) = IDYES then
-          begin
-            ShellExec('open', '{#MyAppURL}/releases/latest', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
-            Result := False;
-          end;
-        end;
-      end;
-    end;
-  except
-    Result := True;
-  end;
 end;
 
 function NeedsAddPath(Param: string): boolean;

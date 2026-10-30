@@ -1,129 +1,88 @@
-# LLM Configuration Guide
+# Crewlyze Configuration Guide
 
-This directory contains centralized LLM configuration for the CrewAI Data Analyst application.
+Centralized environment and Large Language Model (LLM) configuration for **Crewlyze**.
 
-## Quick Start
+---
 
-### 1. Choose Your LLM Provider
+## 🚀 Quick Start
 
-Set the `LLM_PROVIDER` environment variable (in Replit Secrets or `.env` file):
+Configure Crewlyze either via the **Interactive Web Settings Modal** (`http://localhost:8000` ➔ ⚙️ **Settings**) or by defining environment variables in `.env` files.
 
-```bash
-LLM_PROVIDER=groq  # Options: groq, openai, ollama, anthropic
+### Configuration Load Priority
+`config/env_loader.py` discovers and loads settings hierarchically:
+1. `~/.crewlyze/.env` (Global user profile defaults)
+2. `<project-root>/.env` (Workspace overrides)
+3. Working directory `.env`
+4. Active OS Environment Variables
+
+---
+
+## 🔑 Universal LLM Provider Matrix
+
+Crewlyze integrates with **LiteLLM** and **CrewAI**, supporting 13+ cloud and local LLM providers:
+
+| Provider | Environment Key | Default Model | Setup & Notes |
+| :--- | :--- | :--- | :--- |
+| 🟢 **NVIDIA NIM** (Default) | `NVIDIA_API_KEY` | `nvidia_nim/meta/llama-3.1-70b-instruct` | Fast, enterprise-grade Llama-3.1-70b models via NVIDIA Integrate API. |
+| 🦙 **Ollama (100% Offline)** | `OLLAMA_BASE_URL` | `ollama/llama3` | Fully private, air-gapped local execution on `http://localhost:11434`. Zero cloud egress. |
+| ⚡ **Groq** | `GROQ_API_KEY` | `groq/llama-3.1-8b-instant` | Ultra-low latency inference for high-speed exploration. |
+| 🟢 **OpenAI** | `OPENAI_API_KEY` | `gpt-4o-mini` | Supports `gpt-4o`, `gpt-4o-mini`, and `o1` series. |
+| 🟣 **Anthropic** | `ANTHROPIC_API_KEY` | `claude-3-5-sonnet-20241022` | Premier analytical depth and structured reasoning. |
+| 🔵 **Google Gemini** | `GEMINI_API_KEY` | `gemini/gemini-1.5-flash` | Long-context multimodal data evaluation. Also accepts `GOOGLE_API_KEY`. |
+| 🌊 **DeepSeek** | `DEEPSEEK_API_KEY` | `deepseek/deepseek-chat` | High reasoning efficiency and competitive performance. |
+| 🌪️ **Mistral AI** | `MISTRAL_API_KEY` | `mistral/mistral-small-latest` | European cloud inference and code analysis. |
+| 🤝 **Together AI** | `TOGETHER_API_KEY` | `together_ai/meta-llama/Llama-3-70b-chat-hf` | High-throughput open-weights hosting. |
+| 🌐 **OpenRouter** | `OPENROUTER_API_KEY` | `openrouter/google/gemma-2-9b-it` | Universal gateway to dozens of open-source and proprietary models. |
+| 🔎 **Perplexity** | `PERPLEXITY_API_KEY` | `perplexity/llama-3-sonar-large-32k-chat` | Online search-grounded LLM inference. |
+| 💬 **Cohere** | `COHERE_API_KEY` | `cohere/command-r-plus` | Enterprise RAG and tabular synthesis. |
+| 🤗 **Hugging Face** | `HUGGINGFACE_API_KEY` | `huggingface/HuggingFaceH4/zephyr-7b-beta` | Open model hub inference. Also accepts `HF_TOKEN`. |
+| 🛠️ **Custom / vLLM / LM Studio** | `CUSTOM_API_KEY` | User specified via `LLM_MODEL` | Custom OpenAI-compatible endpoints (`CUSTOM_BASE_URL`). |
+
+---
+
+## 📝 Example `.env` Configuration
+
+```env
+# ── LLM Provider Selection ───────────────────────────────────────────────────
+LLM_PROVIDER=nvidia
+NVIDIA_API_KEY=nvapi-your-key-here
+LLM_MODEL=nvidia_nim/meta/llama-3.1-70b-instruct
+
+# ── Alternative Cloud Providers (Optional) ───────────────────────────────────
+# LLM_PROVIDER=openai
+# OPENAI_API_KEY=sk-...
+
+# LLM_PROVIDER=anthropic
+# ANTHROPIC_API_KEY=sk-ant-...
+
+# LLM_PROVIDER=gemini
+# GEMINI_API_KEY=AIzaSy...
+
+# LLM_PROVIDER=groq
+# GROQ_API_KEY=gsk_...
+
+# ── Air-Gapped Local Ollama (Optional) ────────────────────────────────────────
+# LLM_PROVIDER=ollama
+# OLLAMA_BASE_URL=http://localhost:11434
+# LLM_MODEL=ollama/llama3.1
+
+# ── Outbound Notifications (Optional) ────────────────────────────────────────
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=reports@example.com
+SMTP_PASSWORD=your-app-password
+SMTP_SENDER=reports@example.com
+REPORT_RECIPIENTS=executive@example.com,csuite@example.com
+
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
 ```
 
-### 2. Add Your API Key
+---
 
-Add the corresponding API key to Replit Secrets:
+## 📬 Outbound Notification Channels
 
-| Provider | API Key Variable | Get Key From |
-|----------|-----------------|--------------|
-| Groq (Default) | `GROQ_API_KEY` | https://console.groq.com/keys |
-| OpenAI | `OPENAI_API_KEY` | https://platform.openai.com/api-keys |
-| Anthropic | `ANTHROPIC_API_KEY` | https://console.anthropic.com/ |
-| Ollama | `OLLAMA_BASE_URL` | http://localhost:11434 (local) |
-
-### 3. Restart the Application
-
-After changing providers, restart the workflow to apply changes.
-
-## Supported Providers
-
-### 🚀 Groq (Recommended)
-- **Model**: llama-3.3-70b-versatile
-- **Speed**: Very fast
-- **Cost**: Low
-- **Best for**: Production use, fast responses
-
-```bash
-LLM_PROVIDER=groq
-GROQ_API_KEY=gsk_...
-```
-
-### 🤖 OpenAI
-- **Model**: gpt-4o-mini
-- **Speed**: Fast
-- **Cost**: Medium
-- **Best for**: High-quality responses
-
-```bash
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-```
-
-### 🏠 Ollama (Local)
-- **Model**: llama3
-- **Speed**: Depends on hardware
-- **Cost**: Free (runs locally)
-- **Best for**: Privacy, offline use
-
-```bash
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-```
-
-### 🧠 Anthropic Claude
-- **Model**: claude-3-5-sonnet-20241022
-- **Speed**: Fast
-- **Cost**: Medium
-- **Best for**: Complex reasoning tasks
-
-```bash
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-## How It Works
-
-The `llm_config.py` file provides a centralized configuration system that:
-
-1. **Reads environment variables** to determine which LLM provider to use
-2. **Validates credentials** before initializing agents
-3. **Returns standardized config** that works with all CrewAI agents
-4. **Allows easy switching** between providers without code changes
-
-### Code Example
-
-All agents automatically use the centralized config:
-
-```python
-from crewai import Agent, LLM
-from config.llm_config import get_llm_params
-
-my_agent = Agent(
-    name="My Agent",
-    role="My Role",
-    llm=LLM(**get_llm_params()),  # Automatically uses configured provider
-    verbose=True
-)
-```
-
-## Customizing Models
-
-To use a different model for a specific provider, edit `config/llm_config.py`:
-
-```python
-GROQ_CONFIG = {
-    "model": "groq/llama-3.1-8b-instant",  # Change this
-    "api_key": os.getenv("GROQ_API_KEY"),
-}
-```
-
-## Troubleshooting
-
-### Error: "Invalid LLM provider"
-- Check that `LLM_PROVIDER` is set to one of: groq, openai, ollama, anthropic
-
-### Error: "API_KEY environment variable is not set"
-- Make sure you've added the API key to Replit Secrets
-- Restart the workflow after adding secrets
-
-### Error: "Connection refused" (Ollama)
-- Make sure Ollama is running locally
-- Check that `OLLAMA_BASE_URL` points to the correct address
-
-## Security Notes
-
-- **Never commit API keys** to version control
-- Always use Replit Secrets or environment variables
-- The `.env.example` file is safe to commit (contains no real keys)
+Configure automated report delivery upon pipeline execution completion:
+1. **SMTP Email**: Delivers executive summary PDF reports directly to configured recipient distribution lists.
+2. **Discord Webhooks**: Dispatches embedded markdown cards with metric summaries, warning badges, and direct PDF attachments to Discord channels.
+3. **Slack Webhooks**: Transmits formatted summary cards to Slack channels.

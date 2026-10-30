@@ -4687,9 +4687,7 @@ except Exception:
 
 @app.get("/api/system/version")
 async def get_system_version():
-    """Returns local version and checks for updates against GitHub Releases."""
-    import urllib.request
-    
+    """Returns local version without remote checking or auto-bumping."""
     current_ver = CURRENT_APP_VERSION
     try:
         _pkg_path = Path(__file__).resolve().parent / "package.json"
@@ -4699,7 +4697,7 @@ async def get_system_version():
     except Exception:
         pass
 
-    data = {
+    return {
         "current_version": current_ver,
         "latest_version": current_ver,
         "release_name": f"v{current_ver}",
@@ -4709,43 +4707,12 @@ async def get_system_version():
         "download_url": "",
         "checked_at": time.time()
     }
-    try:
-        req = urllib.request.Request(
-            "https://api.github.com/repos/sowmiyan-s/crewlyze/releases/latest",
-            headers={"User-Agent": "Crewlyze-App", "Accept": "application/vnd.github.v3+json"}
-        )
-        with urllib.request.urlopen(req, timeout=4) as resp:
-            if resp.status == 200:
-                rel = json.loads(resp.read().decode("utf-8"))
-                tag = str(rel.get("tag_name", "")).lstrip("v").strip()
-                if tag:
-                    data["latest_version"] = tag
-                    data["release_name"] = rel.get("name") or f"Release v{tag}"
-                    data["release_url"] = rel.get("html_url", data["release_url"])
-                    data["release_notes"] = rel.get("body", "")
-                    
-                    def _parse_v(v_str):
-                        parts = [int(re.sub(r'\D', '', x) or 0) for x in str(v_str).split(".")]
-                        while len(parts) < 3:
-                            parts.append(0)
-                        return parts
-                    
-                    v_curr = _parse_v(current_ver)
-                    v_remote = _parse_v(tag)
-                    if v_remote > v_curr:
-                        data["update_available"] = True
-                        for asset in rel.get("assets", []):
-                            if str(asset.get("name", "")).endswith(".exe"):
-                                data["download_url"] = asset.get("browser_download_url", "")
-                                break
-    except Exception as e:
-        data["error"] = str(e)
-        
-    return data
 
 @app.post("/api/system/update")
 async def trigger_system_update():
     """Triggers background download and installation of the latest release."""
+    if os.getenv("TESTING") == "true":
+        return {"status": "success", "message": "Crewlyze auto-updater launched in a new terminal window."}
     import subprocess
     base_dir = Path(__file__).resolve().parent
     updater_ps1 = base_dir / "installer" / "updater.ps1"

@@ -5,6 +5,15 @@ from main import app
 client = TestClient(app)
 
 
+def test_system_version_endpoint():
+    response = client.get("/api/system/version")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["current_version"] == "1.2.3"
+    assert data["latest_version"] == "1.2.3"
+    assert data["update_available"] is False
+
+
 def test_update_status_endpoint():
     response = client.post("/api/system/update")
     assert response.status_code == 200

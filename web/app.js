@@ -5964,8 +5964,7 @@ function escHtml(str) {
       });
     }
 
-    // Passive check on boot (3 seconds after load)
-    setTimeout(() => checkVersion(false), 3000);
+    // Passive check on boot disabled (no auto-bumper)
   }
 
   initUpdateSystem();

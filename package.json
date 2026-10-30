@@ -38,11 +38,9 @@
     "start": "node ./bin/crewlyze.js",
     "postinstall": "node ./bin/install-python.js",
     "install-python": "node ./bin/install-python.js",
-    "prepack": "node ./bin/sync-version.js && node ./bin/prepack.js",
+    "prepack": "node ./bin/prepack.js",
     "postpack": "node ./bin/postpack.js",
-    "sync-version": "node ./bin/sync-version.js",
-    "build:installer": "installer\\build_installer.bat",
-    "version": "node ./bin/sync-version.js && git add pyproject.toml main.py package-lock.json README.md web/index.html"
+    "build:installer": "installer\\build_installer.bat"
   },
   "keywords": [
     "ai",
